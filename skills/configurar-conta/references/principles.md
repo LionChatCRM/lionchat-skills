@@ -113,9 +113,30 @@ Exemplo: cliente diz "preciso saber o plano de saude do paciente"
 | E-commerce | ticket_medio (currency), produto_interesse (list), forma_pagamento (list) |
 | SaaS B2B | cargo (text), tamanho_empresa (list), integracao_necessaria (list) |
 
-**Diferenca contato vs conversa:**
-- **Contato** (model 0): dado do cliente (CPF, plano, cargo, cidade). Fica com ele sempre.
-- **Conversa** (model 1): dado de uma negociacao especifica (valor_orcamento, data_visita, status_documentos). Muda por conversa.
+**Os 3 tipos de atributo personalizado:**
+
+| Tipo | Quando usar | Exemplo | Onde fica |
+|------|-------------|---------|-----------|
+| **Contato** (`attribute_model=1`) | Dado do cliente que nao muda (ou muda pouco). Fica com ele pra sempre, independe da conversa atual. | CPF, plano de saude, cargo, cidade, aniversario | `custom_attribute_definitions` (endpoint 2.1) |
+| **Conversa** (`attribute_model=0`) | Dado de uma negociacao especifica. Muda por conversa. | valor_orcamento, data_visita, status_documentos, canal_origem | `custom_attribute_definitions` (endpoint 2.1) |
+| **Card Kanban** (`kanban_item_attribute`) | Dado que e **do card do Kanban** — ou seja, pertence ao negocio/oportunidade representada pelo card. Visivel no detalhe do card. | proposta_enviada_em, tipo_contrato, comissao, concorrente_principal | `kanban_config.global_custom_attributes` (endpoint 2.2) |
+
+**Como decidir qual usar:**
+
+- "Esse dado fica com o cliente sempre?" → **Contato**
+- "Esse dado e da negociacao atual (vai mudar se for outra negociacao)?" → **Conversa**
+- "Esse dado e do card no pipeline (ex: proposta, comissao, motivo de perda)?" → **Card**
+
+**Exemplo pratico (odontologia):**
+- **Contato**: plano_saude, cpf, data_nascimento (caracteristicas do paciente)
+- **Conversa**: tipo_procedimento_consultado, preferencia_dia_semana (dados da negociacao atual)
+- **Card**: valor_orcamento, motivo_perda, forma_pagamento_escolhida (dados do card de vendas)
+
+Muitas vezes o mesmo nome de atributo pode existir em 2 lugares, com significados diferentes. Ex: `valor_orcamento` pode ser da conversa (valor estimado durante o atendimento) E do card (valor final da proposta). Pergunte ao cliente pra nao criar redundancia.
+
+**Tipos de campo do Card (diferentes dos outros):**
+
+Card so aceita: `string`, `number`, `date`, `boolean`. Se for lista, e `type: string` + `is_list: true`. Nao existe `currency`, `percent`, `link` nem `checkbox` especifico como em contato/conversa.
 
 ## Heuristicas de SLA
 

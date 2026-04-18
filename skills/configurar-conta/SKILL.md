@@ -65,10 +65,13 @@ AUTOMACOES (X)
   Ao entrar em "Orcamento enviado" → enviar mensagem em 48h
   Ao ficar 7 dias parado → aplicar tag "reativacao"
 
-CAMPOS PERSONALIZADOS (X)
-  Tipo: tipo_procedimento, plano_saude
-  Conversao: valor_orcamento, origem_detalhada
-  Datas: proxima_consulta
+CAMPOS PERSONALIZADOS (X total)
+  Contato (dado persistente do cliente):
+    - plano_saude, cpf, data_nascimento
+  Conversa (dado da negociacao atual):
+    - tipo_procedimento_consultado, preferencia_dia
+  Card/Kanban (dado do card de venda):
+    - valor_orcamento, motivo_perda, forma_pagamento
 
 TIMES (X)
   [se fizer sentido pro tamanho]
@@ -131,16 +134,17 @@ curl -s -o /tmp/lc_check.json -w "%{http_code}" \
 Use `curl` via Bash. Sempre nessa ordem (dependencias):
 
 1. **Configuracoes gerais da conta** (PATCH `/accounts/{id}`) — timezone, locale, nome
-2. **Campos personalizados** (POST `/custom_attribute_definitions`)
-3. **Tags/Labels** (POST `/labels`) — lembrar de wrap `{"label": {...}}`
-4. **Respostas rapidas** (POST `/canned_responses`) — wrap `{"canned_response": {...}}`
-5. **Times** (POST `/teams`) — wrap `{"team": {...}}`
-6. **Funil** (POST `/funnels`) — wrap `{"funnel": {...}}` — PRECISA existir antes das automacoes. **Guarde o ID retornado.**
-7. **Automacoes de etapa** (POST `/kanban/automations`) — wrap `{"kanban_automation": {...}}`, usa funnel_id do passo 6. **Trigger vai dentro de `trigger: {funnel_id, stage, event}` (jsonb).**
-8. **Regras de automacao globais** (POST `/automation_rules`) — wrap `{"automation_rule": {...}}`
-9. **SLA** (POST `/sla_policies`) — wrap `{"sla_policy": {...}}`. **Pode falhar com 404 se a conta nao for Enterprise** — se falhar, pula e avisa no final.
-10. **Macros** (POST `/macros`) — SEM wrap. `action_params` sempre array.
-11. **Variaveis da conta** (POST `/account_variables`) — wrap `{"variable": {...}}`. **Campos sao `attribute_display_name`, `attribute_key`, `attribute_description`, `attribute_display_type`, `value`.**
+2. **Atributos personalizados de contato e conversa** (POST `/custom_attribute_definitions`) — usa `attribute_model: 1` para contato, `0` para conversa
+3. **Atributos personalizados de card** (PUT `/kanban_config`) — wrap `{"kanban_config": {...}}`. **Mecanismo diferente:** sao armazenados em `global_custom_attributes` (array jsonb). Fazer GET primeiro pra pegar os existentes, appendar os novos e fazer PUT. Se GET der 404, usar POST pra criar a config.
+4. **Tags/Labels** (POST `/labels`) — lembrar de wrap `{"label": {...}}`
+5. **Respostas rapidas** (POST `/canned_responses`) — wrap `{"canned_response": {...}}`
+6. **Times** (POST `/teams`) — wrap `{"team": {...}}`
+7. **Funil** (POST `/funnels`) — wrap `{"funnel": {...}}` — PRECISA existir antes das automacoes. **Guarde o ID retornado.**
+8. **Automacoes de etapa** (POST `/kanban/automations`) — wrap `{"kanban_automation": {...}}`, usa funnel_id do passo 7. **Trigger vai dentro de `trigger: {funnel_id, stage, event}` (jsonb).**
+9. **Regras de automacao globais** (POST `/automation_rules`) — wrap `{"automation_rule": {...}}`
+10. **SLA** (POST `/sla_policies`) — wrap `{"sla_policy": {...}}`. **Pode falhar com 404 se a conta nao for Enterprise** — se falhar, pula e avisa no final.
+11. **Macros** (POST `/macros`) — SEM wrap. `action_params` sempre array.
+12. **Variaveis da conta** (POST `/account_variables`) — wrap `{"variable": {...}}`. **Campos sao `attribute_display_name`, `attribute_key`, `attribute_description`, `attribute_display_type`, `value`.**
 
 **Antes de criar cada item, listar pra evitar duplicata:**
 - Tags: `GET /labels` e comparar por `title`

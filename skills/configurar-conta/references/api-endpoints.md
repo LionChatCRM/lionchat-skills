@@ -47,11 +47,21 @@ curl -s --request PATCH \
 
 ## 2. Campos personalizados
 
+O LionChat tem **3 tipos de atributos personalizados**, armazenados em 2 lugares diferentes:
+
+| Tipo | Onde fica | Endpoint |
+|------|-----------|----------|
+| **Contato** (contact_attribute) | `custom_attribute_definitions` | POST `/custom_attribute_definitions` |
+| **Conversa** (conversation_attribute) | `custom_attribute_definitions` | POST `/custom_attribute_definitions` |
+| **Card do Kanban** (kanban_item_attribute) | `kanban_config.global_custom_attributes` | PUT `/kanban_config` |
+
+### 2.1 Atributos de Contato e Conversa
+
 **Sem wrap key.**
 
 `attribute_display_type`: `0`=text, `1`=number, `2`=currency, `3`=percent, `4`=link, `5`=date, `6`=list, `7`=checkbox.
 
-`attribute_model`: `0`=contact_attribute, `1`=conversation_attribute.
+`attribute_model`: `0`=conversation_attribute, `1`=contact_attribute (o valor `2`=account_attribute e reservado pro sistema — nao usar).
 
 ```bash
 curl -s --request POST \
@@ -63,7 +73,7 @@ curl -s --request POST \
     "attribute_display_name": "Valor do Orcamento",
     "attribute_display_type": 2,
     "attribute_key": "valor_orcamento",
-    "attribute_model": 1,
+    "attribute_model": 0,
     "attribute_description": "Valor total proposto ao cliente"
   }'
 ```
@@ -71,6 +81,91 @@ curl -s --request POST \
 Regras:
 - `attribute_key` deve ser snake_case, sem acento, sem espaco.
 - Para tipo `list` (6), adicionar `attribute_values: ["opcao1", "opcao2"]`.
+
+### 2.2 Atributos de Card (Kanban)
+
+**WRAP KEY OBRIGATORIO:** `{"kanban_config": {...}}`.
+
+**ATENCAO — mecanismo diferente:** card attributes NAO usam `custom_attribute_definitions`. Sao armazenados dentro de `kanban_config.global_custom_attributes` como um array JSONB. Cada item do array tem:
+
+- `name` — nome de exibicao (string livre)
+- `type` — `"string"`, `"number"`, `"date"` ou `"boolean"`
+- `is_list` — boolean, `true` se for lista de opcoes
+- `list_values` — array de opcoes quando `is_list=true`, senao array vazio `[]`
+
+**Mapa de tipos do frontend para o backend:**
+
+| Tipo visual | type | is_list |
+|-------------|------|---------|
+| Texto | `string` | false |
+| Numero | `number` | false |
+| Link | `string` | false |
+| Data | `date` | false |
+| Lista | `string` | **true** (preencher list_values) |
+| Checkbox | `boolean` | false |
+
+**Importante:** este endpoint **sobrescreve o array inteiro**. Para adicionar UM atributo novo, leia os existentes primeiro, faca append no array e depois envie o PUT.
+
+**Passo 1 — ler config atual:**
+
+```bash
+curl -s --request GET \
+  --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/kanban_config \
+  --header 'api_access_token: SEU_TOKEN'
+```
+
+Resposta contem `global_custom_attributes: [...]` (pode ser vazio `[]` se nunca foi configurado).
+
+**Passo 2 — atualizar com o array completo (existentes + novos):**
+
+```bash
+curl -s --request PUT \
+  --max-time 10 \
+  --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/kanban_config \
+  --header 'api_access_token: SEU_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "kanban_config": {
+      "global_custom_attributes": [
+        {
+          "name": "Tipo de Procedimento",
+          "type": "string",
+          "is_list": true,
+          "list_values": ["Implante", "Canal", "Limpeza", "Avaliacao"]
+        },
+        {
+          "name": "Valor Orcamento",
+          "type": "number",
+          "is_list": false,
+          "list_values": []
+        },
+        {
+          "name": "Data da Consulta",
+          "type": "date",
+          "is_list": false,
+          "list_values": []
+        }
+      ]
+    }
+  }'
+```
+
+**Se a conta nunca teve kanban_config**, o GET do passo 1 retorna 404. Nesse caso, use POST (em vez de PUT) para criar a config pela primeira vez:
+
+```bash
+curl -s --request POST \
+  --max-time 10 \
+  --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/kanban_config \
+  --header 'api_access_token: SEU_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "kanban_config": {
+      "enabled": true,
+      "config": { "title": "Kanban", "default_view": "kanban" },
+      "global_custom_attributes": [...]
+    }
+  }'
+```
 
 ---
 
