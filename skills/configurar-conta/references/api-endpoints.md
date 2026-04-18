@@ -6,24 +6,30 @@
 
 **Content-Type:** `application/json` em POST/PATCH/PUT.
 
+**IMPORTANTE — WRAP KEYS:** A maioria dos endpoints do LionChat espera o payload **embrulhado** em uma chave com o nome do recurso. Ex: `labels` espera `{"label": {...}}`, `funnels` espera `{"funnel": {...}}`, e assim por diante. Isso está indicado em cada endpoint abaixo. **Se voce nao usar o wrap correto, a API retorna 400.**
+
 ---
 
 ## 0. Validar credenciais (SEMPRE fazer primeiro)
 
 ```bash
-curl --request GET \
+curl -s --request GET \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id} \
   --header 'api_access_token: SEU_TOKEN'
 ```
 
-Se retornar 401 → token invalido. Se retornar 200 → pode continuar.
+Se retornar 401 → token invalido. Se retornar 200 → pode continuar. Confirmar que o `role` do usuario (na resposta do `/profile`) e `administrator`.
 
 ---
 
 ## 1. Configuracoes gerais da conta
 
+**Sem wrap key.** Campos `timezone` e `auto_resolve_after` vao pra `custom_attributes`/`settings` internamente.
+
 ```bash
-curl --request PATCH \
+curl -s --request PATCH \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{id} \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
@@ -41,12 +47,15 @@ curl --request PATCH \
 
 ## 2. Campos personalizados
 
+**Sem wrap key.**
+
 `attribute_display_type`: `0`=text, `1`=number, `2`=currency, `3`=percent, `4`=link, `5`=date, `6`=list, `7`=checkbox.
 
 `attribute_model`: `0`=contact_attribute, `1`=conversation_attribute.
 
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/custom_attribute_definitions \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
@@ -67,41 +76,58 @@ Regras:
 
 ## 3. Tags (Labels)
 
+**WRAP KEY OBRIGATORIO:** `{"label": {...}}`
+
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/labels \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "title": "fonte-instagram",
-    "description": "Lead veio do Instagram",
-    "color": "#E91E63",
-    "show_on_sidebar": true
+    "label": {
+      "title": "fonte-instagram",
+      "description": "Lead veio do Instagram",
+      "color": "#E91E63",
+      "show_on_sidebar": true
+    }
   }'
 ```
 
 Regras:
-- `title` deve ser kebab-case (minusculo, hifen), sem acento, sem espaco.
-- Use cores diferentes por categoria (ex: azul = fonte, vermelho = objecao, verde = positivo).
-- Paleta sugerida:
+- `title` e **forcado para minusculo** automaticamente. So aceita letras, numeros, hifen e underscore.
+- NAO pode ter espaco nem acento.
+- Paleta sugerida (use cor diferente por categoria):
   - Fontes: `#1976D2`, `#1565C0`, `#0D47A1`
   - Objecoes: `#E53935`, `#C62828`, `#B71C1C`
   - Status positivo: `#43A047`, `#2E7D32`
   - Prioridade: `#F57C00`, `#E65100`
   - Neutro: `#616161`, `#424242`
 
+**Listar antes de criar (evitar duplicata):**
+```bash
+curl -s --request GET \
+  --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/labels \
+  --header 'api_access_token: SEU_TOKEN'
+```
+
 ---
 
 ## 4. Respostas rapidas
 
+**WRAP KEY OBRIGATORIO:** `{"canned_response": {...}}`
+
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/canned_responses \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "short_code": "boasvindas",
-    "content": "Ola {{contact.name}}! Obrigado pelo contato. Como posso ajudar?"
+    "canned_response": {
+      "short_code": "boasvindas",
+      "content": "Ola {{contact.name}}! Obrigado pelo contato. Como posso ajudar?"
+    }
   }'
 ```
 
@@ -111,23 +137,27 @@ Variaveis disponiveis no `content`:
 - `{{conversation.id}}`
 
 Regras:
-- `short_code` minusculo, sem espaco, sem acento. Se tiver 2 palavras, usar hifen: `follow-up-48h`.
-- Sempre sugerir pelo menos: boas-vindas, horario-fora, aguarde-um-momento, agradecimento-final.
+- `short_code` minusculo, sem espaco, sem acento. Se tiver 2 palavras, usar hifen: `follow-up-48h` — esse formato funciona.
+- Minimo sugerido: `boasvindas`, `horariofora`, `aguarde`, `agradecimento`.
 
 ---
 
 ## 5. Times
 
+**WRAP KEY OBRIGATORIO:** `{"team": {...}}`
+
 ```bash
-# Criar time
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/teams \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "name": "Vendas",
-    "description": "Time comercial",
-    "allow_auto_assign": true
+    "team": {
+      "name": "Vendas",
+      "description": "Time comercial",
+      "allow_auto_assign": true
+    }
   }'
 ```
 
@@ -137,78 +167,95 @@ curl --request POST \
 
 ## 6. Funil (Kanban)
 
+**WRAP KEY OBRIGATORIO:** `{"funnel": {...}}`
+
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/funnels \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "name": "Funil de Vendas",
-    "description": "Processo comercial principal",
-    "active": true,
-    "stages": {
-      "lead_novo": {
-        "name": "Lead Novo",
-        "color": "#3B82F6",
-        "position": 1
+    "funnel": {
+      "name": "Funil de Vendas",
+      "description": "Processo comercial principal",
+      "active": true,
+      "stages": {
+        "lead_novo": {
+          "name": "Lead Novo",
+          "color": "#3B82F6",
+          "position": 1
+        },
+        "em_qualificacao": {
+          "name": "Em Qualificacao",
+          "color": "#F59E0B",
+          "position": 2
+        },
+        "proposta_enviada": {
+          "name": "Proposta Enviada",
+          "color": "#8B5CF6",
+          "position": 3
+        },
+        "fechado_ganho": {
+          "name": "Fechado (Ganho)",
+          "color": "#10B981",
+          "position": 4
+        }
       },
-      "em_qualificacao": {
-        "name": "Em Qualificacao",
-        "color": "#F59E0B",
-        "position": 2
-      },
-      "proposta_enviada": {
-        "name": "Proposta Enviada",
-        "color": "#8B5CF6",
-        "position": 3
-      },
-      "fechado_ganho": {
-        "name": "Fechado (Ganho)",
-        "color": "#10B981",
-        "position": 4
-      }
-    },
-    "settings": {}
+      "settings": {}
+    }
   }'
 ```
 
 Regras:
-- Chaves das stages (ex: `lead_novo`): snake_case, sao os identificadores internos. Use-as depois nas automacoes.
+- Chaves das stages (ex: `lead_novo`): snake_case, sao os identificadores internos. Guarde-as para usar nas automacoes.
 - `name` da stage: o que o cliente ve na tela.
-- Cores: use uma paleta coerente (ex: azul no inicio → amarelo no meio → roxo negociando → verde fechado / vermelho perdido).
-- Sempre inclua uma etapa final "ganho" e uma "perdido" se fizer sentido.
+- Cores: use paleta coerente (azul no inicio → amarelo → roxo → verde/vermelho no fim).
+- Sempre incluir etapa final "ganho" e, se fizer sentido, "perdido".
 
-Retorno contem `"id": N` — guarde o ID do funil para as automacoes.
+**Retorno** contem `"id": N` — guarde o ID do funil para as automacoes.
 
 ---
 
 ## 7. Automacoes de etapa
 
+**WRAP KEY OBRIGATORIO:** `{"kanban_automation": {...}}`
+
+**Atencao — estrutura real:** o campo `trigger` e um JSONB livre. Gatilho de etapa fica DENTRO de `trigger`, nao como campos soltos.
+
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/kanban/automations \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "funnel_id": 7,
-    "stage": "proposta_enviada",
-    "trigger": "on_enter",
-    "actions": [
-      {
-        "action_name": "send_message",
-        "action_params": {
-          "content": "Ola {{contact.name}}, envie sua proposta. Estamos a disposicao para tirar duvidas!",
-          "delay_seconds": 172800
+    "kanban_automation": {
+      "name": "Follow-up 48h apos proposta",
+      "description": "Manda mensagem de followup 2 dias apos entrar na etapa",
+      "active": true,
+      "trigger": {
+        "funnel_id": 7,
+        "stage": "proposta_enviada",
+        "event": "on_enter"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "action_name": "send_message",
+          "action_params": {
+            "content": "Ola {{contact.name}}, conseguiu analisar a proposta? Estamos a disposicao!",
+            "delay_seconds": 172800
+          }
         }
-      }
-    ],
-    "active": true
+      ]
+    }
   }'
 ```
 
-`trigger`: `on_enter` (quando card entra na etapa) ou `on_leave` (quando sai).
+`trigger.event`: `on_enter` (quando card entra na etapa) ou `on_leave` (quando sai).
 
-`action_name` disponiveis:
+`action_name` disponiveis (verificar atualizacoes no painel):
 - `send_message` — envia mensagem na conversa do card
 - `assign_agent` — atribui agente (params: `{agent_id: N}`)
 - `assign_team` — atribui time (params: `{team_id: N}`)
@@ -221,14 +268,17 @@ curl --request POST \
 
 ## 8. Regras de automacao globais
 
-Triggers mais usados:
+**WRAP KEY OBRIGATORIO:** `{"automation_rule": {...}}` (nota: aqui e `automation_rule`, singular).
+
+Triggers mais usados em `event_name`:
 - `conversation_created` — nova conversa
 - `message_created` — nova mensagem recebida
 - `conversation_status_changed` — status mudou
 - `conversation_updated` — conversa foi atualizada
 
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/automation_rules \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
@@ -257,20 +307,35 @@ curl --request POST \
 
 ---
 
-## 9. SLA
+## 9. SLA (Enterprise only)
+
+**AVISO:** este endpoint requer licenca Enterprise. Em contas OSS retorna 404. Sempre verifique antes de criar SLA, fazendo um GET primeiro:
 
 ```bash
-curl --request POST \
+curl -s -o /dev/null -w "%{http_code}" \
+  --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/sla_policies \
+  --header 'api_access_token: SEU_TOKEN'
+```
+
+Se retornar 404 → conta sem Enterprise, pular SLA. Se 200 → pode criar.
+
+**WRAP KEY OBRIGATORIO:** `{"sla_policy": {...}}`
+
+```bash
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/sla_policies \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "name": "SLA Padrao",
-    "description": "Prazos de atendimento padrao",
-    "first_response_time_threshold": 600,
-    "next_response_time_threshold": 1800,
-    "resolution_time_threshold": 14400,
-    "only_during_business_hours": true
+    "sla_policy": {
+      "name": "SLA Padrao",
+      "description": "Prazos de atendimento padrao",
+      "first_response_time_threshold": 600,
+      "next_response_time_threshold": 1800,
+      "resolution_time_threshold": 14400,
+      "only_during_business_hours": true
+    }
   }'
 ```
 
@@ -283,8 +348,13 @@ Valores em **segundos**:
 
 ## 10. Macros (acoes pre-configuradas)
 
+**Sem wrap key.** Campos sao recebidos direto em `params.permit`.
+
+**ATENCAO:** `action_params` deve **sempre ser array**, mesmo que tenha so 1 valor.
+
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/macros \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
@@ -302,7 +372,7 @@ curl --request POST \
       },
       {
         "action_name": "send_message",
-        "action_params": "Sua solicitacao foi escalada para o gerente. Retornamos em ate 30 min."
+        "action_params": ["Sua solicitacao foi escalada para o gerente. Retornamos em ate 30 min."]
       }
     ]
   }'
@@ -314,16 +384,17 @@ curl --request POST \
 
 ## 11. Horario de trabalho (working hours)
 
-Cada inbox tem seu horario. Ao criar inbox nova o cliente define. Se quiser configurar horario padrao da conta:
+Cada inbox tem seu horario. Precisa PATCH na inbox especifica:
 
 ```bash
 # Listar inboxes
-curl --request GET \
+curl -s --request GET \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/inboxes \
   --header 'api_access_token: SEU_TOKEN'
 
-# Atualizar horario de uma inbox
-curl --request PATCH \
+# Atualizar horario de uma inbox (sem wrap key)
+curl -s --request PATCH \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/inboxes/{inbox_id} \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
@@ -348,15 +419,29 @@ curl --request PATCH \
 
 ## 12. Variaveis da conta
 
+**WRAP KEY OBRIGATORIO:** `{"variable": {...}}`
+
+**Atencao — campos reais:** o endpoint NAO aceita `name/key/value` como nomes diretos. Os campos corretos sao:
+- `attribute_display_name` (nome de exibicao)
+- `attribute_key` (chave snake_case)
+- `attribute_description` (opcional)
+- `attribute_display_type` (integer: 0=text, 1=number, etc)
+- `value` (o valor em si — enviado separadamente, e setado via `save_value` interno quando `params[:variable].key?(:value)`)
+
 ```bash
-curl --request POST \
+curl -s --request POST \
+  --max-time 10 \
   --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/account_variables \
   --header 'api_access_token: SEU_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "name": "Telefone Suporte",
-    "key": "telefone_suporte",
-    "value": "(11) 9999-9999"
+    "variable": {
+      "attribute_display_name": "Telefone de Suporte",
+      "attribute_key": "telefone_suporte",
+      "attribute_description": "Numero principal do atendimento",
+      "attribute_display_type": 0,
+      "value": "(11) 9999-9999"
+    }
   }'
 ```
 
@@ -381,9 +466,10 @@ Uso nas respostas rapidas: `{{account.telefone_suporte}}`.
 
 | Status | Causa | Acao |
 |--------|-------|------|
+| 400 | Wrap key faltando | Verifique se payload ta `{"label": {...}}` e nao `{...}` |
 | 401 | Token invalido ou expirado | Para tudo, avisa: "confere o API token em Configuracoes > Perfil" |
 | 403 | Token valido mas sem permissao na conta | "Seu usuario nao e administrator da conta {account_id}" |
-| 404 | account_id errado | "Confere o numero da conta na URL do painel" |
+| 404 (em endpoint que deveria existir) | SLA sem Enterprise, account_id errado | SLA: avisa e pula. account_id: confere URL |
 | 422 | Validacao falhou | Mostra a mensagem exata do erro e pergunta se pula ou corrige |
 | 429 | Rate limit | Espera 5s e tenta de novo |
 | 500 | Erro interno | Tenta 1 vez, se falhar de novo pula e reporta no final |
@@ -392,8 +478,11 @@ Uso nas respostas rapidas: `{{account.telefone_suporte}}`.
 
 ## Boas praticas de execucao
 
-1. **Sempre em ordem de dependencia** — tags antes de respostas (respostas referenciam tags), funil antes de automacoes de etapa.
-2. **Nao para tudo no primeiro erro** — registra erro, continua, reporta no final.
-3. **Nao cria duplicata** — antes de criar tag "fonte-instagram", chama `GET /labels` e verifica se ja existe.
-4. **Confirma IDs** — ao criar funil, guarde o `id` retornado pra usar nas automacoes.
-5. **Mostra progresso** — 1 linha curta por criacao: `Criando tag "fonte-instagram"... OK`.
+1. **Sempre em ordem de dependencia** — tags antes de respostas, funil antes de automacoes de etapa.
+2. **Validar account_id primeiro** — GET `/accounts/{id}` retorna 200 e mostra `name` da conta. Se 404, parar.
+3. **Listar antes de criar** — pra evitar duplicata (ex: `GET /labels` antes de `POST /labels`).
+4. **Timeout curl** — use `--max-time 10` em toda chamada. Se falhar, tenta 1 vez de novo.
+5. **Nao para tudo no primeiro erro** — registra erro, continua, reporta no final.
+6. **Confirma IDs retornados** — ao criar funil, guarde o `id` pra usar nas automacoes de etapa.
+7. **Mostra progresso** — 1 linha curta por criacao: `Criando tag "fonte-instagram"... OK`.
+8. **Silent** — use `curl -s` sempre pra nao poluir a saida com progress bar.

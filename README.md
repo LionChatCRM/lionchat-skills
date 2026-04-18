@@ -24,10 +24,13 @@ O Claude:
 ### Instalação
 
 ```bash
+mkdir -p ~/.claude/plugins
 git clone https://github.com/LionChatCRM/lionchat-skills ~/.claude/plugins/lionchat-skills
 ```
 
-Pronto. Abra o Claude Code — o plugin é detectado automaticamente.
+Pronto. Abra (ou reinicie) o Claude Code — o plugin é detectado automaticamente.
+
+**Verificar que a skill foi reconhecida:** dentro do Claude Code, digite `/` e o autocomplete deve sugerir `/lionchat-skills:configurar-conta`.
 
 ### Atualização
 
