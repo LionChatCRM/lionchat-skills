@@ -61,9 +61,10 @@ Configura uma conta LionChat do zero:
 - Funis de venda com etapas personalizadas
 - Tags de segmentação
 - Respostas rápidas com variáveis
-- Campos personalizados (contato e conversa)
-- Automações de etapa (follow-up automático, atribuição, etc.)
-- Regras de automação globais
+- Campos personalizados (contato, conversa e card do funil)
+- Modelos de checklist para os cards
+- Automações de etapa do funil (aplicar checklist, atribuir atendente, mover card, avisar o time, nota interna, webhook)
+- Regras de automação globais (atribuir, etiquetar, responder, mexer no card)
 - SLA de atendimento
 - Times de atendimento
 - Horários de trabalho
@@ -75,6 +76,13 @@ Configura uma conta LionChat do zero:
 - Conectar Instagram/Facebook (OAuth)
 - Configurar integrações de pagamento (Guru, Hotmart, etc.) — você precisa do token da outra plataforma
 - Convidar agentes novos (envio de email)
+- Desenhar fluxos no FlowBuilder
+- Configurar o agente de IA
+
+**Atenção a uma confusão comum:** mensagem automática *com atraso* (o clássico "cobrar em 48h quem
+não respondeu") **não é automação** — automação de etapa não manda mensagem, e a espera da automação
+global tem teto de 5 minutos. Isso se monta em **Fluxos**. A skill avisa você disso em vez de
+prometer o que não entrega.
 
 ## Segurança
 

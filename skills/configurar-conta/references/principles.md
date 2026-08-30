@@ -77,19 +77,44 @@ Isso permite relatorio por ROI de canal depois.
 
 **NUNCA criar respostas genericas tipo "/resposta1", "/resposta2".** Todo short_code deve ser semantico.
 
-## Heuristicas de automacoes de etapa
+## Heuristicas de automacoes
 
-**Sempre que identificar gargalo de follow-up:**
-- Automacao no `on_enter` da etapa de follow-up com `delay_seconds` configurado
-- Ex: ao entrar em "Orcamento enviado", enviar mensagem 48h depois
+Existem DUAS coisas diferentes com o mesmo apelido. Escolher a errada e o erro mais comum aqui.
 
-**Atribuicao automatica:**
-- Se time for maior que 1 pessoa, automacao ao criar card aplica `assign_team`
-- Se tem SDR + Closer, automacao ao entrar em "Qualificado" muda de time
+| | Automacao de ETAPA | Automacao GLOBAL |
+|---|---|---|
+| Onde mora | dentro do funil (`settings.automations`) | recurso proprio (`automation_rules`) |
+| Age sobre | o card | a conversa (e o card, quando o evento e de card) |
+| Manda mensagem? | **NAO** | **SIM**, na hora |
+| Tem atraso? | nao | so ate 5 minutos |
+| Serve pra | organizar o card: checklist, atendente, nota, mover, avisar time, webhook | falar com o cliente, etiquetar, atribuir, mexer no card |
 
-**Etiquetagem automatica:**
-- Ao ficar 7 dias em uma etapa sem mover → aplicar tag `reativacao`
-- Ao entrar em "Perdido" → aplicar tag `lead-perdido-motivo-X`
+**Regra de ouro: mensagem com ATRASO nao e automacao — e Fluxo.** "Cobrar em 48h quem nao respondeu"
+NAO se monta aqui. A automacao de etapa nao manda mensagem nenhuma, e a espera da automacao global
+para em 5 minutos (o resto e cortado em silencio). Ao identificar gargalo de follow-up, monte a
+estrutura e **avise o cliente que a cobranca automatica se monta em Fluxos**, que tem espera de horas
+e dias. Nao prometa o que a automacao nao faz.
+
+**Nao existe gatilho de tempo parado.** "Ao ficar 7 dias na mesma etapa" nao e um gatilho do sistema —
+nem na automacao de etapa (que so tem card criado, card chegou na etapa, card ganho/perdido) nem na
+global. Quem faz espera e o Fluxo.
+
+**O que a automacao de ETAPA resolve bem:**
+- Ao criar o card → aplicar o checklist daquela fase (`apply_checklist_template`)
+- Ao chegar numa etapa → atribuir o atendente responsavel (`assign_agent`)
+- Ao marcar ganho/perdido → escrever nota interna (`create_note`) ou avisar o time (`notify_team`)
+- Ao chegar numa etapa → disparar webhook pra um sistema de fora (`send_webhook`)
+
+**O que a automacao GLOBAL resolve bem:**
+- Conversa nova numa caixa → atribuir ao time certo (`assign_team`)
+- Card entrou na etapa X → mandar mensagem pro cliente **na hora** (`send_message`)
+- Card foi para "Perdido" → aplicar etiqueta na conversa (`add_label`)
+- Conversa resolvida → etiquetar, mudar prioridade
+
+**Atencao com evento de card na automacao global:** ali so valem dez acoes (`send_message`,
+`add_label`, `change_priority`, `assign_agent_to_kanban_item`, `add_note_to_kanban_item`,
+`move_kanban_item_to_stage`, `set_kanban_item_status`, os dois de cronometro e `send_webhook_event`).
+Escolher outra — `assign_team`, por exemplo — cria a regra, mostra ela ativa e **nao faz nada**.
 
 **NAO criar automacao de mensagem spam:**
 - Maximo 2 mensagens automaticas por cliente em 48h
@@ -136,7 +161,15 @@ Muitas vezes o mesmo nome de atributo pode existir em 2 lugares, com significado
 
 **Tipos de campo do Card (diferentes dos outros):**
 
-Card so aceita: `string`, `number`, `date`, `boolean`. Se for lista, e `type: string` + `is_list: true`. Nao existe `currency`, `percent`, `link` nem `checkbox` especifico como em contato/conversa.
+Card aceita: `string`, `number`, `date`, `boolean`, `time` e `datetime`. Se for lista, e
+`type: string` + `is_list: true`. Nao existe `currency`, `percent`, `link` nem `checkbox` como no
+contato/conversa — "Link" vira `string` e "Caixa de selecao" vira `boolean`. O servidor nao recusa um
+tipo inventado: ele aceita e o campo aparece como texto comum. Use so os seis.
+
+**Checklist de card:** um modelo de checklist e uma lista de tarefas pronta (ex: "Enviar proposta" com
+4 passos) que pode ser aplicada ao card na mao ou por automacao de etapa. Vale criar um modelo por
+fase que tenha um roteiro repetitivo — e o jeito mais barato de padronizar o time sem treinar
+ninguem. Ficam em `kanban_config.checklist_templates` (secao 2.3 do manual de endpoints).
 
 ## Heuristicas de SLA
 

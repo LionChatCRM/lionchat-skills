@@ -61,9 +61,16 @@ RESPOSTAS RAPIDAS (X)
   /orcamento — enviar proposta
   /followup48h — ataca seu gargalo de cliente sumir
 
-AUTOMACOES (X)
-  Ao entrar em "Orcamento enviado" → enviar mensagem em 48h
-  Ao ficar 7 dias parado → aplicar tag "reativacao"
+AUTOMACOES DE ETAPA (X) — rodam no card do funil, NAO mandam mensagem
+  Ao criar card → aplicar checklist "Enviar proposta"
+  Ao mover para "Fechado (Ganho)" → escrever nota interna
+
+AUTOMACOES GLOBAIS (X) — rodam na conversa
+  Conversa nova na caixa X → atribuir ao time "Vendas"
+  Conversa resolvida → aplicar etiqueta "atendida"
+
+MENSAGEM COM ATRASO (ex: follow-up 48h) — NAO e automacao, e Fluxo.
+  Avisar que essa parte se monta em Fluxos, fora desta skill.
 
 CAMPOS PERSONALIZADOS (X total)
   Contato (dado persistente do cliente):
@@ -118,9 +125,12 @@ curl -s -o /tmp/lc_check.json -w "%{http_code}" \
 
 - `200` → ok, continua
 - `401` → "Token invalido. Vai em Configuracoes > Perfil e copia o API Access Token de novo."
-- `403` → "Esse usuario nao tem permissao na conta {account_id}. Voce precisa ser administrator."
-- `404` → "Conta {account_id} nao existe. Confere o numero na URL do painel."
+- `404` → "Nao consegui entrar na conta {account_id}. Ou o numero esta errado (confere na URL do painel),
+  ou seu usuario nao tem acesso a ela." **NAO afirme so uma das duas** — o sistema responde 404 nos dois
+  casos de proposito, pra nao revelar a existencia de contas de outros clientes.
 - Qualquer outro → "Erro {X} ao validar credenciais. Tenta de novo ou me passa outro token."
+
+**Nao espere 403 aqui** — esse endpoint nunca devolve 403.
 
 **IMPORTANTE sobre seguranca:**
 - NAO salvar token em arquivo por padrao.
@@ -135,16 +145,16 @@ Use `curl` via Bash. Sempre nessa ordem (dependencias):
 
 1. **Configuracoes gerais da conta** (PATCH `/accounts/{id}`) — timezone, locale, nome
 2. **Atributos personalizados de contato e conversa** (POST `/custom_attribute_definitions`) — usa `attribute_model: 1` para contato, `0` para conversa
-3. **Atributos personalizados de card** (PUT `/kanban_config`) — wrap `{"kanban_config": {...}}`. **Mecanismo diferente:** sao armazenados em `global_custom_attributes` (array jsonb). Fazer GET primeiro pra pegar os existentes, appendar os novos e fazer PUT. Se GET der 404, usar POST pra criar a config.
+3. **Atributos personalizados de card + modelos de checklist** (PUT `/kanban_config`) — wrap `{"kanban_config": {...}}`. **Mecanismo diferente:** ficam em `global_custom_attributes` e `checklist_templates` (arrays jsonb). O GET **sempre responde 200** (cria a configuracao sozinho se nao existir) — nunca 404, e nao precisa de POST. Fazer GET pra ler os existentes, appendar os novos e mandar o array COMPLETO no PUT: o que voce nao mandar, some. **Guarde o `id` de cada modelo de checklist** — vai ser usado pelas automacoes de etapa.
 4. **Tags/Labels** (POST `/labels`) — lembrar de wrap `{"label": {...}}`
 5. **Respostas rapidas** (POST `/canned_responses`) — wrap `{"canned_response": {...}}`
 6. **Times** (POST `/teams`) — wrap `{"team": {...}}`
 7. **Funil** (POST `/funnels`) — wrap `{"funnel": {...}}` — PRECISA existir antes das automacoes. **Guarde o ID retornado.**
-8. **Automacoes de etapa** (POST `/kanban/automations`) — wrap `{"kanban_automation": {...}}`, usa funnel_id do passo 7. **Trigger vai dentro de `trigger: {funnel_id, stage, event}` (jsonb).**
-9. **Regras de automacao globais** (POST `/automation_rules`) — wrap `{"automation_rule": {...}}`
-10. **SLA** (POST `/sla_policies`) — wrap `{"sla_policy": {...}}`. **Pode falhar com 404 se a conta nao for Enterprise** — se falhar, pula e avisa no final.
+8. **Automacoes de etapa** — **NAO tem endpoint proprio.** Vao DENTRO do funil, em `settings.automations`. O jeito limpo e mandar junto no POST do passo 7 (voce mesmo define as chaves das etapas, entao ja sabe como referencia-las). Em funil que ja existe: GET `/funnels/{id}`, junta ao `settings` atual e PATCH com o `settings` inteiro. **Nao use `/kanban/automations` — essa rota foi removida e responde 404.**
+9. **Regras de automacao globais** (POST `/automation_rules`) — **SEM wrap, payload PLANO.** Embrulhado, a criacao falha.
+10. **SLA** (POST `/sla_policies`) — wrap `{"sla_policy": {...}}`. **Pode falhar com 403 se o recurso SLA nao estiver liberado na conta** (ele nasce desligado) — se falhar, pula e avisa no final.
 11. **Macros** (POST `/macros`) — SEM wrap. `action_params` sempre array.
-12. **Variaveis da conta** (POST `/account_variables`) — wrap `{"variable": {...}}`. **Campos sao `attribute_display_name`, `attribute_key`, `attribute_description`, `attribute_display_type`, `value`.**
+12. **Variaveis da conta** (POST `/account_variables`) — wrap `{"variable": {...}}`. **Campos sao `attribute_display_name`, `attribute_key`, `attribute_description`, `attribute_display_type`, `value`.** No texto usa-se `{{account.custom_attribute.CHAVE}}` — com o `custom_attribute` no meio, senao sai em branco.
 
 **Antes de criar cada item, listar pra evitar duplicata:**
 - Tags: `GET /labels` e comparar por `title`
@@ -153,11 +163,12 @@ Use `curl` via Bash. Sempre nessa ordem (dependencias):
 
 Para cada chamada:
 - Mostra 1 linha do que esta criando: `Criando tag "fonte-instagram"... OK`
-- Se der `400` → falha de wrap key. Verifica payload e corrige.
+- Se der `422` com `param is missing or the value is empty: X` → falha de wrap key (faltando ou sobrando). Corrige o formato do payload.
+- Se der `422` normal → mostra mensagem do backend e pergunta se pula ou corrige.
 - Se der `401` → para tudo. Token ficou invalido no meio.
-- Se der `422` → mostra mensagem do backend e pergunta se pula ou corrige.
+- Se der `403` em SLA → pula (recurso nao liberado na conta) e reporta no final.
+- Se der `404` → o endpoint nao existe. Confere contra `references/api-endpoints.md` antes de insistir.
 - Se der `500` → tenta 1 vez de novo. Se falhar de novo, pula e reporta.
-- Se der `404` em SLA → pula (conta sem Enterprise).
 
 **Endpoints e exemplos curl**: ver `references/api-endpoints.md`.
 
@@ -178,14 +189,16 @@ Criado na sua conta:
   [X] variaveis da conta
 
 NAO CRIADOS (problemas):
-  - SLA: sua conta nao tem Enterprise (se aplicavel)
+  - SLA: o recurso nao esta liberado nessa conta (se aplicavel) — fale com o suporte
   - [outros erros que aconteceram]
 
 PROXIMOS PASSOS MANUAIS (API nao faz):
   1. Conectar seu WhatsApp em Inboxes (precisa QR Code)
   2. Convidar agentes em Configuracoes > Agentes
   3. Se usar Hotmart/Guru/Kiwify, configurar webhook em Integracoes
-  4. [outros passos especificos do negocio]
+  4. Se voce quer follow-up automatico com atraso (ex: cobrar em 48h),
+     isso se monta em Fluxos — nao e automacao
+  5. [outros passos especificos do negocio]
 
 Dica: testa criando um contato e movendo pelo funil pra ver
 as automacoes disparando.
@@ -197,12 +210,14 @@ as automacoes disparando.
 2. **NUNCA inventa endpoints** — se nao estiver em `references/api-endpoints.md`, pergunta antes.
 3. **NUNCA expoe o token nos logs** — se precisar mostrar curl, mascara: `api_access_token: lc_prod_***`.
 4. **NUNCA deleta nada** — skill e so pra CRIAR. Se o usuario quer deletar algo, avisa que precisa fazer manualmente no painel.
-5. **NUNCA usa wrap errado** — labels, canned_responses, funnels, teams, sla_policies, kanban_automations, automation_rules, account_variables TODOS precisam de wrap key. Macros e custom_attribute_definitions NAO precisam.
+5. **NUNCA usa wrap errado.** COM wrap: `labels`, `canned_responses`, `teams`, `funnels`, `sla_policies`, `kanban_config`, `account_variables`. SEM wrap (payload plano): `accounts`, `custom_attribute_definitions`, `automation_rules`, `macros`, `inboxes`. **`automation_rules` embrulhado FALHA** — e o erro mais caro da lista.
 6. **SEMPRE valida credenciais antes de executar** — GET `/accounts/{id}` antes de qualquer POST.
 7. **SEMPRE em portugues brasileiro** — mensagens, etapas, tags, respostas. Nomes de variaveis (snake_case) ficam em ingles.
 8. **SEMPRE usa `curl -s --max-time 10`** — silent e com timeout, nunca sem.
 9. **NAO usa emojis** em nada que vai pra conta (nomes de etapa, tags, respostas) — o cliente pode nao querer.
 10. **NAO inventa nicho** — se o cliente for muito vago, pergunta mais. Nao chuta "dentista" se ele so disse "consultorio".
+11. **NUNCA promete que automacao de etapa manda mensagem** — ela nao manda. As 8 acoes dela estao na secao 7 do `references/api-endpoints.md`. Mensagem para o cliente sai por automacao GLOBAL (imediata) ou por Fluxo (com atraso).
+12. **NUNCA promete espera longa em automacao global** — o "Aguardar" dela tem teto de 5 minutos e corta o resto em silencio. Espera de horas/dias e Fluxo.
 
 ## Se o usuario perguntar o que voce pode fazer
 
@@ -210,8 +225,12 @@ Responde:
 
 > Eu configuro sua conta LionChat baseado no seu negocio:
 > funis de venda, etapas personalizadas, tags de segmentacao,
-> respostas rapidas, campos personalizados, automacoes de etapa,
-> regras globais, times, SLA (se Enterprise) e horario de atendimento.
+> respostas rapidas, campos personalizados, modelos de checklist,
+> automacoes de etapa do funil, regras de automacao globais, times,
+> SLA (se o recurso estiver liberado) e horario de atendimento.
+>
+> Eu NAO desenho fluxos nem configuro o agente de IA — se o que voce
+> precisa e mensagem automatica com atraso, isso se monta em Fluxos.
 >
 > Me conta o que voce vende, como atende hoje e qual seu maior
 > problema no atendimento. A partir disso proponho uma estrutura
