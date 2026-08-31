@@ -169,7 +169,7 @@ tipo inventado: ele aceita e o campo aparece como texto comum. Use so os seis.
 **Checklist de card:** um modelo de checklist e uma lista de tarefas pronta (ex: "Enviar proposta" com
 4 passos) que pode ser aplicada ao card na mao ou por automacao de etapa. Vale criar um modelo por
 fase que tenha um roteiro repetitivo — e o jeito mais barato de padronizar o time sem treinar
-ninguem. Ficam em `kanban_config.checklist_templates` (secao 2.3 do manual de endpoints).
+ninguem. Ficam em `kanban_config.checklist_templates` (secao 2.4 do manual de endpoints).
 
 ## Heuristicas de SLA
 

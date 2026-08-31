@@ -27,6 +27,8 @@ O usuario pode:
 6. **Objecao mais comum** (ajuda desenhar follow-ups)
 7. **Definicao de "lead qualificado"** (quando vira oportunidade)
 8. **Pos-venda/recorrencia** (precisa funil de retencao?)
+8b. **Por que voce ganha e por que voce perde** — os motivos mais comuns dos dois lados. Viram a lista
+    que o vendedor escolhe ao fechar o card, e o relatorio de "por que estamos perdendo".
 9. **Fuso horario** (para horario de trabalho — padrao America/Sao_Paulo)
 
 Se o usuario for vago ou curto, faz 1-2 perguntas por vez (nao dispara 8 perguntas de uma vez — cansa).
@@ -71,6 +73,11 @@ AUTOMACOES GLOBAIS (X) — rodam na conversa
 
 MENSAGEM COM ATRASO (ex: follow-up 48h) — NAO e automacao, e Fluxo.
   Avisar que essa parte se monta em Fluxos, fora desta skill.
+
+MOTIVOS DE GANHO E PERDA (X + X)
+  Ganho: preco bom, indicacao, urgencia
+  Perda: achou caro, fechou com concorrente, sumiu
+  (aparecem na janela quando o vendedor marca o card, e viram relatorio)
 
 CAMPOS PERSONALIZADOS (X total)
   Contato (dado persistente do cliente):
@@ -145,7 +152,7 @@ Use `curl` via Bash. Sempre nessa ordem (dependencias):
 
 1. **Configuracoes gerais da conta** (PATCH `/accounts/{id}`) — timezone, locale, nome
 2. **Atributos personalizados de contato e conversa** (POST `/custom_attribute_definitions`) — usa `attribute_model: 1` para contato, `0` para conversa
-3. **Atributos personalizados de card + modelos de checklist** (PUT `/kanban_config`) — wrap `{"kanban_config": {...}}`. **Mecanismo diferente:** ficam em `global_custom_attributes` e `checklist_templates` (arrays jsonb). O GET **sempre responde 200** (cria a configuracao sozinho se nao existir) — nunca 404, e nao precisa de POST. Fazer GET pra ler os existentes, appendar os novos e mandar o array COMPLETO no PUT: o que voce nao mandar, some. **Guarde o `id` de cada modelo de checklist** — vai ser usado pelas automacoes de etapa.
+3. **Motivos de ganho/perda + atributos de card + modelos de checklist** (PUT `/kanban_config`) — wrap `{"kanban_config": {...}}`. **Mecanismo diferente:** ficam em `global_custom_attributes` e `checklist_templates` (arrays jsonb). O GET **sempre responde 200** (cria a configuracao sozinho se nao existir) — nunca 404, e nao precisa de POST. Fazer GET pra ler os existentes, appendar os novos e mandar o array COMPLETO no PUT: o que voce nao mandar, some. **Guarde o `id` de cada modelo de checklist** — vai ser usado pelas automacoes de etapa.
 4. **Tags/Labels** (POST `/labels`) — lembrar de wrap `{"label": {...}}`
 5. **Respostas rapidas** (POST `/canned_responses`) — wrap `{"canned_response": {...}}`
 6. **Times** (POST `/teams`) — wrap `{"team": {...}}`
@@ -179,6 +186,7 @@ Setup completo em [X] segundos.
 
 Criado na sua conta:
   [X] campos personalizados
+  [X] motivos de ganho e [X] de perda
   [X] tags
   [X] respostas rapidas
   [X] times

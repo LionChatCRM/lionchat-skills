@@ -1,7 +1,7 @@
 {
   "name": "lionchat-skills",
   "description": "Skills para seu agente de IA criar e configurar sua conta no LionChat",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "LionChat",
   "homepage": "https://github.com/LionChatCRM/lionchat-skills",
   "skills": [

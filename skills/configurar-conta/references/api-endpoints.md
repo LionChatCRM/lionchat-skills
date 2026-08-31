@@ -184,7 +184,44 @@ curl -s --request PUT \
   }'
 ```
 
-### 2.3 Modelos de checklist (usados pela automacao de etapa)
+### 2.3 Motivos de ganho e de perda
+
+Ainda no `kanban_config`. Quando o vendedor marca um card como ganho ou perdido, o sistema pergunta o
+MOTIVO — e quem define a lista de opcoes e voce. Sem lista cadastrada, a pergunta aparece sem opcao e o
+relatorio de motivos fica vazio: o cliente sabe que perdeu 40 negocios e nao sabe por que.
+
+Duas listas separadas, `win_reasons` e `loss_reasons`. Cada item: `{ "id": "<voce escolhe>", "title": "Texto que o vendedor ve" }`.
+
+```bash
+curl -s --request PUT \
+  --max-time 10 \
+  --url https://app.lionchat.com.br/api/v1/accounts/{account_id}/kanban_config \
+  --header 'api_access_token: SEU_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "kanban_config": {
+      "win_reasons": [
+        { "id": "preco_bom",    "title": "Preco/condicao" },
+        { "id": "indicacao",    "title": "Veio por indicacao" },
+        { "id": "urgencia",     "title": "Precisava com urgencia" }
+      ],
+      "loss_reasons": [
+        { "id": "preco",        "title": "Achou caro" },
+        { "id": "concorrente",  "title": "Fechou com concorrente" },
+        { "id": "sem_retorno",  "title": "Sumiu, nao respondeu" },
+        { "id": "sem_perfil",   "title": "Nao era o perfil" }
+      ]
+    }
+  }'
+```
+
+**Mesma regra do array inteiro:** leia os motivos existentes antes e mande a lista completa de volta.
+
+Escreva os motivos com as palavras que o cliente usou na entrevista — "achou caro" e melhor que
+"objecao de preco". E prefira poucos: lista com 15 motivos ninguem preenche direito, e o relatorio
+fica pulverizado.
+
+### 2.4 Modelos de checklist (usados pela automacao de etapa)
 
 Ainda no `kanban_config`, o campo `checklist_templates` guarda listas de tarefas prontas que podem ser
 aplicadas a um card — na mao ou por automacao de etapa (acao `apply_checklist_template`, secao 7).
@@ -432,7 +469,7 @@ Automacao de etapa vive **dentro do funil**, em `settings.automations` (array). 
 | `notify_team` | `{ "message": "texto" }` | avisa o time |
 | `duplicate_item` | `{ "funnel_id": N, "stage": "<chave>", "distribute_agents": true }` | cria uma copia do card em outro funil/etapa |
 | `send_webhook` | `{ "webhook_url": "https://..." }` | dispara um webhook para um sistema externo |
-| `apply_checklist_template` | `{ "template_id": "<id do modelo>" }` | aplica um checklist pronto ao card (secao 2.3) |
+| `apply_checklist_template` | `{ "template_id": "<id do modelo>" }` | aplica um checklist pronto ao card (secao 2.4) |
 
 **Sao essas oito. Nao existem outras.** Em particular:
 
