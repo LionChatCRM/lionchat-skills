@@ -1,13 +1,53 @@
 {
   "name": "lionchat-skills",
   "description": "Skills para seu agente de IA criar e configurar sua conta no LionChat",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "LionChat",
   "homepage": "https://github.com/LionChatCRM/lionchat-skills",
   "skills": [
     {
+      "name": "agenda-e-relatorios",
+      "path": "skills/agenda-e-relatorios/SKILL.md"
+    },
+    {
+      "name": "agente-de-ia",
+      "path": "skills/agente-de-ia/SKILL.md"
+    },
+    {
+      "name": "automacoes-e-macros",
+      "path": "skills/automacoes-e-macros/SKILL.md"
+    },
+    {
+      "name": "caixas-e-atendimento",
+      "path": "skills/caixas-e-atendimento/SKILL.md"
+    },
+    {
+      "name": "campanhas-e-modelos",
+      "path": "skills/campanhas-e-modelos/SKILL.md"
+    },
+    {
+      "name": "conectar-lionchat",
+      "path": "skills/conectar-lionchat/SKILL.md"
+    },
+    {
       "name": "configurar-conta",
       "path": "skills/configurar-conta/SKILL.md"
+    },
+    {
+      "name": "criar-fluxos",
+      "path": "skills/criar-fluxos/SKILL.md"
+    },
+    {
+      "name": "funil-de-vendas",
+      "path": "skills/funil-de-vendas/SKILL.md"
+    },
+    {
+      "name": "integracoes",
+      "path": "skills/integracoes/SKILL.md"
+    },
+    {
+      "name": "organizar-contatos",
+      "path": "skills/organizar-contatos/SKILL.md"
     }
   ]
 }

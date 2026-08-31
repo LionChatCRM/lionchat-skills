@@ -1,17 +1,23 @@
 # LionChat Skills
 
-Skills para Claude Code que configuram sua conta LionChat através de uma conversa natural com o Claude.
+Manuais que ensinam o Claude a operar a sua conta LionChat — para você pedir em português o que quer,
+sem precisar conhecer o sistema.
 
 ## O que é isso?
 
-Em vez de passar horas configurando funil, tags, respostas rápidas e automações manualmente no painel do LionChat, você conversa com o Claude Code sobre seu negócio e ele monta tudo pra você via API.
+O LionChat tem muita coisa: agente de IA, fluxos, automações, funil, campanhas, agenda, integrações.
+Cada uma com dezenas de opções, e várias delas falham em silêncio se forem montadas errado — a coisa
+é criada, parece certa na tela e simplesmente não funciona.
 
-O Claude:
-- Entrevista você sobre o que você vende, ciclo de venda, gargalos
-- Propõe uma estrutura completa (funil, tags, respostas, campos, automações)
-- Mostra tudo antes de criar
-- Só executa depois que você confirma
-- Usa seu API token — nada fica no servidor de ninguém
+Estas skills são o manual de operação de cada uma dessas áreas, escrito para a IA ler. Com elas
+instaladas, você conversa:
+
+> "monta um agente de IA que atende meu WhatsApp e agenda consulta"
+
+E o Claude sabe o que perguntar, em que ordem montar, o que ligar em quê, e o que **não** prometer
+para você. Ele entrevista, mostra a proposta inteira e só executa depois que você confirma.
+
+Cada afirmação técnica destes manuais foi conferida contra o código do LionChat.
 
 ## Como instalar
 
@@ -19,7 +25,9 @@ O Claude:
 
 - [Claude Code](https://docs.claude.com/en/docs/claude-code) instalado
 - Conta no [LionChat](https://app.lionchat.com.br) com acesso de administrador
-- API token da sua conta (Configurações > Perfil > API Access Token)
+- O conector do LionChat (MCP) ligado no seu Claude Code — é por ele que o Claude mexe na sua conta.
+  A skill `conectar-lionchat` ensina a ligar, e o que fazer se o recurso ainda não estiver liberado
+  na sua conta.
 
 ### Instalação
 
@@ -30,7 +38,7 @@ git clone https://github.com/LionChatCRM/lionchat-skills ~/.claude/plugins/lionc
 
 Pronto. Abra (ou reinicie) o Claude Code — o plugin é detectado automaticamente.
 
-**Verificar que a skill foi reconhecida:** dentro do Claude Code, digite `/` e o autocomplete deve sugerir `/lionchat-skills:configurar-conta`.
+**Verificar que funcionou:** dentro do Claude Code, digite `/` — o autocomplete deve sugerir as skills `lionchat-skills:...`.
 
 ### Atualização
 
@@ -40,56 +48,80 @@ cd ~/.claude/plugins/lionchat-skills && git pull
 
 ## Como usar
 
-Dentro do Claude Code, digite:
+Peça em português o que você quer. O Claude escolhe a skill certa sozinho:
 
-```
-/lionchat-skills:configurar-conta
-```
+> "monta um agente de IA que atende meu WhatsApp e agenda consulta"
 
-Ou simplesmente peça em português:
+> "cria um fluxo que cobra quem pediu orçamento e sumiu"
 
-> "Quero configurar minha conta LionChat. Sou dentista, faço implantes..."
+> "organiza meu funil de vendas"
 
-O Claude reconhece a skill e entra no fluxo de configuração.
+> "sou dentista, faço implantes — configura minha conta"
+
+Ou chame uma direto, pelo nome: `/lionchat-skills:agente-de-ia`
+
+Em qualquer caso o Claude **entrevista você antes**, mostra a proposta inteira e **só cria depois que
+você confirma**. Nenhuma skill apaga nada.
 
 ## Skills disponíveis
 
-### `configurar-conta`
+### `conectar-lionchat` — a base
 
-Configura uma conta LionChat do zero:
+Ensina o Claude a se conectar na sua conta, descobrir o que ele pode fazer ali e as regras que valem para tudo. As outras skills se apoiam nela.
 
-- Funis de venda com etapas personalizadas
-- Tags de segmentação
-- Respostas rápidas com variáveis
-- Campos personalizados (contato, conversa e card do funil)
-- Modelos de checklist para os cards
-- Automações de etapa do funil (aplicar checklist, atribuir atendente, mover card, avisar o time, nota interna, webhook)
-- Regras de automação globais (atribuir, etiquetar, responder, mexer no card)
-- SLA de atendimento
-- Times de atendimento
-- Horários de trabalho
-- Macros
+### `agente-de-ia` — Agente de IA
 
-**O que NÃO faz** (precisa fazer manual no painel):
+Monta o atendente virtual de ponta a ponta: instruções, cenários, base de conhecimento, ferramentas, biblioteca de arquivos, quando transferir para uma pessoa e teste antes de soltar no cliente.
 
-- Conectar WhatsApp (precisa QR Code)
-- Conectar Instagram/Facebook (OAuth)
-- Configurar integrações de pagamento (Guru, Hotmart, etc.) — você precisa do token da outra plataforma
-- Convidar agentes novos (envio de email)
-- Desenhar fluxos no FlowBuilder
-- Configurar o agente de IA
+### `criar-fluxos` — Fluxos
 
-**Atenção a uma confusão comum:** mensagem automática *com atraso* (o clássico "cobrar em 48h quem
-não respondeu") **não é automação** — automação de etapa não manda mensagem, e a espera da automação
-global tem teto de 5 minutos. Isso se monta em **Fluxos**. A skill avisa você disso em vez de
-prometer o que não entrega.
+Desenha fluxos que funcionam: todos os blocos e gatilhos, variáveis, espera, o que fazer com quem não responde, e como achar onde travou.
+
+### `automacoes-e-macros` — Automações e macros
+
+O que o sistema faz sozinho e o que o atendente dispara com um clique. Os gatilhos, as condições e as ações de cada um.
+
+### `funil-de-vendas` — Funil de vendas (CRM)
+
+Monta o funil pelo seu negócio: etapas, campos do card, checklists, automações de etapa, ganho e perdido.
+
+### `caixas-e-atendimento` — Caixas e atendimento
+
+Os canais e o que muda entre eles, saudação, horário, distribuição das conversas, times, permissões e prazos de atendimento.
+
+### `organizar-contatos` — Contatos e dados
+
+Campos, etiquetas, segmentos, importação de planilha — e a regra de quando um dado deve ser etiqueta e quando deve ser campo.
+
+### `campanhas-e-modelos` — Campanhas e modelos
+
+Disparo em massa sem queimar o número, montagem do público, e tudo sobre modelo aprovado do WhatsApp.
+
+### `agenda-e-relatorios` — Agenda e relatórios
+
+Agendamento online com lembretes, e o que cada número do relatório significa para o dono do negócio.
+
+### `integracoes` — Integrações
+
+Liga o LionChat a sistemas de fora: anúncios, plataformas de pagamento, sistemas de gestão e conversões.
+
+### `configurar-conta` — Configuração inicial
+
+Monta o esqueleto da conta do zero numa conversa só: funil, etiquetas, campos, respostas prontas e automações.
+
+**O que nenhuma delas faz** (precisa de gente no painel):
+
+- Conectar WhatsApp (alguém precisa ler o QR Code no celular)
+- Conectar Instagram e Facebook (autorização pelo navegador)
+- Pegar o token da plataforma de pagamento (Guru, Hotmart, Kiwify) — esse está do lado de lá
+- Convidar atendentes novos (o convite vai por e-mail)
 
 ## Segurança
 
-- Seu API token fica apenas na sessão atual do Claude Code
-- Nada é enviado pra nenhum servidor além do seu próprio LionChat
-- O token nunca aparece em commits, logs ou arquivos do projeto
-- Se quiser salvar pra próximas sessões, o Claude pergunta e salva em `~/.lionchat/credentials` (fora do seu projeto)
+- Suas credenciais ficam no conector do LionChat, na sua máquina — não neste repositório
+- Nada é enviado para nenhum servidor além do seu próprio LionChat
+- Nenhuma skill apaga nada: elas criam e ajustam, e sempre pedem sua confirmação antes
+- Se algum dia o Claude precisar de um token, ele nunca mostra o valor completo na tela
 
 ## Suporte
 
