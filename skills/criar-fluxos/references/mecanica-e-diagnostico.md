@@ -52,7 +52,8 @@ Contato: `contact.id`, `contact.name`, `contact.first_name`, `contact.last_name`
 
 Conversa: `conversation.id` (o numero que aparece na tela), `conversation.status`,
 `conversation.team_id` e `conversation.custom_attribute.CHAVE`. Atendente: `agent.name`,
-`agent.email`, `agent.id`. Caixa: `inbox.id`, `inbox.name`. Conta:
+`agent.email`, `agent.id`. Caixa: `inbox.id`, `inbox.name` e `inbox.channel_type` (o tipo tecnico,
+ex.: `Channel::Waha` - novo em 17/09/2026, util no Fluxo de Acoes). Conta:
 `account.custom_attribute.CHAVE`.
 
 Ultimas falas: `{{last_response}}` (o que o cliente respondeu por ultimo) e
@@ -61,6 +62,29 @@ conta).
 
 Quem disparou: `{{trigger.type}}` (o codigo do evento - compare SEMPRE por ele), `{{trigger.name}}`
 (o rotulo legivel - use para ESCREVER) e `{{trigger.activated_at}}`, mais dados conforme o evento.
+
+**O que veio com o gatilho vira variavel (desde 09/09/2026).** O que o historico mostra no passo
+Inicio agora tambem resolve como `{{trigger.<bloco>.<campo>}}`. Os que a tela oferece:
+
+| Gatilho | Variaveis |
+|---|---|
+| Card criado, movido, ganho, perdido, atributo do card | `{{trigger.kanban.title}}`, `{{trigger.kanban.funnel_name}}`, `{{trigger.kanban.stage_name}}`, `{{trigger.kanban.stage}}` (codigo da etapa) |
+| Card movido | `{{trigger.kanban.previous_stage_name}}`, `{{trigger.kanban.previous_stage}}` |
+| Card ganho / perdido | `{{trigger.kanban.status}}` (`won` / `lost`) |
+| Etiqueta posta / tirada | `{{trigger.label.name}}` |
+| Responsavel / equipe mudou | `{{trigger.assignee.name}}`, `{{trigger.team.name}}` (vazio = removido) |
+| SLA estourou | `{{trigger.sla.policy_name}}`, `{{trigger.sla.type}}` |
+| Entrou / saiu do grupo | `{{trigger.group.name}}`, `{{trigger.group.id}}`, `{{trigger.participant.phone}}`, `{{trigger.participant.name}}` |
+
+O bloco do card chama-se `kanban`, nunca `card`. Esses fatos ficam FORA de `{{trigger.data}}`.
+Execucoes anteriores a 22/08/2026 nao tem os fatos gravados: ali saem vazios. Nao use
+`{{trigger.*}}` como segundo nome de algo que ja tem variavel propria (`{{contact.name}}`,
+`{{inbox.name}}`).
+
+Outras familias por gatilho: `{{booking.*}}` (agendamento: data, hora, tipo, atendente, links de
+cancelar e remarcar), `{{programa.*}}` (programa de sessoes: sessoes, usadas, restantes, proxima,
+dias de atraso) e `{{contrato.*}}` (assinatura: titulo, situacao, prazo, quem assinou). Cada familia
+so existe no fluxo disparado pelo gatilho dela.
 
 Quando o fluxo e disparado por webhook, o pacote inteiro recebido vira variavel:
 `{{webhook.cliente.nome}}`, `{{webhook.itens.0.titulo}}`. Pacote acima de 256 KB nao vira variavel,
@@ -178,8 +202,10 @@ disparar o gatilho de novo, criando uma execucao do zero. Quem quer "esperar ate
 de prazo longo E o fio do tempo esgotado ligado num caminho explicito.
 
 **Tentativas esgotadas e diferente de tempo esgotado.** `maxRetries` (padrao 3; vazio ou 0 vira 3)
-conta erro de FORMATO. Cada erro reenvia a `invalidMessage` (que aceita variaveis) e mantem a
-espera. Sem fio proprio, `retries_exhausted` cai no fio do `timeout`; sem nenhum dos dois, encerra.
+e quantas vezes a mensagem de erro sai. Cada erro de FORMATO reenvia a `invalidMessage` (que aceita
+variaveis) e mantem a espera; a resposta errada SEGUINTE esgota - com 1, o cliente le o erro uma vez
+e sai no segundo erro. (Ate 16/09/2026, o 1 esgotava ja no primeiro erro e a mensagem nunca saia.)
+Sem fio proprio, `retries_exhausted` cai no fio do `timeout`; sem nenhum dos dois, encerra.
 
 **Campo numerico esvaziado na tela grava texto vazio, nao nulo** - e o sistema trata texto vazio
 como o valor que a tela exibe. Ao montar por ferramenta, mande numero inteiro (`waitTime: 60`),
@@ -241,7 +267,8 @@ palavra-chave em comum (**lista vazia significa "pega tudo" e colide com tudo**)
 etiqueta em comum; conversa encerrada sempre colide.
 
 Isentos (podem coexistir de proposito): webhook, inicio manual e campanha. Fluxo desligado nao gera
-conflito.
+conflito. **O Fluxo de Acoes fica fora da trava inteira**: pode ter o mesmo gatilho de um fluxo de
+mensagem ou de outro Fluxo de Acoes, sem aviso nenhum - ele nao disputa a conversa, so age.
 
 Os tres gatilhos de formulario publico e os quatro de agendamento tem uma regua PROPRIA: colidem
 por CONTA, nao por caixa - dois fluxos ativos ouvindo o mesmo formulario (ou o mesmo tipo de
@@ -294,8 +321,15 @@ o registro passar de 100 passos, avisa que foi cortado.
 
 **O passo Inicio mostra o que disparou** aquela execucao: contato, conversa, etiqueta, responsavel,
 card com etapa anterior e nova, politica de SLA, grupo, formulario, anuncio com as respostas,
-produto do pagamento, dados da agenda. **Cuidado: isso e area so de registro** - esses fatos NAO
-existem como variavel e uma Condicao que conte com eles resolve vazio.
+produto do pagamento, dados da agenda - e, desde 04/09/2026, **qual REGRA** do gatilho casou (nao so
+o evento). Desde 09/09/2026 esses fatos tambem resolvem como variavel `{{trigger.<bloco>.<campo>}}`
+(tabela na secao 1). As RESPOSTAS do formulario do Meta continuam so no historico.
+
+**Condicoes de card** mostram lado a lado a etapa do card e a etapa pedida (desde 17/09/2026).
+
+**Quando o fluxo foi editado depois da execucao**, o desenho da execucao e o da EPOCA e a tela avisa
+"Desenho desta execucao". Antes de acusar uma condicao de ter errado, compare a hora da execucao com
+a hora da ultima edicao (`lionchat_flow_versions_list`): quase sempre o fluxo mudou depois.
 
 **Recusa depois do envio**: quando o canal aceita e recusa depois (o WhatsApp respondendo por
 webhook de estado), o passo daquele bloco e reescrito como erro com o motivo real. E por isso que
@@ -320,6 +354,18 @@ isso. A tela oferece janela de ate 90 dias, mas nao ha nada la atras para achar.
 5. O fluxo esta no fim de uma corrente (automacao que chama fluxo que chama fluxo)? A corrente e
    cortada no quinto salto, em silencio.
 6. E fluxo de grupo tentando disparar em conversa individual, ou o contrario?
+7. E um Fluxo de Acoes com gatilho "Webhook recebido" ou de formulario? Esses nunca disparam nele
+   (ele nao tem caixa onde a integracao crie a conversa). Monte em fluxo de mensagem.
+
+**"O Iniciar outro flow deu erro"**
+Leia o motivo no passo. Quase sempre o fluxo-alvo e de MENSAGEM e nao esta ligado na caixa da
+conversa (desde 17/09/2026 isso e recusado em vez de rodar no lugar errado). Ligue a caixa no
+fluxo-alvo, troque o alvo por um Fluxo de Acoes, ou use uma Condicao de caixa antes. Os outros
+motivos: fluxo apagado, desligado, sem Inicio ou o proprio fluxo.
+
+**"O atendente nao acha o Fluxo de Acoes na lateral da conversa"**
+Hoje a lista da lateral so mostra fluxos ligados aquela caixa, e o Fluxo de Acoes nao tem caixa.
+Para o atendente disparar, monte uma macro com "Disparar flow (de acoes)".
 
 **"O fluxo para no meio, sem erro nenhum"**
 Quase sempre e saida sem fio. Abra a execucao (`lionchat_flow_sessions_show`), veja qual foi o
@@ -339,7 +385,16 @@ Voce guardou e-mail, CPF, CNPJ ou telefone numa variavel. Guarde em campo do con
 **"Todo mundo cai no caminho padrao da Condicao"**
 Campo escrito sem as chaves duplas; ou `custom_attributes` no plural; ou regra sem valor preenchido
 (regra sem valor e pulada, e se todas forem puladas a saida nunca casa); ou a variavel comparada
-esta vazia.
+esta vazia; ou "Card na etapa" sem etapa escolhida (desde 17/09/2026 nunca casa).
+
+**"A condicao deu verdadeiro com o card em outra etapa"**
+Compare a hora da execucao com a da ultima edicao do fluxo: a execucao roda contra a configuracao
+DAQUELE momento, e o historico mostra a etapa que foi pedida. Num fluxo disparado por card, a
+condicao olha o card que disparou - se a pessoa tem varios cards, pode ser outro.
+
+**"O cliente errou uma vez e o fluxo ja desistiu"**
+Era o "Maximo de tentativas" 1 antes de 16/09/2026. Hoje, com 1, a mensagem de erro sai uma vez e so
+o segundo erro esgota.
 
 **"O cliente respondeu e recebeu a mensagem de quem nao respondeu"**
 Era o comportamento antigo, hoje corrigido. Se aparecer de novo, confira se a saida certa tem fio -
@@ -420,9 +475,16 @@ devolve um dado para a IA compor a resposta.
 - **Nao pode ter caixa de entrada vinculada.** A validacao recusa.
 - Blocos permitidos: Inicio, Fim, Requisicao, Condicao, Definir variavel, IA, Nota adesiva,
   Randomizador, Acoes e Enviar mensagem. **Nao existem** Aguardar resposta, Espera e Gestao de
-  Grupos. No bloco Acoes nao existem enviar webhook nem iniciar outro fluxo.
+  Grupos. No bloco Acoes a aba Sistema some inteira (enviar webhook, iniciar outro fluxo e enviar
+  conversao). Uma ferramenta da IA tambem nunca pode ser alvo do "Iniciar outro flow".
 - O bloco Fim e o que define o retorno. Sem nenhum Fim alcancado, a ferramenta devolve VAZIO para
-  a IA - e ela responde ao cliente sem o dado que foi buscar.
+  a IA - e ela responde ao cliente sem o dado que foi buscar. Se o proprio fluxo ja mandou a
+  resposta final ao cliente, use o Fim no modo `silent` ("Sem resposta"): sem ele a IA fala de novo
+  por cima.
+- **Aviso de espera** (10/09/2026): enquanto a ferramenta roda, o cliente recebe "So um momento,
+  estou verificando isso pra voce...". Cada ferramenta escolhe no bloco Inicio:
+  `toolWaitMessageEnabled` (`false` desliga; ausente = ligado) e `toolWaitMessageText` (texto
+  proprio, ate 1000 caracteres; vazio = frase padrao).
 - Vincule ao assistente com `lionchat_flow_tools_assistants_update`. **Sem vincular, a IA nao
   conhece a ferramenta.**
 - O parametro "perguntar sempre ao cliente" (`always_ask`) obriga a IA a confirmar aquele dado com
@@ -464,7 +526,8 @@ com `id` e `type`, exatamente um bloco Inicio, nenhum fio voltando para o propri
 **Montar**
 `lionchat_flows_list` (lista leve: nome, tipo, modo, ativo, caixas, tags, tipos de gatilho - **nao
 traz o desenho**), `lionchat_flows_show` (o desenho completo, mais contadores por bloco),
-`lionchat_flows_create`, `lionchat_flows_update` (**substitui o desenho inteiro**),
+`lionchat_flows_create` (com `flow_type: "action"` para Fluxo de Acoes, sem caixa),
+`lionchat_flows_update` (**substitui o desenho inteiro**; o tipo nao muda),
 `lionchat_flows_toggle`, `lionchat_flows_destroy`, `lionchat_flows_create_1` (duplicar - a copia
 nasce desativada e SEM caixa nenhuma, de proposito).
 

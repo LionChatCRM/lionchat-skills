@@ -13,6 +13,8 @@ Indice:
 9. Card chegou na etapa final
 10. Macro de encerramento
 11. Macro de "assumir e priorizar"
+12. Macro de "passar para o comercial" (rodizio + etiqueta do contato)
+13. Macro que dispara um Fluxo de Acoes
 
 Antes de usar qualquer receita: **levante os numeros e nomes reais da conta** (etiquetas, equipes,
 caixas, funis, etapas, respostas prontas, AI Agente) — os valores abaixo sao ilustrativos. E lembre
@@ -300,3 +302,59 @@ Esta macro nao manda mensagem para o cliente, entao **nao** mexe no AI Agente.
 
 **Cuidado:** "Atribuir ao Agente" so vale se quem clicou for membro daquela caixa (ou administrador
 da conta). Se nao for, a acao e pulada em silencio e a conversa continua sem responsavel.
+
+---
+
+## 12. Macro de "passar para o comercial"
+
+**Quando usar:** o atendimento qualificou o lead e quer entregar ao time comercial com um clique,
+dividindo entre os vendedores.
+
+```
+Nome:        Passar para o comercial
+Visibilidade: global
+Acoes:
+  [{"action_name":"distribute_agents","action_params":[12, 15, 20]},
+   {"action_name":"add_contact_label","action_params":["lead-qualificado"]},
+   {"action_name":"add_private_note",
+    "action_params":["Lead qualificado pelo atendimento. Seguir com a proposta."]},
+   {"action_name":"mark_unread","action_params":[]}]
+```
+
+- `distribute_agents` entrega ao PROXIMO da lista a cada clique (rodizio de verdade). Os tres
+  vendedores precisam ser membros da caixa - quem nao for e pulado em silencio.
+- A etiqueta vai no CONTATO (`add_contact_label`), entao ela acompanha a pessoa em qualquer
+  conversa futura. Para marcar so esta conversa, troque por `add_label`.
+- `mark_unread` deixa a conversa em destaque para o vendedor que recebeu.
+- **Aviso ao cliente:** isso muda quem e o responsavel pela conversa - e regra de negocio.
+- Se o funil ja tiver card desse lead, da para somar
+  `{"action_name":"update_card_attribute","action_params":[{"funnel_id":4,"attribute_key":"origem_interna","value":"atendimento"}]}`
+  (sem card no funil, a acao e pulada).
+
+---
+
+## 13. Macro que dispara um Fluxo de Acoes
+
+**Quando usar:** o atendente quer um botao que faz algo com decisao no meio ("se a conversa for do
+WhatsApp Oficial faz isso, senao faz aquilo", "espera 10 minutos e confere de novo") - coisa que a
+lista de acoes da macro sozinha nao faz.
+
+1. Monte o Fluxo de Acoes (skill `criar-fluxos`): sem caixa, sem gatilho obrigatorio, com as
+   Condicoes e Acoes que o cliente descreveu. Ligue o fluxo.
+2. Ache o numero dele com `lionchat_flows_list` - tem que ser `flow_type` `action` e ativo.
+3. Crie a macro:
+
+```
+Nome:        Qualificar lead
+Visibilidade: global
+Acoes:
+  [{"action_name":"start_flow","action_params":[692]}]
+```
+
+- A macro so aceita Fluxo de Acoes. Fluxo de mensagem, desligado ou apagado e ignorado em silencio.
+- O Fluxo de Acoes nao manda mensagem. Se o botao precisa falar com o cliente, o Fluxo de Acoes pode
+  chamar um fluxo de mensagem pelo "Iniciar outro flow" - desde que a caixa da conversa esteja
+  ligada nesse fluxo de mensagem, senao o passo da erro.
+- Se o fluxo ja estiver rodando naquela conversa, um segundo clique nao faz nada.
+- Para conferir: historico do fluxo (`lionchat_flows_executions_list`); a execucao aparece como
+  iniciada pela macro, com o nome dela.

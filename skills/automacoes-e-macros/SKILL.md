@@ -1,6 +1,6 @@
 ---
 name: automacoes-e-macros
-description: Monta e conserta automacoes (regras que o sistema executa sozinho) e macros (botao de um clique para o atendente) na conta LionChat, usando as ferramentas do conector LionChat. Use quando o cliente disser "quando chegar mensagem com X faz Y", "quando puserem a etiqueta VIP avisa a equipe", "todo lead novo tem que virar card no funil", "quando a compra for aprovada manda a mensagem de boas-vindas", "quero um botao de encerrar atendimento", "minha automacao nao esta funcionando" ou "a automacao desligou sozinha" — mesmo que ele nao use a palavra automacao. Entrevista o cliente, mostra a regra por escrito e so cria depois de confirmacao explicita.
+description: Monta e conserta automacoes (regras que o sistema executa sozinho) e macros (botao de um clique para o atendente) na conta LionChat, usando as ferramentas do conector LionChat. Use quando o cliente disser "quando chegar mensagem com X faz Y", "quando puserem a etiqueta VIP avisa a equipe", "todo lead novo tem que virar card no funil", "quando a compra for aprovada manda a mensagem de boas-vindas", "quero um botao de encerrar atendimento", "quero um botao que passa o lead pro comercial", "quero um botao que dispara um fluxo", "minha automacao nao esta funcionando" ou "a automacao desligou sozinha" — mesmo que ele nao use a palavra automacao. Entrevista o cliente, mostra a regra por escrito e so cria depois de confirmacao explicita.
 ---
 
 # Automacoes e Macros LionChat
@@ -20,8 +20,15 @@ Voce NAO cria, altera nem apaga nada sem confirmacao explicita do cliente.
 |---|---|
 | Acao imediata quando algo acontece | Automacao |
 | O atendente decide a hora de disparar | Macro |
+| O atendente dispara, mas precisa de condicao, espera ou varios caminhos | Macro com **"Disparar flow (de acoes)"** apontando para um Fluxo de Acoes |
 | Esperar horas ou dias, perguntar e esperar resposta, muitos caminhos | **Flows** (menu lateral) |
 | Depende de horario de expediente | **Flows** ou a mensagem de ausencia da caixa |
+
+**A macro cresceu em setembro de 2026**: de 28 para 41 acoes. Hoje ela grava atributo de contato,
+de conversa e de card, poe e tira etiqueta do CONTATO, divide entre atendentes em rodizio, desliga o
+AI Agente, marca como nao lida, poe checklist e oferta no card, manda conversao para Meta, Google Ads
+e GA4, manda contrato para assinatura e dispara um Fluxo de Acoes. Lista completa, formato de cada
+uma e as regras novas em `references/acoes.md`, secao 3.
 
 A espera da automacao ("Aguardar") tem teto de **5 minutos** e valor maior e cortado sem avisar.
 E **nao existe** condicao de horario/expediente em automacao — nao invente uma: campo que o sistema
@@ -46,6 +53,7 @@ nao repergunte.
 6. Se envolver o AI Agente: ele deve falar na hora ou so assumir e esperar o cliente?
 7. Isso roda sozinho ou o atendente decide a hora? (automacao x macro)
 8. Se for macro: so voce usa ou a equipe toda?
+   E a etiqueta e da CONVERSA ou do CONTATO? (a macro tem as duas, e sao acoes diferentes)
 9. Ja existe alguma regra parecida rodando hoje?
 
 ### Etapa 2 — Decidir
@@ -134,7 +142,9 @@ Confira a conta ativa com `lionchat_account_show` e diga em voz alta em qual con
 
 1. `lionchat_automation_rules_create` — precisa de nome, gatilho, condicoes e acoes; aceita tambem
    ligada/desligada e Caixa de Envio. Nao aceita o recorte de "Acao na conversa".
-2. Macros: `lionchat_macros_create` (nome e acoes; visibilidade pessoal ou global).
+2. Macros: `lionchat_macros_create` (nome e acoes; visibilidade pessoal ou global). Para
+   "Disparar flow", liste antes com `lionchat_flows_list` e use so fluxo com `flow_type` `action`
+   e ligado. "Enviar conversao" so e salva por administrador ou por cargo de marketing.
 3. **Releia o que foi salvo** com `lionchat_automation_rules_show` e confira: o conector E/OU da
    ULTIMA condicao veio vazio? As acoes de envio voltaram com as chaves certas?
 
@@ -234,6 +244,12 @@ Todas estas falham **em silencio**: a coisa e criada, parece certa na tela e nao
   naquela conversa. Avise antes de montar uma macro de encerramento.
 - **Se voce usar "Adiar" em automacao ou macro**, a conversa fica adiada sem data — ela some do
   painel e so volta se alguem reabrir na mao ou o cliente escrever.
+- **Se voce apontar a macro "Disparar flow" para um fluxo de MENSAGEM**, nada acontece: a macro so
+  aceita Fluxo de Acoes ativo (ela roda em qualquer conversa e nao filtra caixa) e ignora o resto
+  em silencio. Se precisa mandar mensagem, faca o Fluxo de Acoes chamar o fluxo de mensagem pelo
+  "Iniciar outro flow" - e ai a caixa da conversa tem que estar ligada nele.
+- **Se voce montar "Alterar atributo" com chave de sistema** (origem, clique de anuncio, endereco
+  do WhatsApp, UTM, gclid), a macro salva e a acao e RECUSADA na hora de rodar, sem aviso na tela.
 - **Se voce montar varias regras para o mesmo gatilho**, todas rodam e nao ha como escolher a ordem;
   uma pode mudar a conversa e invalidar a condicao da seguinte.
 

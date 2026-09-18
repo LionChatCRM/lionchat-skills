@@ -204,9 +204,10 @@ com tempo esgotado e sem fio encerra a sessao quando o tempo acaba.
 
 ### Se voce criar ferramenta da IA com `lionchat_flows_create`, e recusado
 
-Ferramenta da IA usa `lionchat_flow_tools_create`. O `lionchat_flows_create` so cria fluxo de
-conversa, e fluxo de conversa nao aceita bloco "Fim" — a chamada e recusada. O tipo do fluxo
-tambem nao pode ser mudado depois: se nascer errado, e criar de novo pela porta certa.
+Ferramenta da IA usa `lionchat_flow_tools_create`. O `lionchat_flows_create` cria fluxo de
+conversa e, com `flow_type: "action"`, o Fluxo de Acoes (sem caixa) — e nenhum dos dois aceita
+bloco "Fim": a chamada e recusada. O tipo do fluxo tambem nao pode ser mudado depois: se nascer
+errado, e criar de novo pela porta certa.
 
 Varios blocos "Fim" no mesmo desenho sao permitidos e uteis (um para o caminho normal, outro para
 o caminho de erro): o motor usa o "Fim" onde a execucao REALMENTE chegou.

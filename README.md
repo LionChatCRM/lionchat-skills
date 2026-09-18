@@ -75,11 +75,11 @@ Monta o atendente virtual de ponta a ponta: instruções, cenários, base de con
 
 ### `criar-fluxos` — Fluxos
 
-Desenha fluxos que funcionam: todos os blocos e gatilhos, variáveis, espera, o que fazer com quem não responde, e como achar onde travou.
+Desenha fluxos que funcionam, nos três tipos — mensagem, ferramenta da IA e o Fluxo de Ações, que não fica preso a caixa nenhuma e só executa ações: todos os blocos e gatilhos, variáveis, espera, o que fazer com quem não responde, e como achar onde travou.
 
 ### `automacoes-e-macros` — Automações e macros
 
-O que o sistema faz sozinho e o que o atendente dispara com um clique. Os gatilhos, as condições e as ações de cada um.
+O que o sistema faz sozinho e o que o atendente dispara com um clique. Os gatilhos, as condições e as ações de cada um — inclusive as 41 ações da macro, que hoje grava atributo, divide entre atendentes em rodízio, manda conversão para os anúncios e dispara um Fluxo de Ações.
 
 ### `funil-de-vendas` — Funil de vendas (CRM)
 

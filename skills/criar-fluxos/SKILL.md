@@ -1,6 +1,6 @@
 ---
 name: criar-fluxos
-description: Monta, corrige e testa fluxos do FlowBuilder (menu Workflows, Flows) na conta LionChat com as ferramentas do conector LionChat. Use quando o cliente disser "quero um robo que atenda no WhatsApp", "monta um menu de atendimento", "cria um fluxo que qualifica lead", "manda lembrete de consulta", "meu fluxo parou no meio" ou "o fluxo nao dispara". Entrevista o cliente, desenha o caminho por escrito e so cria depois de confirmacao explicita.
+description: Monta, corrige e testa fluxos do FlowBuilder (menu Workflows, Flows) na conta LionChat com as ferramentas do conector LionChat — os tres tipos (mensagem, ferramenta da IA e Fluxo de Acoes, que roda em qualquer caixa e so executa acoes). Use quando o cliente disser "quero um robo que atenda no WhatsApp", "monta um menu de atendimento", "cria um fluxo que qualifica lead", "manda lembrete de consulta", "quero que isso aconteca em todas as caixas", "meu fluxo parou no meio" ou "o fluxo nao dispara". Entrevista o cliente, desenha o caminho por escrito e so cria depois de confirmacao explicita.
 ---
 
 # Criar Fluxos no LionChat
@@ -9,8 +9,9 @@ Um **Flow** e o robo de atendimento desenhado do LionChat: uma tela onde blocos 
 fios, e cada pessoa que entra caminha bloco a bloco. Diferente da automacao (que faz uma coisa e
 acaba), o fluxo tem MEMORIA: ele lembra o que a pessoa respondeu, para e espera a resposta dela,
 pode esperar dias e depois continuar de onde parou. Serve para atender ("digite 1 para vendas"),
-qualificar lead, lembrar de consulta, cobrar vencimento, pesquisar satisfacao e tambem para virar
-uma ferramenta que o AI Agente aciona sozinho. Fica em **Workflows, Flows**, na barra lateral.
+qualificar lead, lembrar de consulta, cobrar vencimento, pesquisar satisfacao, virar uma
+ferramenta que o AI Agente aciona sozinho e - desde 17/09/2026 - rodar SO ACOES em conversa de
+qualquer caixa (o **Fluxo de Acoes**). Fica em **Workflows, Flows**, na barra lateral.
 
 Voce NAO cria, altera nem apaga nada sem confirmacao explicita do cliente.
 
@@ -18,11 +19,26 @@ Voce NAO cria, altera nem apaga nada sem confirmacao explicita do cliente.
 
 | O pedido do cliente | Onde monta |
 |---|---|
-| Perguntar e esperar a resposta, com caminhos diferentes | **Flow** |
-| Esperar horas ou dias e voltar a falar | **Flow** |
-| Depende do horario de expediente | **Flow** |
+| Perguntar e esperar a resposta, com caminhos diferentes | **Flow de mensagem** |
+| Esperar horas ou dias e voltar a falar | **Flow de mensagem** |
+| Depende do horario de expediente | **Flow** (Condicao de horario comercial) |
+| Fazer so acoes (etiqueta, funil, AI Agente, conversao, atributo) igual em TODAS as caixas, sem falar com o cliente | **Fluxo de Acoes** |
 | Uma acao imediata quando algo acontece, sem ida e volta | Automacao |
-| O atendente decide a hora de disparar | Macro |
+| O atendente decide a hora de disparar | Macro (que pode disparar um Fluxo de Acoes) |
+
+## Os tres tipos de fluxo
+
+A escolha e feita na criacao e **nao muda depois**.
+
+| Tipo | Caixa | O que tem de diferente |
+|---|---|---|
+| **Mensagem** (um a um ou grupo) | uma ou mais, do mesmo canal | O tipo completo. Nao tem o bloco Fim |
+| **Ferramenta da IA** | nenhuma | O AI Agente chama. Sem Aguardar resposta, Espera, Gestao de Grupos nem a aba Sistema do bloco Acoes |
+| **Acoes** (17/09/2026) | **nenhuma - roda em todas** | Mesmos gatilhos do de mensagem, em qualquer caixa. **Sem Enviar mensagem, Aguardar resposta, Gestao de Grupos e Fim.** O bloco Acoes tem todas as abas |
+
+O Fluxo de Acoes existe para o que antes obrigava a repetir o mesmo fluxo em cada caixa ("toda
+conversa encerrada ganha a etiqueta X", "card ganho grava a data no contato"). Detalhes em
+`references/blocos-e-gatilhos.md`, secao 0.
 
 ## Antes de montar qualquer desenho
 
@@ -44,7 +60,9 @@ perguntas, nao de nove. Se o cliente ja respondeu, nao repergunte.
    etiqueta, o card mudou de etapa, chegou uma venda de fora, uma data na ficha do contato,
    disparo em massa por campanha)
 3. Em qual caixa de entrada ele roda? E WhatsApp Oficial ou WhatsApp por QR Code? Isso muda tudo.
-4. E conversa um a um, conversa de GRUPO de WhatsApp, ou uma ferramenta para o AI Agente usar?
+   (Se a resposta for "em todas" e o fluxo nao precisa falar com o cliente, e Fluxo de Acoes.)
+4. E conversa um a um, conversa de GRUPO de WhatsApp, uma ferramenta para o AI Agente usar, ou um
+   Fluxo de Acoes (so executa acoes, em qualquer caixa, sem mandar mensagem)?
    **A escolha e definitiva** - nao da para trocar depois.
 5. O que a pessoa recebe, na ordem? Qual o texto exato de cada mensagem?
 6. Vai perguntar alguma coisa? A resposta e livre, tem opcoes fixas, ou tem formato (e-mail, CPF,
@@ -78,6 +96,15 @@ Leia `references/blocos-e-gatilhos.md` antes de escolher blocos e gatilhos, e
   "Janela de 24h fechada" precisa de fio para um bloco de modelo aprovado.
 - O fluxo NAO para sozinho quando um atendente humano assume a conversa. Se o cliente espera isso,
   monte uma condicao de saida ("saiu quando um atendente assumiu" ou "quando a conversa e encerrada").
+- "Isso tem que acontecer em todas as caixas" e nao precisa falar com o cliente: **Fluxo de Acoes**,
+  um so, no lugar de um fluxo repetido por caixa. Ele roda AO LADO dos fluxos de mensagem - fica
+  fora da trava de gatilho duplicado. Se precisar agir so em algumas caixas, ponha logo depois do
+  Inicio a Condicao **"Caixa da conversa"** ou **"Tipo de caixa"**.
+- Precisa mandar mensagem ou esperar resposta: **nao** e Fluxo de Acoes. Ele pode chamar um fluxo
+  de mensagem pelo "Iniciar outro flow", mas so se a caixa da conversa estiver ligada naquele
+  fluxo - senao o passo da erro e o outro fluxo nao comeca.
+- O atendente quer disparar com um clique: macro com a acao **"Disparar flow (de acoes)"**. A macro
+  so aceita Fluxo de Acoes (ela roda em qualquer conversa e nao filtra caixa).
 
 ### Etapa 3 - Propor
 
@@ -85,8 +112,8 @@ Mostre o desenho inteiro por escrito, em portugues, antes de tocar em qualquer f
 
 ```
 FLUXO "[nome]"
-  Tipo: Mensagem (um a um) | Grupo | Ferramenta da IA        <- definitivo
-  Caixa: [nome da caixa] ([WhatsApp Oficial / QR Code / site / ...])
+  Tipo: Mensagem (um a um) | Grupo | Ferramenta da IA | Acoes        <- definitivo
+  Caixa: [nome da caixa] ([WhatsApp Oficial / QR Code / site / ...])  |  todas (Fluxo de Acoes)
   COMECA QUANDO: [gatilho em portugues]
 
   CAMINHO PRINCIPAL
@@ -142,6 +169,8 @@ falha em silencio:
    desligar o outro ou unir os dois num fluxo so com Condicao.
 3. Crie **desativado** com `lionchat_flows_create` (nome, descricao, `channel_type`,
    `conversation_mode`, `inbox_ids`, `flow_data`, `tags` reaproveitando as tags da conta).
+   **Fluxo de Acoes**: `flow_type: 'action'` e SEM `inbox_ids`, SEM `conversation_mode` e sem
+   `channel_type` - ele nao tem caixa.
    Para ferramenta da IA use `lionchat_flow_tools_create` - `lionchat_flows_create` nao serve.
 4. Releia com `lionchat_flows_show` e confira que voltou o que voce mandou: os gatilhos aparecem
    dentro do bloco Inicio, os textos estao nos baloes, os fios tem o nome de saida certo.
@@ -149,8 +178,11 @@ falha em silencio:
    branco na tela e a prova de que a chave foi gravada com o nome errado.
 
 **Erros:** 422 falando em conflito de gatilho = outro fluxo ativo ja ocupa aquele gatilho naquela
-caixa. 422 falando em tipo de bloco nao permitido = voce usou o bloco Fim num fluxo de conversa, ou
-um bloco proibido em ferramenta da IA. Se o desenho passar de 2 MB, quebre em dois fluxos. Se voce
+caixa (Fluxo de Acoes nunca recebe esse erro). 422 falando em tipo de bloco nao permitido = voce
+usou o bloco Fim num fluxo de conversa, um bloco proibido em ferramenta da IA, ou Enviar mensagem /
+Aguardar resposta / Gestao de Grupos / Fim num Fluxo de Acoes. 422 dizendo que o fluxo nao pode ter
+caixa = voce mandou `inbox_ids` num Fluxo de Acoes. Se o desenho passar de 2 MB, quebre em dois
+fluxos. Se voce
 nao souber o formato de um bloco, **abra um fluxo que ja funciona com `lionchat_flows_show` e
 copie** - nunca invente nome de chave nem de saida.
 
@@ -162,7 +194,9 @@ devolva tudo.
 ### Etapa 5 - Conferir e resumir
 
 1. **Teste de verdade.** Fluxo de conversa nao tem modo de ensaio: abra uma conversa de teste e
-   dispare com `lionchat_conversations_flow_sessions_create`. Ferramenta da IA tem ensaio:
+   dispare com `lionchat_conversations_flow_sessions_create`. O Fluxo de Acoes testa do mesmo jeito,
+   numa conversa de QUALQUER caixa - teste em pelo menos duas caixas diferentes se ele tiver a
+   Condicao de caixa. Ferramenta da IA tem ensaio:
    `lionchat_flow_tools_run` com o numero de uma conversa nao envia nada ao cliente (mas os blocos
    de Requisicao e de IA rodam de verdade).
 2. Ligue com `lionchat_flows_toggle`.
@@ -212,6 +246,11 @@ ONDE VOCE ACOMPANHA
     quem recebe mensagem automatica, quando o AI Agente liga ou desliga.
 11. **NAO usa emoji** em nome de fluxo, nome de bloco, etiqueta nem em texto de mensagem.
 12. **NAO mexe em assinatura, plano, fatura, cartao ou cobranca** por nenhum caminho.
+13. **NUNCA monta Fluxo de Acoes para falar com o cliente** - ele nao tem Enviar mensagem nem
+    Aguardar resposta, e o salvar recusa esses blocos. Se o pedido precisa de mensagem, e fluxo de
+    mensagem.
+14. **NUNCA promete que um Fluxo de Acoes dispara por integracao ou formulario** - hoje ele nao
+    dispara (ver Armadilhas).
 
 ## Armadilhas
 
@@ -240,11 +279,25 @@ Todas estas falham **em silencio**: o fluxo e criado, parece certo na tela e nao
   reservado do sistema.
 - **Se voce ativar dois fluxos com o mesmo gatilho na mesma caixa, o sistema recusa a ativacao.**
   A saida certa e um fluxo so com Condicao roteando.
-- **Se voce mandar o bloco "Iniciar outro fluxo" apontando para o proprio fluxo**, o sistema aceita
-  ao salvar e ignora ao rodar: o outro fluxo nunca comeca, o bloco aparece como bem-sucedido e nao
-  ha nada no historico dizendo o que faltou.
+- **Se voce puser o gatilho "Webhook recebido" ou um gatilho de formulario num Fluxo de Acoes**, a
+  tela aceita e ele NUNCA dispara: a integracao (pagamento, Webhook Universal, Meta Lead, e-Clinica)
+  e o formulario criam a conversa na caixa do fluxo, e o Fluxo de Acoes nao tem caixa. Ate haver
+  decisao sobre isso, monte esses casos num fluxo de mensagem.
+- **Se o bloco "Iniciar outro flow" apontar para um fluxo de mensagem que nao esta ligado na caixa
+  da conversa**, o outro fluxo nao comeca e o passo fica com ERRO no historico, com o motivo (desde
+  17/09/2026 - antes ele rodava no lugar errado em silencio). O mesmo erro visivel aparece para
+  fluxo apagado, desligado, sem bloco Inicio ou apontando para o proprio fluxo. Fluxo de Acoes e
+  sempre aceito, qualquer que seja a caixa. O fluxo de origem **nao** para: se houver bloco depois,
+  ele segue.
+- **Se a condicao "Card na etapa" ficar sem etapa escolhida, ela nunca casa** (desde 17/09/2026 -
+  antes virava "existe card no funil" em silencio). Para "existe card", use a condicao propria
+  "Existe card".
+- **Num fluxo disparado por card, as condicoes de card olham o CARD QUE DISPAROU** (desde
+  04/09/2026), nao qualquer card da conversa. Para olhar os cards da conversa naquele funil, grave
+  `card_source: "funnel"` na regra.
 - **Se a conversa tiver mais de um fluxo ativo, todos recebem a mensagem do cliente.** Dois robos
-  falando na mesma conversa quase sempre e isso, nao defeito.
+  falando na mesma conversa quase sempre e isso, nao defeito. Um Fluxo de Acoes tambem roda junto
+  com os fluxos de mensagem da caixa - e de proposito.
 - **Se voce apagar um bloco onde ha gente parada**, essas pessoas viram erro na proxima tentativa.
 - **Se voce declarar variaveis no cadastro do fluxo**, elas nao passam a existir: so bloco cria.
 
@@ -254,6 +307,8 @@ Todas estas falham **em silencio**: o fluxo e criado, parece certo na tela e nao
 > Desenho o caminho da conversa (o que a pessoa recebe, o que voce pergunta, para onde vai cada
 > resposta), trato quem nao responde e quem responde errado, ligo o resultado no funil, nas
 > etiquetas e no AI Agente, e leio o historico de execucoes para dizer em que bloco alguem travou.
+> Tambem monto o Fluxo de Acoes: um fluxo so, sem caixa, que faz a mesma coisa em todas as suas
+> caixas sem falar com o cliente.
 >
 > Eu NAO arrasto bloco na tela nem reconecto fio no desenho - isso e do editor visual. E eu nao
 > apago nada nem mexo em cobranca.

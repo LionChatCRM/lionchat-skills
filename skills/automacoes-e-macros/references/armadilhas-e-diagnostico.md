@@ -132,6 +132,35 @@ assumiu": quando o AI Agente daquela conversa esta configurado para parar ao rec
 humana, ele fica calado por alguns minutos ou e desligado de vez (depende da configuracao dele). E o
 efeito colateral da macro de encerramento. Mensagem de AUTOMACAO nao causa isso.
 
+### "A macro perdeu a configuracao do card / do atributo"
+
+Macro com Criar Card, Mover Card, Nota no Card, Alterar atributo ou outra acao de parametro composto
+que foi aberta e salva DE NOVO, sem mexer em nada, entre 23/07 e 10/09/2026, pode ter ficado com os
+parametros apagados (o salvar trocava o objeto por vazio). O defeito foi corrigido em 10/09, mas o
+estrago ficou gravado. Confira com `lionchat_macros_show`: acao com `action_params` igual a `[null]`
+e uma dessas - peca ao cliente para reabrir a macro e escolher de novo, ou regrave com
+`lionchat_macros_update`. O mesmo defeito atingiu a tela de automacao; la confira com
+`lionchat_automation_rules_show`.
+
+### "O botao Disparar flow nao faz nada"
+
+- O fluxo escolhido nao e Fluxo de Acoes, esta desligado ou foi apagado: a macro so aceita Fluxo de
+  Acoes ativo e ignora o resto em silencio.
+- O Fluxo de Acoes ja estava rodando naquela conversa: o segundo clique nao abre outra execucao.
+- O fluxo disparou mas parou num bloco: leia a execucao no historico do fluxo - ela aparece como
+  iniciada pela macro, com o nome dela.
+
+### "Nao consigo salvar a macro com Enviar conversao"
+
+So administrador, ou cargo com a permissao de gerenciar integracoes de marketing, SALVA essa acao -
+os demais recebem o motivo no 422. Executar a macro continua liberado para todos.
+
+### "Alterar atributo da macro nao gravou"
+
+A chave e de sistema (origem, clique de anuncio, endereco do WhatsApp, UTM, gclid) e foi recusada na
+execucao, ficando so no registro do servidor. Ou o campo nao existe na conta. Ou, nas acoes de card,
+nao ha card naquele funil.
+
 ### "O texto saiu com um pedaco em branco"
 
 Variavel que a automacao nao preenche sai vazia, em silencio. A automacao so conhece contato,
@@ -170,7 +199,9 @@ administrador. Repare que Flows, ao contrario, sao abertos a todo agente.
 
 - agente comum so consegue gravar macro **pessoal**, mesmo pedindo global;
 - macro pessoal de outra pessoa nao aparece nem executa para os demais;
-- editar macro global exige ser o autor ou administrador.
+- editar macro global exige ser o autor ou administrador;
+- a acao **Enviar conversao** so e salva por administrador ou por cargo com a permissao de
+  gerenciar integracoes de marketing (executar continua liberado).
 
 E a resposta para "nao consigo editar a macro do meu colega".
 

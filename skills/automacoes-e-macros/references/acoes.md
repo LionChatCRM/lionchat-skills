@@ -3,8 +3,8 @@
 Indice:
 
 1. A regra de ouro dos parametros
-2. As 31 acoes da automacao (formato exato)
-3. O que a macro tem e o que ela nao tem
+2. As 33 acoes da automacao (formato exato)
+3. A macro: as 41 acoes e as 10 que so ela tem
 4. As 10 acoes que os gatilhos de card realmente executam
 5. O menu de acoes MUDA conforme o gatilho e a caixa
 6. Variaveis que a automacao preenche de verdade
@@ -25,7 +25,7 @@ Indice:
 
 ---
 
-## 2. As 31 acoes da automacao (formato exato)
+## 2. As 33 acoes da automacao (formato exato)
 
 ### Falar com o cliente
 
@@ -67,6 +67,8 @@ arquivo ja anexado aquela regra tambem funciona (o parametro e o numero dele).
 | Atribuir ao Agente | `assign_agent` | `[numero_do_agente]` ou `["nil"]` para tirar o responsavel |
 | Atribuir um Time | `assign_team` | `[numero_da_equipe]` ou `["nil"]` / `[0]` para tirar |
 | Atribuir AI Agente | `assign_captain_assistant` | `[numero_do_assistente]` ou `[{"assistant_id": 17, "proactive": true}]`. `proactive: false` = assume e espera o cliente falar. `["nil"]` desliga e marca que foi desligado de proposito |
+| Desligar o AI Agente | `deactivate_captain` | `[]` — tira a IA da conversa |
+| Enviar documento para assinatura | `send_signature_document` | `[numero_do_modelo]` (de `lionchat_signature_documents_list`) — manda o contrato para a pessoa da conversa. Exige a assinatura eletronica ligada na conta |
 | Adicionar uma Etiqueta | `add_label` | `["etiqueta1", "etiqueta2"]` — **NOMES**, nao numeros |
 | Remover uma Etiqueta | `remove_label` | `["etiqueta1"]` |
 | Alterar Prioridade | `change_priority` | `["low"]`, `["medium"]`, `["high"]`, `["urgent"]` ou `["nil"]` para limpar |
@@ -134,19 +136,56 @@ na mesma regra.
 
 ---
 
-## 3. O que a macro tem e o que ela nao tem
+## 3. A macro: as 41 acoes e as 10 que so ela tem
 
-A macro aceita **28** acoes: as mesmas de cima, com estas diferencas.
+A macro aceita **41** acoes (17/09/2026). Ate 31/08 eram 28: o cardapio foi ampliado em 04/09
+(contrato), 10/09 (onze acoes novas) e 17/09 (disparar Fluxo de Acoes). O nome da acao e conferido
+ao salvar - nome fora da lista devolve 422.
 
-**A macro NAO tem:**
-- Enviar Template WhatsApp
-- Alterar atributo do contato
-- Alterar atributo da conversa
-- Aguardar
+**A macro NAO tem** (a automacao tem): Enviar Template WhatsApp e Aguardar.
+
+**Tem igual a automacao**, no mesmo formato da secao 2: todas as outras 31, inclusive Alterar
+atributo do contato, Alterar atributo da conversa, Desligar o AI Agente, Enviar documento para
+assinatura e Adicionar SLA.
 
 **So a macro tem:**
-- `remove_assigned_team` — remover a equipe atribuida
-- `assign_agent` com `["self"]` — atribui a conversa a **quem clicou**
+
+| Nome na tela | Nome tecnico | Parametros |
+|---|---|---|
+| Remover Time Atribuido | `remove_assigned_team` | `[]` |
+| Atribuir ao Agente, "eu mesmo" | `assign_agent` | `["self"]` — atribui a conversa a **quem clicou** |
+| Marcar como nao lida | `mark_unread` | `[]` — deixa a conversa como nao lida para o time (bom depois de transferir) |
+| Adicionar Etiqueta ao Contato | `add_contact_label` | `["titulo"]` — etiqueta do CONTATO |
+| Remover Etiqueta do Contato | `remove_contact_label` | `["titulo"]` |
+| Dividir entre Agentes (rodizio) | `distribute_agents` | `[12, 15, 20]` — rodizio de verdade, um de cada vez, nunca sorteio. Cada agente precisa ser membro da caixa (mesma regra do Atribuir ao Agente) |
+| Alterar atributo do Card | `update_card_attribute` | `[{"funnel_id": 4, "attribute_key": "chave", "value": "texto ou variavel"}]` |
+| Adicionar Checklist ao Card | `add_card_checklist` | `[{"funnel_id": 4, "checklist_template_ids": [7]}]` |
+| Adicionar Oferta ao Card | `add_card_offer` | `[{"funnel_id": 4, "offer_ids": [3]}]` |
+| Enviar conversao (Meta, Google Ads, GA4) | `send_conversion` | `[{"destinations": ["meta"], "event_names": {"meta": "Purchase"}, "value": "1500,50"}]` |
+| Disparar flow (de acoes) | `start_flow` | `[numero_do_fluxo]` — **so Fluxo de Acoes** |
+
+**Atencao aos dois pares de etiqueta**: `add_label` / `remove_label` mexem na etiqueta da CONVERSA;
+`add_contact_label` / `remove_contact_label` mexem na etiqueta do CONTATO. Sao coisas diferentes e
+o cliente costuma dizer so "etiqueta" - pergunte qual.
+
+**As regras das acoes novas:**
+
+- **Atributo protegido e recusado.** Em Alterar atributo do contato/da conversa, chave de sistema e
+  recusada NA EXECUCAO e fica so no registro: prefixos `waha_whatsapp_`, `whatsapp_`, `origin_`,
+  `ctwa_`, `meta_lead_`, `lt_`, e os atributos de sistema como `utm_*` e `gclid`. A tela nem
+  oferece essas chaves. Nunca monte macro gravando origem, clique de anuncio ou endereco do WhatsApp.
+- **Enviar conversao so pode ser SALVA por administrador** ou por quem tem cargo com permissao de
+  gerenciar integracoes de marketing - os demais recebem 422 com o motivo. **Executar** a macro
+  segue liberado para todo mundo. Teto de 50 conversoes por execucao: o excedente e pulado e as
+  outras acoes rodam. Destino sem integracao conectada na conta e pulado.
+- **Disparar flow so aceita Fluxo de Acoes ATIVO.** A macro roda em qualquer conversa e nao filtra
+  caixa - um fluxo de MENSAGEM apontado ali rodaria numa caixa que nao e dele. Fluxo apagado,
+  desligado ou de outro tipo e ignorado em silencio. Se aquele Fluxo de Acoes ja estiver rodando
+  na conversa, o clique nao faz nada. No historico do fluxo, a execucao aparece como iniciada pela
+  macro, com o nome dela. Liste os candidatos com `lionchat_flows_list` e fique so com os de
+  `flow_type` `action`.
+- **Alterar atributo do Card, Checklist e Oferta precisam de card** naquele funil - sem card, a acao
+  e pulada. Ponha "Criar Card Kanban" antes, na mesma macro.
 
 **Diferencas de comportamento que precisam ser ditas ao cliente:**
 
