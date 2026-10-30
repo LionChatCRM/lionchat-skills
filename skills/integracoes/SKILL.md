@@ -1,6 +1,6 @@
 ---
 name: integracoes
-description: Liga o LionChat aos sistemas que a empresa ja usa - leads de anuncio do Facebook e Instagram, compras de Hotmart, Guru, Kiwify, Eduzz, Ticto, Monetizze e Greenn, ERP Omie e Conta Azul, clinica e-Clinica, Webhook Universal para qualquer outro sistema, envio de conversao para o Pixel da Meta, Google Analytics 4 e Google Ads, Google Calendar e Google Contatos, aviso para sistema externo, Slack, Notion, Linear, Shopify, Painel de Aplicativos e SMS e voz pela TopSend. Use quando a pessoa disser "quando a compra for aprovada manda mensagem no WhatsApp", "quero receber os leads do meu anuncio", "conecta meu sistema no LionChat", "avisa o Facebook quando eu vender", "configurei a integracao e nao acontece nada", "meu webhook chega e nao dispara" ou "sincroniza minha agenda do Google". Entrevista antes, mostra a proposta por escrito e so cria depois de confirmacao explicita.
+description: Liga o LionChat aos sistemas que a empresa ja usa - leads de anuncio do Facebook e Instagram, compras de Hotmart, Guru, Kiwify, Eduzz, Ticto, Monetizze e Greenn, ERP Omie e Conta Azul, clinica e-Clinica (mapeamento de eventos e lembretes automaticos), Webhook Universal para qualquer outro sistema, envio de conversao para o Pixel da Meta, Google Analytics 4 e Google Ads, Google Calendar e Google Contatos, PABX VTCall, aviso para sistema externo, Slack, Notion, Linear, Shopify, Painel de Aplicativos e SMS e voz pela TopSend. Use quando a pessoa disser "quando a compra for aprovada manda mensagem no WhatsApp", "quero receber os leads do meu anuncio", "conecta meu sistema no LionChat", "avisa o Facebook quando eu vender", "configurei a integracao e nao acontece nada", "meu webhook chega e nao dispara" ou "sincroniza minha agenda do Google". Entrevista antes, mostra a proposta por escrito e so cria depois de confirmacao explicita.
 ---
 
 # Integracoes do LionChat
@@ -27,7 +27,7 @@ Os nomes de ferramenta neste manual sao os do conector do LionChat (por exemplo 
 **Depois pergunte. Uma ou duas perguntas por vez, nunca a lista inteira de uma vez. Se a pessoa ja respondeu, nao repergunte.**
 
 1. De onde vem a informacao e o que tem que acontecer quando ela chegar? (exemplo: "compra aprovada na Hotmart" e "mandar boas-vindas no WhatsApp"). Sem essa frase nao da para escolher nada.
-2. Qual sistema voce usa hoje, pelo nome? (Hotmart, Guru, Kiwify, Eduzz, Ticto, Monetizze, Greenn, Omie, Conta Azul, e-Clinica, anuncios do Facebook e Instagram, outro). Se for "outro", o caminho e o Webhook Universal.
+2. Qual sistema voce usa hoje, pelo nome? (Hotmart, Guru, Kiwify, Eduzz, Ticto, Monetizze, Greenn, Omie, Conta Azul, e-Clinica, anuncios do Facebook e Instagram, PABX VTCall, outro). Se for "outro", o caminho e o Webhook Universal.
 3. Voce tem acesso de administrador no painel desse sistema? Quase toda integracao exige colar um endereco nosso la, ou gerar um token la.
 4. Quando o evento chegar, o cliente recebe uma mensagem pronta (automacao) ou entra numa conversa com perguntas e caminhos (fluxo)?
 5. Por qual caixa de entrada essa mensagem sai? A caixa vem da automacao ou do fluxo, nao da integracao.
@@ -46,13 +46,19 @@ Classifique o pedido em UMA das cinco familias - a receita muda por completo:
 | **C. Sincroniza** | agenda e agenda de contatos do Google | Google Calendar, Google Contatos |
 | **D. Avisa sistema de fora** | quando algo acontece aqui, avisar la | Webhook de saida, Slack, Linear |
 | **E. Consulta no meio do atendimento** | perguntar algo a um sistema de fora durante a conversa | bloco de consulta do fluxo, consulta do formulario publico |
+| **F. Telefonia** | ligar e registrar ligacao pelo PABX da empresa | VTCall (servidor, token, ramais, gravacao, transcricao) |
+
+Fora desta skill: Formulario do WhatsApp (o nativo da Meta, aberto por botao de modelo) e na skill
+`formulario-whatsapp`; linha de ligacao pelo WhatsApp (LionCalls) e Ligacao com IA sao na skill
+`agente-de-ligacao`.
 
 Heuristicas:
 
 - **Familia A e sempre tres pecas, nesta ordem:** caixa de entrada -> alvo (automacao ou fluxo) -> integracao com o mapeamento apontando para o alvo. Criar a integracao primeiro deixa a pessoa com o endereco cadastrado e nada acontecendo.
 - **Mensagem pronta e curta = automacao. Conversa com perguntas, espera e caminhos = fluxo.** Os dois podem estar ligados ao mesmo evento e disparam juntos.
 - **Sistema sem integracao pronta = Webhook Universal.** Nao invente integracao que nao existe.
-- **Familia B tem ordem propria:** conectar a credencial -> mapear o evento por ETAPA do funil -> testar. Sem o mapa por etapa nao sai nada, mesmo com a credencial certa.
+- **Familia B tem ordem propria:** conectar a credencial -> mapear o evento por ETAPA do funil -> testar. Sem o mapa por etapa nao sai nada, mesmo com a credencial certa. Conversao fora do funil (sem card) sai pelo bloco "Enviar conversao" de um fluxo.
+- **e-Clinica:** token e unidades sao tela; o mapeamento evento -> alvo e os lembretes automaticos o conector grava desde 31/08/2026 (`lionchat_eclinica_integrations_update`, que SUBSTITUI tudo - leia antes).
 - **"So a primeira compra" so funciona onde o evento traz o numero da cobranca:** Hotmart, Guru, Kiwify, Ticto, Monetizze e Eduzz. Na Greenn, na Omie, na Conta Azul e no Webhook Universal a opcao e aceita, aparece na resposta e nao faz nada.
 - **Nao prometa filtro por condicao na automacao de integracao.** Ver a secao Armadilhas.
 
@@ -104,9 +110,11 @@ So avance com sim explicito - "sim", "pode", "confirmado", "beleza", "manda ver"
 
 **Familias C, D e E:** ver `references/so-no-painel.md` (C precisa de autorizacao no navegador) e `references/ferramentas-mcp.md` (D e E).
 
+**Familia F (VTCall):** `lionchat_vtcall_settings_update` (servidor e token; liga sozinho quando os dois estao preenchidos) -> `lionchat_vtcall_settings_test_connection` -> `lionchat_vtcall_ramals_create` para CADA atendente -> entregar o `webhook_url` de `lionchat_vtcall_settings_show` para colar no painel do VTCall. Ver `references/ferramentas-mcp.md`, secao 11.
+
 Em cada chamada, mostre uma linha do que esta fazendo: `Criando a integracao "Hotmart"... ok`. Se der erro:
 
-- **Recusa com `automation_id(s) invalidos` ou `flow_id(s) invalidos`** - o numero nao existe nesta conta. Liste de novo e corrija. Essa conferencia na hora de gravar existe nos 7 checkouts e no Webhook Universal; nas demais um numero errado e aceito e simplesmente nunca dispara.
+- **Recusa com `automation_id(s) invalidos` ou `flow_id(s) invalidos`** - o numero nao existe nesta conta. Liste de novo e corrija. Essa conferencia na hora de gravar existe nos 7 checkouts, no Webhook Universal e na e-Clinica; nas demais um numero errado e aceito e simplesmente nunca dispara.
 - **Recusa por permissao** - quase toda integracao e so para administrador. Pare e diga qual acesso falta.
 - **A integracao nao aparece na lista de apps** - nao insista. E liberacao da instalacao ou credencial que so o suporte liga.
 - **Qualquer erro nao previsto** - pare, mostre o erro e pergunte se pula ou corrige. Nunca chute outra ferramenta.
@@ -158,13 +166,14 @@ Catalogo completo, com o sinal de cada uma e como sair, em `references/armadilha
 
 - **Se voce criar a integracao sem alvo mapeado**, o evento chega, aparece como recebido no historico, cria o contato e nada mais acontece. Nenhum erro em lugar nenhum.
 - **Se a automacao alvo estiver sem caixa de entrada**, todo evento morre com "Automacao sem caixa de envio configurada" - e essa frase so aparece no historico de execucao da automacao, nao no historico da integracao.
-- **Se voce montar o mapeamento da Greenn com os numeros que a tela mostra**, ele nunca casa: o sistema recebe os eventos com NOME (`sale_paid`, `contract_canceled`, `checkout_abandoned`). O webhook chega, e gravado como recebido, e nada dispara.
+- **Se voce montar o mapeamento da Greenn com numeros**, ele nunca casa: o sistema recebe os eventos com NOME (`sale_paid`, `contract_canceled`, `checkout_abandoned`). A tela mostrou numeros ate 28/10/2026; integracao gravada antes disso pode estar com numero e precisa ser corrigida. O webhook chega, e gravado como recebido, e nada dispara.
 - **Se voce marcar eventos na lista do assistente achando que isso filtra**, nao filtra: essa lista e so memoria da tela. O unico portao real e o mapeamento evento para alvo.
 - **Se voce inverter o sentido do mapeamento de campos**, tudo fica vazio sem erro e o lead morre com "sem telefone nem CPF nos campos mapeados". O sentido e `{caminho.no.recebido: campo daqui}`.
 - **Se o fluxo alvo estiver com uma sessao presa naquela conversa** (esperando resposta sem tempo limite, ou pausado), todo evento novo daquele mesmo cliente e descartado. A segunda compra da mesma pessoa nao dispara nada.
 - **Se o fluxo alvo for do tipo ferramenta de IA, estiver desligado ou sem caixa vinculada**, ele nao dispara e nao acusa nada.
 - **Se voce usar o mesmo contato em dois checkouts diferentes** (Hotmart e Kiwify, por exemplo), a compra mais recente sobrescreve a anterior nos mesmos campos do contato: os 7 checkouts gravam nos MESMOS 19 campos, sem separacao por plataforma.
-- **Se voce testar conversao arrastando o card para tras no funil**, nao dispara nada de proposito - so movimento para frente conta. E Pixel, Analytics e Google Ads disparam JUNTOS no mesmo movimento.
+- **Se voce testar conversao entrando de novo numa etapa que o card ja passou**, nao sai nada: e UM envio por card+evento+etapa. Desde 17/09/2026 a etapa dispara venha o card de onde vier (para frente ou para tras), mas so na primeira vez. E Pixel, Analytics e Google Ads disparam JUNTOS no mesmo movimento.
+- **Se voce gravar dois lembretes da e-Clinica identicos** (mesmos dias, tipo e filtro), e recusado com 422. Dois com filtros DIFERENTES e os mesmos dias que casem com a mesma consulta passam e disputam a mesma linha: o paciente recebe so um.
 - **Se voce conferir a conexao do Google Analytics pela tela**, ela vai parecer certa mesmo com a credencial errada: o Google responde sucesso de qualquer jeito. So o botao de testar conexao revela.
 - **Se o formulario do Meta Lead Ads estiver certo, mapeado, e o historico de eventos estiver VAZIO**, o problema nao e seu: provavelmente a captura de leads de anuncio nao esta liberada nesta instalacao. Peca ao suporte - a tela nao avisa.
 - **Se voce puxar os leads antigos do Meta Lead Ads esperando que as boas-vindas saiam**, nao saem. Isso cria contato e so - de proposito, para nao mandar mensagem retroativa.
@@ -181,13 +190,16 @@ Catalogo completo, com o sinal de cada uma e como sair, em `references/armadilha
 > sistemas de fora quando algo acontece aqui, e monto a automacao ou o fluxo
 > que fala com a pessoa quando a informacao chega.
 >
+> Eu tambem configuro a e-Clinica (qual evento dispara o que e os lembretes
+> automaticos de consulta, laboratorio e cobranca) e o PABX VTCall (servidor,
+> ramais, gravacao e transcricao).
+>
 > Eu NAO clico por voce nas telas do Facebook, do Google, do Slack, do Notion,
 > do Linear, do Shopify e da Conta Azul: essas conexoes pedem uma autorizacao
 > no navegador que so uma pessoa faz. Eu NAO consigo cadastrar nosso endereco
-> dentro do painel do seu checkout, do seu ERP ou da sua clinica - eu entrego
-> o endereco pronto e digo exatamente onde colar. Eu NAO configuro os
-> lembretes automaticos da e-Clinica nem cadastro unidades dela: isso e tela.
-> E eu NAO apago nada.
+> dentro do painel do seu checkout, do seu ERP, da sua clinica ou do seu PABX -
+> eu entrego o endereco pronto e digo exatamente onde colar. Eu NAO cadastro
+> unidades nem o token da e-Clinica: isso e tela. E eu NAO apago nada.
 >
 > Me conte de onde vem a informacao e o que tem que acontecer quando ela
 > chegar. A partir disso eu proponho a montagem inteira e voce aprova antes de

@@ -25,10 +25,10 @@
 |---|---|---|---|
 | `name` | sim | texto | UNICO na conta - criar com nome repetido falha |
 | `description` | nao | texto | explicacao livre do processo |
-| `active` | nao | verdadeiro/falso (padrao verdadeiro) | falso = arquivado: some das abas mas mantem todos os cartoes |
+| `active` | nao | verdadeiro/falso (padrao verdadeiro) | falso = arquivado: some das abas mas mantem todos os cartoes. Arquivar e `active: false`; nao existe outro campo de "arquivado" |
 | `stages` | sim | objeto, uma chave por etapa | funil SEM nenhuma etapa e recusado na criacao. Ver secao 2 |
-| `settings.agents` | nao | lista de pessoas `[{id, name}]` | **lista vazia = funil ABERTO a todos** |
-| `settings.teams` | nao | lista de times `[{id, name}]` | os membros sao resolvidos ao vivo: mexeu no time, reflete na hora |
+| `settings.agents` | nao | lista de OBJETOS `[{id}]` - nunca numero solto | o sistema completa nome, e-mail e foto. **lista vazia = funil ABERTO a todos** |
+| `settings.teams` | nao | lista de times `[{id}]` | os membros sao resolvidos ao vivo: mexeu no time, reflete na hora |
 | `settings.goals` | nao | lista de metas | ver secao 3 |
 | `settings.automations` | nao | lista de automacoes | ver `references/automacoes-do-funil.md` |
 | `position` | nao | numero | ordem das abas de funil na tela |
@@ -63,7 +63,8 @@ Regras:
 
 - **A chave nunca deve ser reaproveitada.** Etapa apagada deixa a chave queimada.
 - **Renomear a etapa e seguro; trocar a chave nao.** Trocar a chave e o mesmo que apagar uma etapa e criar outra.
-- **Apagar etapa com cartoes e recusado.** Mova os cartoes antes com `lionchat_funnels_create_2` (transferir cartoes entre etapas, aceita inclusive outro funil de destino).
+- **Gravar as etapas sem uma que tem cartoes e recusado** com 422 `STAGE_HAS_ITEMS`. Para excluir etapa com cartoes, use `lionchat_funnels_remove_stage`: move os cartoes em silencio (sem disparar nada) e so depois apaga a etapa. Nao use `lionchat_funnels_create_2` para isso - ele dispara as automacoes do destino em cada cartao e nao apaga a etapa.
+- Etapa como texto, numero ou vazio (em vez de objeto com `name`) derruba a lista de funis e o Kanban da conta inteira. Cada etapa e sempre um objeto.
 
 ## 3. Metas do funil
 
@@ -89,7 +90,8 @@ Periodo: `monthly`, `quarterly` ou `yearly`. Metas com valor em branco sao desca
 | `item_details.title` | sim | texto | e o nome do negocio no cartao |
 | `conversation_display_id` | nao | numero da conversa | e por ela que o cartao sabe quem e o cliente - **o cartao nao guarda o contato** |
 | `linked_conversations` | nao | lista de objetos `[{display_id: 123}]` | **nunca numeros soltos** - numero solto quebra a leitura do cartao |
-| `assigned_agents` | nao | lista de pessoas | define tambem quem ENXERGA o cartao |
+| `assigned_agents` | nao | LISTA DE NUMEROS, ex.: `[5, 12]` | define tambem quem ENXERGA o cartao. Objeto `{id, ...}` e ignorado em silencio (a lista nao muda). Gravar substitui a lista inteira |
+| `effective_status` / `snoozed_until` | so leitura | `open`, `snoozed`, `won`, `lost` / data | a situacao REAL do cartao. Cartao adiado continua com `status: open` no miolo; quem diz que esta adiado e o `effective_status` |
 | `checklist` | nao | lista de tarefas | **fora do salvamento comum** - mexer so pelas ferramentas proprias |
 | `activities` | nao | historico | escrito so pelo sistema, tambem fora do salvamento comum |
 | `stage_entered_at` | nao | data e hora | quando o cartao entrou na etapa ATUAL; base do tempo na etapa |
@@ -112,8 +114,10 @@ Dois avisos importantes sobre a conversa do cartao:
 | `currency` | `"BRL"` ou objeto com codigo, simbolo e formato | |
 | `offers` | lista | e a FOTO congelada da oferta no momento em que ela entrou no cartao |
 | `closed_offers` | lista | quais ofertas realmente fecharam quando o cartao virou Ganho |
-| `win_reason` / `loss_reason` | texto vindo das listas da conta | a janela tambem deixa digitar um motivo avulso |
-| `attributed_to` | numero da pessoa | a quem creditar o ganho quando o cartao tem dois ou mais responsaveis |
+| `win_reason` / `loss_reason` | o `id` (TEXTO) de um motivo das listas da conta, com o titulo dele em `reason` | motivo avulso: `win_reason`/`loss_reason` nulo e o texto em `reason` |
+| `attributed_to` | numero da pessoa | a quem creditar o ganho (o vendedor) |
+| `co_attributed_to` | numero da pessoa | o CO-PARTICIPANTE da venda (ex.: o SDR), so em cartao Ganho. Nao pode ser o vendedor e precisa ter acesso ao funil. Reabrir ou perder apaga. Ver `registrar-vendas.md` |
+| `retroativo_em` | `AAAA-MM-DD` | so na ESCRITA, junto com um Ganho ou Perdido que muda o estado: faz o fechamento contar no mes escolhido. Nao fica gravado no cartao. Ver `registrar-vendas.md` |
 | `status_changed_at` / `status_changed_by` | data e hora / pessoa | carimbados SO quando o estado MUDA, e **apagados ao reabrir para aberto** |
 | `deadline_at` | data e hora | prazo; muda de cor no cartao quando perto ou vencido |
 | `scheduled_at` / `scheduling_type` | data e hora / texto | usados pelo filtro de data agendada |
@@ -149,11 +153,13 @@ Vale para a conta inteira e para TODOS os funis. Leia com `lionchat_kanban_confi
 
 | Lista | Formato | Observacao |
 |---|---|---|
-| `win_reasons` | `[{id, title}]` | motivos de ganho |
-| `loss_reasons` | `[{id, title}]` | motivos de perda |
+| `win_reasons` | `[{id, title}]` | motivos de ganho. O `id` e TEXTO estavel (ex.: `ganho-indicacao`), nunca numero |
+| `loss_reasons` | `[{id, title}]` | motivos de perda, mesma regra |
 | `checklist_templates` | `[{id, name, items: [{id, text}]}]` | o `name` vira o titulo do bloco no cartao. Renomear depois nao muda os cartoes ja aplicados |
 | `global_custom_attributes` | `[{name, type, is_list, list_values: []}]` | os campos do cartao. Tipos da tela: `string`, `number`, `date`, `boolean` (a exibicao tambem trata `time`). **Nao existe o tipo "lista"** - lista e o modo `is_list` com as opcoes em `list_values` |
 | `config` | preferencias gerais | esta e a unica parte que se MISTURA com o que ja existe; as listas acima sao substituidas inteiras |
+
+Sobre os motivos: reenvie os MESMOS `id` dos motivos que ja existem (trocar o `id` tira o nome do motivo dos cartoes ja marcados com ele). Lista de textos soltos (`["Preco"]`), motivo sem `id`, motivo sem titulo ou `id` repetido sao recusados com 422 - e o servidor nao inventa `id`. Lista vazia limpa.
 
 Sobre as preferencias (`config`): as duas que valem de verdade sao o **titulo do modulo** (o nome que
 aparece no menu lateral no lugar de "Kanban") e a **liberacao da visao em lista**. As outras chaves sao
@@ -182,6 +188,7 @@ Texto puro, sem formatacao. Guarda autor e data. **Nao vai para o cliente** - e 
 
 Um cartao pode ter varios. Define tambem quem ENXERGA o cartao. A origem de cada atribuicao fica registrada: manual, herdada do dono da conversa, ou por automacao.
 
+- Pela edicao do cartao, os responsaveis vao como LISTA DE NUMEROS (`[5, 12]`) e substituem a lista inteira.
 - A pessoa precisa ter acesso ao funil. Pelas ferramentas diretas, sem acesso da erro; pela automacao de etapa, e ignorado em silencio.
 - **Cartao Ganho ou Perdido recusa acrescentar ou tirar responsavel.**
 - Estar atribuido a um cartao libera abrir e responder AQUELA conversa mesmo sem ser membro da caixa. Nao libera a caixa inteira, e sai do cartao, perde o acesso.
@@ -194,7 +201,11 @@ Ferramentas: vincular, desvincular e ligar ou desligar o "recebe automacao" - ve
 
 ## 12. Tarefas da agenda ligadas ao cartao
 
-O elo entre tarefa e cartao e a CONVERSA - nao existe tarefa presa diretamente ao cartao. Sem conversa ligada, o cartao nao tem como puxar tarefa nenhuma. A proxima tarefa aparece no cartao do quadro. Quem executa controla tambem quem VE a tarefa (administrador ve todas).
+Desde 20/10/2026 a tarefa pode ficar PRESA ao cartao (`kanban_item_id` da tarefa). A aba Tarefas do cartao mostra as tarefas presas a ele mais as tarefas sem cartao das conversas dele - entao cartao sem conversa tambem tem tarefa. A proxima tarefa aparece no cartao do quadro. Quem executa controla tambem quem VE a tarefa (administrador ve todas).
+
+- Criar tarefa presa: `lionchat_tasks_create` com `kanban_item_id`, ou a acao "Criar tarefa" da automacao de etapa (`references/automacoes-do-funil.md`).
+- Agendamento, sessao de programa e evento importado do Google NAO podem ser presos a cartao (422).
+- Ao excluir o cartao, so a tarefa SIMPLES presa a ele some (sem conversa, contato, agendamento, anexo); as outras se soltam e continuam na agenda.
 
 ## 13. Aviso para sistema externo (webhook do Kanban)
 
@@ -219,15 +230,16 @@ Permissoes de cargo, todas separadas:
 | `kanban_view` | ve TODOS os cartoes da conta, mas so edita os proprios |
 | `kanban_manage` | ve e edita qualquer cartao |
 | `kanban_delete` | excluir cartao - **nao vem junto com o `kanban_manage`** |
-| `kanban_export_import` | baixar e subir a planilha do funil - **tambem separada** |
+| `kanban_export_import` | baixar e subir a planilha do funil e aplicar o "Importar vendas" - **tambem separada** |
 | `offer_manage` | mexer no catalogo de ofertas |
+| `kanban_ai_analyze` | usar o "Analisar com IA" (alem dela, a conta precisa do recurso de plano `kanban_ai_analysis`) |
 
-Regra de visibilidade do CARTAO, em ordem:
+Regra de visibilidade do CARTAO (desde 11/09/2026), em tres niveis:
 
-1. Quem tem visao ampla (administrador, `kanban_view` ou `kanban_manage`) ve tudo.
-2. O responsavel ve os cartoes dele.
-3. Cartao SEM responsavel e visto por quem tem acesso ao funil.
+1. **Ve tudo**: administrador, ou cargo com `kanban_view` ou `kanban_manage` - inclusive funil com lista restrita.
+2. **Atendente SEM cargo personalizado**: ve e mexe em todos os cartoes dos funis que ele alcanca, mais os atribuidos a ele em qualquer funil.
+3. **Cargo personalizado sem nenhuma opcao de Kanban**: so os cartoes dele e os sem dono de funil acessivel.
 
-Alem disso, um vendedor comum so ve cartao cuja conversa esteja numa caixa de entrada que ele acessa - com a excecao do cartao sem responsavel em funil acessivel.
+Cargo com o menu Kanban OCULTO nao ve cartao nenhum, em lugar nenhum. E, por cima de tudo isso, quem nao e administrador so ve cartao cuja conversa esteja numa caixa de entrada que ele acessa (com duas excecoes: o cartao atribuido a ele e o cartao sem responsavel de funil que ele acessa, para ele poder "pegar pra mim").
 
 **Efeito colateral que confunde:** quando alguem assume a conversa, o cartao ganha dono automaticamente e SOME da tela dos colegas. E o comportamento desejado, mas parece que o cartao desapareceu.

@@ -122,8 +122,9 @@ Nao consegui fazer:
   [o que falhou e por que, em portugues]
 
 So voce consegue fazer, na tela:
-  [ler o QR Code do WhatsApp, autorizar Instagram/Facebook/Google/Conta Azul,
-   mexer em plano ou pagamento, subir arquivo — ver references/nao-tem-caminho.md]
+  [ler o QR Code do WhatsApp (eu posso gerar o link de conexao), autorizar Instagram/Facebook/
+   Google/Conta Azul, mexer em plano ou pagamento, subir arquivo que so esta no computador —
+   ver references/nao-tem-caminho.md]
 ```
 
 ## Regras que nao podem ser violadas
@@ -142,7 +143,8 @@ So voce consegue fazer, na tela:
    o pedido de autorizacao do cliente, nao um defeito.
 6. **NUNCA prometa o que o LionChat nao entrega pela IA:** ler o QR Code do WhatsApp pelo celular,
    autorizar Instagram ou Facebook, dar o clique de permissao do Google ou da Conta Azul, subir
-   arquivo, e MEXER em assinatura, plano, fatura, cartao ou saldo. (Ler o plano e os limites de
+   arquivo que so esta no computador do cliente (arquivo que esta num link publico sobe — ver
+   `references/nao-tem-caminho.md`), e MEXER em assinatura, plano, fatura, cartao ou saldo. (Ler o plano e os limites de
    atendentes e caixas voce consegue.) Ver `references/nao-tem-caminho.md`.
 7. **NUNCA repita uma chamada que falhou por falta de permissao ou por parametro invalido** — o
    resultado nao vai mudar. E se uma chamada de CRIACAO falhar, confira com uma leitura antes de
@@ -166,11 +168,12 @@ custam. A lista completa, com sintoma e conserto, esta em `references/armadilhas
 - Se voce mandar um campo que a ferramenta nao conhece, ele e **descartado sem aviso**: a resposta
   volta como sucesso e o painel segue com o valor antigo. Se aquele campo for o unico da chamada, o
   erro que aparece e "parametro faltando" — que engana, porque parece problema de formato.
-- Se voce usar `lionchat_inbox_members_create` para "adicionar um atendente a uma caixa", ele
-  **substitui a lista inteira**: uma caixa com 111 membros fica com 1. O mesmo vale para as
-  etiquetas de um contato: a ferramenta se chama "Adicionar Labels" e **troca a lista toda**.
-  Toda lista que voce manda substitui a anterior por inteiro — etapas do funil, motivos de ganho e
-  perda, configuracoes da caixa. Leia, junte na mao, reenvie completo.
+- Se voce usar `lionchat_inbox_members_update` para "adicionar um atendente a uma caixa", ele
+  **substitui a lista inteira**: uma caixa com 111 membros fica com 1. (Quem so ACRESCENTA e
+  `lionchat_inbox_members_create` — mas ele ignora supervisores.) O mesmo vale para as etiquetas de
+  um contato: a ferramenta se chama "Adicionar Labels" e **troca a lista toda**. Quase toda lista
+  que voce manda substitui a anterior por inteiro — etapas do funil, motivos de ganho e perda,
+  configuracoes da caixa. Leia, junte na mao, reenvie completo.
 - Se voce buscar um contato com menos de 3 letras, a resposta volta **vazia de proposito**. Vazio
   ali nao quer dizer "nao existe": quer dizer que a busca nao rodou. Concluir que nao existe cria
   um contato duplicado.
@@ -196,10 +199,12 @@ custam. A lista completa, com sintoma e conserto, esta em `references/armadilhas
 > qualquer coisa eu leio o que voce ja tem, te mostro a proposta em texto e espero voce aprovar.
 > Eu trabalho com as mesmas permissoes e os mesmos limites de um atendente seu clicando na tela.
 >
-> Eu NAO leio o QR Code do WhatsApp por voce (o codigo tem que passar pela camera do seu celular),
-> NAO clico em Permitir no Instagram, Facebook, Google nem Conta Azul (do Google e da Conta Azul eu
-> te mando o link, mas o clique e seu; Instagram e Facebook sao so pela tela), NAO subo arquivo nem
-> planilha, NAO mexo em plano, fatura, cartao ou saldo, e NAO apago nada.
+> Eu NAO leio o QR Code do WhatsApp por voce (o codigo tem que passar pela camera do seu celular —
+> mas eu gero um link de conexao para quem esta com o celular abrir e ler, sem precisar entrar no
+> painel), NAO clico em Permitir no Instagram, Facebook, Google nem Conta Azul (do Google e da Conta
+> Azul eu te mando o link, mas o clique e seu; Instagram e Facebook sao so pela tela), NAO subo
+> arquivo que esta so no seu computador nem planilha (arquivo que esta num link publico eu consigo
+> usar), NAO mexo em plano, fatura, cartao ou saldo, e NAO apago nada.
 >
 > Me diga em qual empresa eu vou mexer e o que voce quer resolver.
 
@@ -210,6 +215,7 @@ Esta skill e a base. Depois do pre-voo, siga para a skill da area:
 | Skill | Use quando o cliente pedir |
 |---|---|
 | `agente-de-ia` | montar ou ajustar o agente de IA que atende sozinho, base de conhecimento, cenarios, ferramentas da IA |
+| `agente-de-ligacao` | a IA que LIGA para o cliente (Ligacao com IA): agente de ligacao, voz, roteiro, ligacao de teste, bloco "Ligar com IA" do fluxo |
 | `criar-fluxos` | desenhar fluxo de conversa (Flows): menu, qualificacao, agendamento, disparo com espera |
 | `automacoes-e-macros` | regra que dispara sozinha na conversa, macro que o atendente aciona com um clique |
 | `funil-de-vendas` | funil, etapas, cards, checklist, motivos de ganho e perda, organizar o Kanban |
@@ -219,3 +225,11 @@ Esta skill e a base. Depois do pre-voo, siga para a skill da area:
 | `agenda-e-relatorios` | agendamento, tipos de evento, relatorios, paineis, avisos por e-mail |
 | `integracoes` | webhooks, gateways de pagamento, Meta Lead Ads, e-commerce, Google, LionTrack |
 | `configurar-conta` | montar a conta do zero: funil, etiquetas, campos, respostas prontas, times, SLA |
+| `assinatura-eletronica` | contrato para o cliente assinar: modelo de contrato, quem assina, documentos pedidos, envio, lembrete, reenvio. NAO e a assinatura do plano |
+| `formulario-whatsapp` | o Formulario do WhatsApp (nativo da Meta, aberto por botao de modelo, so WhatsApp Oficial). NAO e o formulario publico de captacao |
+
+Areas que ainda nao tem skill propria (use o catalogo, `references/regras-de-ouro.md` e a ficha de cada
+ferramenta): chat interno da equipe (`lionchat_internal_chat_*`), telefonia VTCall
+(`lionchat_vtcall_*`), trocar o telefone de um contato (`lionchat_contacts_change_phone`) e excluir
+conversas em lote (`lionchat_conversations_bulk_destroy`, que exige `confirm:true` — e voce nao
+apaga nada sem pedido explicito).

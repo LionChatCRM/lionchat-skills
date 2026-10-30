@@ -40,6 +40,7 @@ fuso).
 | `lionchat_custom_attributes_list` | Chaves dos atributos personalizados de contato e de conversa |
 | `lionchat_agents_list` | Identificadores de atendente |
 | `lionchat_teams_list` | Identificadores de time |
+| `lionchat_custom_filters_list` | Identificadores dos segmentos de contatos (os do tipo contato), para o publico `Segment` |
 | `lionchat_account_variables_list` | Chaves das variaveis da conta |
 | `lionchat_flows_list` | Com `with_campaign_trigger: true` e `inbox_id`, lista SO os fluxos elegiveis para Campanha de Fluxo |
 | `lionchat_campaigns_estimate_audience` | Contar quantas pessoas recebem, e ver o teto do dia |
@@ -71,7 +72,7 @@ que a listagem devolve.
 | `title` | sim | Nome do disparo. Nao aparece para o cliente |
 | `inbox_id` | sim | Por qual caixa sai. E ele que define o tipo |
 | `message` | sim, menos em Campanha de Fluxo | O texto. Em caixa oficial e so um espelho do corpo do modelo |
-| `audience` | nao valida, mas na pratica SIM | A lista de criterios. Sem ela a campanha e criada e nao manda para ninguem |
+| `audience` | nao valida, mas na pratica SIM | A LISTA de criterios. Sem ela a campanha e criada e nao manda para ninguem. Texto no lugar da lista = 422 |
 | `scheduled_at` | nao | Quando disparar, no formato completo COM fuso. Ausente = agora |
 | `trigger_rules` | nao | Modo de combinacao, exclusao e modo do excedente |
 | `template_params` | depende do tipo | Modelo e valores, ou o ritmo, mais as acoes pos-envio |
@@ -108,7 +109,8 @@ comercial". Em disparo em massa eles nao fazem nada.
 ```
 
 - O modelo e encontrado pelo par NOME + IDIOMA, e so entre os aprovados.
-- `processed_params.body` leva um valor por posicao. Posicao vazia vira um ponto na mensagem.
+- `processed_params.body` leva um valor por posicao. Posicao vazia e completada pelo apontamento do
+  modelo (desde 07/10/2026); sem apontamento, ou sem o dado no contato, vira um ponto na mensagem.
 - `processed_params.header` so e preciso quando voce quer um arquivo diferente do padrao do modelo:
   `{ "media_url": "...", "media_type": "image", "media_name": "foto.png" }`, ou `{ "1": "texto" }`
   em cabecalho de texto.
@@ -253,3 +255,6 @@ Exige a integracao configurada e perfil de administrador. Nao tem edicao: so cri
 | 422 no reenvio de falhas | A campanha nao e de caixa oficial, ou nao ha falha reenviavel | Explique que reenvio so existe no WhatsApp Oficial |
 | 422 ao mover um dia | O dia de destino nao cabe no teto | Ofereca empurrar aquele dia e os seguintes |
 | 422 ao parar | Nao ha ninguem na fila | Mostre o relatorio: provavelmente ja terminou |
+| 422 "audience precisa ser uma lista de criterios" | O publico foi mandado como texto | Mande a lista de objetos |
+| 422 no segmento | Segmento que nao e de contato, de outra conta, ou segmento em caixa de SMS | Pegue o id certo em `lionchat_custom_filters_list`; em SMS use etiqueta de conversa |
+| Estimativa com `segment_unavailable` | Um segmento do publico ou da exclusao sumiu ou esta com a regra quebrada | Nao crie a campanha: ela nao mandaria para ninguem. Conserte ou troque o segmento |

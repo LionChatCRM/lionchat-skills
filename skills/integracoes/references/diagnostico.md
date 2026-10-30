@@ -127,12 +127,14 @@ foi gravado. Se o campo esta vazio ali:
 
 ## No 8 - A conversao nao apareceu no Facebook, no Google Analytics ou no Google Ads
 
-1. O cartao andou para FRENTE no funil? Para tras nao dispara nada.
+1. E a PRIMEIRA vez que o cartao entra naquela etapa? A etapa dispara de qualquer direcao, mas uma
+   vez por cartao+evento+etapa - reentrar nao manda de novo.
 2. A etapa esta ligada E com nome de evento escolhido?
 3. A credencial esta ligada? O Pixel nasce desligado e so liga depois de um teste com sucesso.
 4. O cartao tem contato vinculado?
 5. Leia o historico por funil (`meta_capi_events`, `ga4_events`, `google_ads_conversions`): ele mostra
-   o que foi mandado e o que a plataforma respondeu.
+   o que foi mandado e o que a plataforma respondeu. Na Meta, `fallback_reason` preenchido quer dizer
+   que o anuncio de WhatsApp saiu como evento de SITE (plano B) - leia o motivo.
 6. No Google Analytics, rode o teste de conexao. Ele responde sucesso mesmo com credencial errada -
    o teste e a unica prova.
 7. No Google Ads, confira se o de-para para a acao de conversao esta preenchido. Sem ele, a conversao

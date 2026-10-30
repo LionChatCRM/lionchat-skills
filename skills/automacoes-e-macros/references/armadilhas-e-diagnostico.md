@@ -13,8 +13,9 @@ Indice:
 
 ## 1. Roteiro de diagnostico em 5 passos
 
-1. **A regra esta ligada?** `lionchat_automation_rules_list`. Regra desligada nao e nem consultada.
-   Se ela desligou sozinha, va para a secao 3 (auto-desligamento).
+1. **A regra esta ligada e sem aviso?** `lionchat_automation_rules_list`. Regra desligada nao e nem
+   consultada. Se o campo `health_problem` vier preenchido (na tela: bolinha vermelha), a regra esta
+   quebrada - va para a secao 3 ("A automacao esta com aviso vermelho").
 2. **Leia a regra inteira** com `lionchat_automation_rules_show` e confira, nesta ordem: o gatilho e o
    certo? A ULTIMA condicao esta com o conector vazio? As acoes usam as chaves certas (compare com
    `acoes.md`)? O gatilho e de card e a acao e de conversa?
@@ -37,6 +38,7 @@ Indice:
 | Execucao com "skipped" | As condicoes nao bateram | As condicoes: valor, operador, conector |
 | Passo com "failed" | O parametro daquela acao esta errado | O formato de `action_params` daquela acao |
 | Passo "delivery_failed" | A acao criou a mensagem, mas o canal recusou depois | O canal (WhatsApp fora do ar, numero invalido, janela de 24 horas fechada) |
+| Passo "wait_check" com "skipped" | O "Aguardar" com conferencia barrou a volta: a conversa ja nao estava aberta, ou alguem respondeu o cliente durante a espera | E o comportamento pedido (caixinhas `only_if_open` / `only_if_no_reply`), nao defeito |
 | Tudo "success" e o cliente diz que nada aconteceu | Acao pulada em silencio | Card inexistente, agente fora da caixa, funcao desligada na conta, gatilho de card com acao de conversa |
 
 Outros pontos:
@@ -65,22 +67,25 @@ Outros pontos:
 - **Conector sobrando na ultima condicao.** Deixe vazio na ultima. Ver `gatilhos-e-condicoes.md`.
 - **Condicao que o motor de conversa nao reconhece** (funil ou etapa num gatilho de conversa,
   politica de SLA como condicao, cidade). Sem nenhum filtro reconhecido a regra nunca dispara.
-- **Gatilho de card com acao de conversa.** As acoes fora das 10 sao descartadas.
+- **Gatilho de card com acao de conversa.** As acoes fora das 11 sao descartadas.
 - **Modelo do WhatsApp com as chaves do Flow** (`template_name` e companhia). Salva e nao envia nada.
 - **"Conversa Criada" com filtro de conteudo**, num caso em que a conversa nasce sem mensagem do
   cliente (aberta pelo painel, por campanha, por integracao).
 - **Prioridade "Nenhuma" como condicao.** Nunca e verdadeira.
-- **Regra desligada** — inclusive desligada pelo proprio sistema (ver abaixo).
+- **Regra desligada** ou **regra com aviso vermelho** (ver abaixo).
 
-### "A automacao desligou sozinha"
+### "A automacao esta com aviso vermelho" / "desligou sozinha"
 
-Quando a regra usa uma chave de condicao que o motor nao sabe traduzir, ela falha na validacao. Na
-**segunda** falha o sistema **desliga a regra** (`active` vira falso) e manda e-mail aos
-administradores. Causas: atributo personalizado apagado depois de a regra ter sido criada; funil ou
-etapa como condicao num gatilho de conversa; politica de SLA como condicao.
+Quando a regra usa uma chave de condicao que o motor nao sabe traduzir, ela falha na validacao e
+para de rodar. **Desde 22/09/2026 o sistema NAO desliga a regra nem manda e-mail**: ele marca o
+problema na propria regra (`health_problem` em `lionchat_automation_rules_show`, com o motivo e qual
+condicao) e a tela mostra uma bolinha vermelha no menu de Automacoes e o aviso na linha da regra.
+Causas: atributo personalizado apagado depois de a regra ter sido criada; funil ou etapa como
+condicao num gatilho de conversa; politica de SLA como condicao.
 
-Conserto: corrija a condicao (editar as condicoes zera o contador) e religue a regra **no painel** —
-ligar/desligar nao da pelas ferramentas. Se quiser descobrir quem mexeu, `lionchat_audit_logs_show`.
+Conserto: corrija a condicao com `lionchat_automation_rules_update` - salvar condicoes ou acoes limpa
+a marca, e a primeira execucao boa tambem. Se a regra estiver de fato DESLIGADA, foi alguem (o
+sistema nao desliga mais): religue **no painel** e, se quiser saber quem, `lionchat_audit_logs_show`.
 
 ### "Dispara demais" / "mexeu em conversa que nao era"
 
@@ -119,6 +124,15 @@ removido da conta). A acao e pulada em silencio. Confira com `lionchat_inbox_mem
 - Mover, anotar, atribuir, cronometro e Ganho/Perdido sao pulados quando nao existe card. Ponha
   "Criar Card Kanban" antes, na mesma regra.
 - Card ja marcado como Ganho ou Perdido nao conta como existente: um novo card nasce.
+- Card "em dobro" com "Permitir cards duplicados" desmarcado nao acontece mais (09/10/2026): quando
+  dois eventos chegam juntos, o segundo encontra o card do primeiro. Se o cliente ainda ve dois,
+  confira se a regra esta com `allow_duplicates` verdadeiro ou se sao duas regras em funis diferentes.
+
+### "O card nasceu com o responsavel errado / sem responsavel"
+
+Desde 29/09/2026 "Criar Card Kanban" so copia o responsavel da CONVERSA (se ele tem acesso ao funil);
+o Kanban nao sorteia mais ninguem e nao troca o responsavel da conversa. Card sem responsavel = a
+conversa estava sem responsavel. A distribuicao e da caixa.
 
 ### "A conversa sumiu do painel"
 
@@ -161,10 +175,17 @@ A chave e de sistema (origem, clique de anuncio, endereco do WhatsApp, UTM, gcli
 execucao, ficando so no registro do servidor. Ou o campo nao existe na conta. Ou, nas acoes de card,
 nao ha card naquele funil.
 
+### "O lembrete da e-Clinica saiu com a data de outra consulta"
+
+O texto usa os campos `eclinica_*` da FICHA do contato, que guardam so a ULTIMA consulta avisada pela
+clinica. No lembrete use `{{eclinica_lembrete.*}}` (a consulta daquele lembrete). Ver `acoes.md`,
+secao 6.
+
 ### "O texto saiu com um pedaco em branco"
 
 Variavel que a automacao nao preenche sai vazia, em silencio. A automacao so conhece contato,
-conversa, caixa, responsavel da conversa, conta e — so no lembrete da e-Clinica — agendamento. Ver
+conversa, caixa, responsavel da conversa, empresa do contato, conta e — so no lembrete da
+e-Clinica — a consulta do lembrete (`{{eclinica_lembrete.*}}`). Ver
 `acoes.md`, secao 6.
 
 ### "O ultimo Flow da cadeia nao disparou"
@@ -193,7 +214,9 @@ mutuamente exclusivas — nunca contar com a ordem.
 gerenciar automacoes (`automation_manage`). Se o cliente diz "nao aparece Automacao no meu menu", e
 isso. O caminho e criar ou ajustar o papel com `lionchat_custom_roles_list` /
 `lionchat_custom_roles_create` / `lionchat_custom_roles_update` — sem precisar promover ninguem a
-administrador. Repare que Flows, ao contrario, sao abertos a todo agente.
+administrador. **Flows tambem sao fechados** desde 21/09/2026: criar, editar, duplicar, excluir e
+ligar fluxo e de administrador ou de cargo com a permissao "Gerenciar FlowBuilder"
+(`flowbuilder_manage`); os demais so leem a lista.
 
 **Macro:** qualquer agente cria. Mas:
 
@@ -217,6 +240,7 @@ E a resposta para "nao consigo editar a macro do meu colega".
 - Nao existe modo de ensaio, "rodar agora" nem reprocessar execucao que falhou.
 - Nao existe condicao de horario de expediente.
 - Macro nao tem chave liga/desliga.
+- Regra com condicao quebrada nao e desligada: fica com aviso vermelho ate alguem corrigir.
 - "Enviar Anexo": arquivo que ja esta publicado na internet entra por `lionchat_upload_create`
   (informando o endereco dele) e o identificador devolvido e o que a acao consome. Arquivo do
   computador do cliente so pela tela.

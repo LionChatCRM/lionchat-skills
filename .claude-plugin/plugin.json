@@ -1,7 +1,7 @@
 {
   "name": "lionchat-skills",
   "description": "Skills para seu agente de IA criar e configurar sua conta no LionChat",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": "LionChat",
   "homepage": "https://github.com/LionChatCRM/lionchat-skills",
   "skills": [
@@ -12,6 +12,14 @@
     {
       "name": "agente-de-ia",
       "path": "skills/agente-de-ia/SKILL.md"
+    },
+    {
+      "name": "agente-de-ligacao",
+      "path": "skills/agente-de-ligacao/SKILL.md"
+    },
+    {
+      "name": "assinatura-eletronica",
+      "path": "skills/assinatura-eletronica/SKILL.md"
     },
     {
       "name": "automacoes-e-macros",
@@ -36,6 +44,10 @@
     {
       "name": "criar-fluxos",
       "path": "skills/criar-fluxos/SKILL.md"
+    },
+    {
+      "name": "formulario-whatsapp",
+      "path": "skills/formulario-whatsapp/SKILL.md"
     },
     {
       "name": "funil-de-vendas",

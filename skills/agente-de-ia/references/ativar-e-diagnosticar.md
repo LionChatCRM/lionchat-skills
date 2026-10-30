@@ -86,6 +86,12 @@ Isso e proposital: quem da as boas-vindas passa a ser a propria IA. Se o cliente
 caprichada, ela precisa virar a primeira fala da IA (pela instrucao, com "responder na hora" ligado) ou o
 cliente vai jurar que voce quebrou alguma coisa.
 
+**WhatsApp oficial com conexao hibrida (desde 27/10).** Numa caixa oficial em coexistencia com o canal de apoio
+por QR Code, a resposta da IA sai PELA CONEXAO HIBRIDA (por fora da API oficial) quando as tres coisas valem: o
+modo da plataforma permite, a chave "Enviar pela conexao hibrida" da caixa esta ligada e o apoio esta conectado.
+Se o apoio cair, a IA volta sozinha a sair pela oficial. Avise o cliente: mensagem automatica em volume saindo
+por fora e o que mais arrisca bloqueio do numero. Automacao, campanha e fluxo continuam saindo pela oficial.
+
 ---
 
 ## 5. Como a conversa termina
@@ -94,6 +100,10 @@ Tres coisas para alinhar com o cliente antes de ligar:
 
 1. **A IA encerrando a conversa dispara a pesquisa de satisfacao daquela caixa**, se ela estiver
    configurada. Se o cliente nao quer isso, desligue `resolve_conversation` em `config.disabled_tools`.
+   **Quando ela PODE encerrar (desde 15/09):** so com `resolve_conversation` ligado (o interruptor vale para
+   todos os caminhos de fechamento) e com prova de que o caso acabou. Se a ultima fala do cliente e so
+   cortesia ("ok", "obrigado", "valeu", emoji), o fechamento e recusado e a IA continua o atendimento. Ter
+   atendente ou time na conversa NAO impede: com o interruptor ligado, ela pode fechar.
 2. **Descanso pos-fechamento de 3 minutos.** Logo depois de encerrar, um "obrigado!" do cliente NAO reabre
    a conversa nem acorda a IA. Fica registrado na linha do tempo. E de proposito, para nao reabrir por
    cortesia.
@@ -150,6 +160,7 @@ antes de ligar. Devolve os achados com o trecho exato do texto:
 | `no_knowledge` | nenhum documento e nenhuma pergunta frequente | montar a base |
 | `no_guardrails` | protecoes vazias | escrever as fronteiras do negocio |
 | `balloon_separator` | linha com tres tracos sozinha - a resposta chega picada ao cliente | tirar os tracos |
+| `unused_tools` | ferramentas ligadas que a IA nao usou nenhuma vez desde o primeiro dia com registro (so aparece com 7 dias ou mais de registro; lista quais) | conferir com o cliente se ela deveria usar (falta passo no cenario) ou desligar. Nao tem botao de aplicar: quem desliga e o admin |
 
 Consertos: `lionchat_captain_assistants_quality_apply` aplica o conserto mecanico;
 `lionchat_captain_assistants_quality_rewrite` pede uma proposta de reescrita com IA (nao grava);
@@ -200,9 +211,10 @@ Para fazer um teste A/B de verdade, a divisao nao se faz aqui: use o bloco de di
 8. **Descanso de 3 minutos depois de encerrar**, e so para mensagem curta de cortesia (secao 5).
 9. **Mensagem cujo conteudo o canal nao entrega** e cortada antes de gastar IA.
 10. **Conta suspensa** nao agenda resposta nenhuma.
-11. **O modelo escolhido e da familia gpt-5.6.** Ela recusa ferramentas e a IA fica 100% muda.
-12. **O modelo escolhido nao existe.** O campo do modelo nao e conferido pelo servidor: um nome com erro
-    de digitacao grava normal e a IA fica muda. Confira contra a tabela de `references/modelo-e-ajustes.md`.
+11. **O modelo gravado e antigo e saiu da lista.** Desde 08/09 a troca para um nome invalido e recusada,
+    mas agente antigo pode ter um nome gravado antes disso. Confira contra a tabela de
+    `references/modelo-e-ajustes.md`. (As familias gpt-5.6 e gpt-6 funcionam - nao sao mais motivo de IA
+    muda.)
 
 Se nada disso explicar, ai sim va para o texto: rode a revisao de qualidade e leia o raciocinio da conversa.
 

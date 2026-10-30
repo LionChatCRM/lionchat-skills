@@ -1,6 +1,6 @@
 ---
 name: automacoes-e-macros
-description: Monta e conserta automacoes (regras que o sistema executa sozinho) e macros (botao de um clique para o atendente) na conta LionChat, usando as ferramentas do conector LionChat. Use quando o cliente disser "quando chegar mensagem com X faz Y", "quando puserem a etiqueta VIP avisa a equipe", "todo lead novo tem que virar card no funil", "quando a compra for aprovada manda a mensagem de boas-vindas", "quero um botao de encerrar atendimento", "quero um botao que passa o lead pro comercial", "quero um botao que dispara um fluxo", "minha automacao nao esta funcionando" ou "a automacao desligou sozinha" — mesmo que ele nao use a palavra automacao. Entrevista o cliente, mostra a regra por escrito e so cria depois de confirmacao explicita.
+description: Monta e conserta automacoes (regras que o sistema executa sozinho) e macros (botao de um clique para o atendente) na conta LionChat, usando as ferramentas do conector LionChat. Use quando o cliente disser "quando chegar mensagem com X faz Y", "quando puserem a etiqueta VIP avisa a equipe", "todo lead novo tem que virar card no funil", "quando a compra for aprovada manda a mensagem de boas-vindas", "quero um botao de encerrar atendimento", "quero um botao que passa o lead pro comercial", "quero um botao que dispara um fluxo", "minha automacao nao esta funcionando", "a automacao esta com bolinha vermelha" ou "a automacao desligou sozinha" — mesmo que ele nao use a palavra automacao. Entrevista o cliente, mostra a regra por escrito e so cria depois de confirmacao explicita.
 ---
 
 # Automacoes e Macros LionChat
@@ -24,13 +24,15 @@ Voce NAO cria, altera nem apaga nada sem confirmacao explicita do cliente.
 | Esperar horas ou dias, perguntar e esperar resposta, muitos caminhos | **Flows** (menu lateral) |
 | Depende de horario de expediente | **Flows** ou a mensagem de ausencia da caixa |
 
-**A macro cresceu em setembro de 2026**: de 28 para 41 acoes. Hoje ela grava atributo de contato,
-de conversa e de card, poe e tira etiqueta do CONTATO, divide entre atendentes em rodizio, desliga o
-AI Agente, marca como nao lida, poe checklist e oferta no card, manda conversao para Meta, Google Ads
-e GA4, manda contrato para assinatura e dispara um Fluxo de Acoes. Lista completa, formato de cada
-uma e as regras novas em `references/acoes.md`, secao 3.
+**A macro cresceu em setembro e outubro de 2026**: de 28 para 42 acoes. Hoje ela grava atributo de
+contato, de conversa e de card, poe e tira etiqueta do CONTATO, divide entre atendentes em rodizio,
+desliga o AI Agente, marca como nao lida, poe checklist e oferta no card, adia o card, manda conversao
+para Meta, Google Ads e GA4, manda contrato para assinatura e dispara um Fluxo de Acoes. A automacao
+tem 34 acoes. Lista completa, formato de cada uma e as regras novas em `references/acoes.md`.
 
 A espera da automacao ("Aguardar") tem teto de **5 minutos** e valor maior e cortado sem avisar.
+Desde 26/09/2026 ela pode conferir na volta se a conversa ainda esta aberta e se ninguem respondeu o
+cliente (`references/acoes.md`, alerta do Aguardar).
 E **nao existe** condicao de horario/expediente em automacao — nao invente uma: campo que o sistema
 nao conhece e recusado na hora de salvar. Nesses dois casos, pare e mande o cliente para os Flows.
 
@@ -81,8 +83,14 @@ Heuristicas:
 - "Quando a compra for aprovada / chegou lead do Facebook" = gatilho Webhook. Ali as condicoes NAO
   filtram nada: quem separa um evento do outro e o mapeamento de eventos na tela da integracao.
   Exige escolher a Caixa de Envio.
-- "Quando o card nascer / mudar de etapa" = gatilhos de card. Cuidado: eles executam apenas 10 das
+- "Quando o card nascer / mudar de etapa" = gatilhos de card. Cuidado: eles executam apenas 11 das
   acoes; as outras somem em silencio. Ver `references/acoes.md`.
+- "Lead parado ha X horas na etapa", "quando o card for adiado / voltar do adiamento", "mandar o
+  contrato e esperar a assinatura", "ligar para o lead com IA": isso e **Flow** (gatilhos de prazo e
+  de adiamento do card, gatilhos de contrato, bloco Ligar com IA) - skill `criar-fluxos`. Contrato e
+  modelo de contrato: skill `assinatura-eletronica`.
+- "So lead que veio de anuncio": condicao "Veio de anuncio pago?" (`origin_paid`), que junta clique no
+  anuncio e formulario do anuncio. Ver `references/gatilhos-e-condicoes.md`.
 - Ordem: criar o card ANTES de mover, anotar ou atribuir nele. Atribuir responsavel ANTES de uma
   mensagem que cite o nome do atendente.
 
@@ -201,8 +209,8 @@ ONDE VOCE ACOMPANHA
    silencio. Espera de horas ou dias e Flow.
 5. **NUNCA promete condicao de horario de atendimento em automacao** — ela nao existe.
 6. **NUNCA usa em condicao um atributo personalizado que nao existe na conta.** Alem de recusar na
-   criacao, se a chave sumir depois o sistema DESLIGA a regra sozinho na segunda falha e manda
-   e-mail aos administradores.
+   criacao, se a chave sumir depois a regra para de rodar: desde 22/09/2026 ela NAO e desligada nem
+   manda e-mail - fica marcada com o problema (bolinha vermelha no menu e aviso na linha da regra).
 7. **SEMPRE deixa o conector E/OU vazio na ULTIMA condicao** (e tambem quando ha so uma condicao).
 8. **SEMPRE confere se o agente e membro da caixa antes de usar "Atribuir ao Agente"** — se nao for,
    a acao e pulada em silencio e a conversa fica sem responsavel.
@@ -222,7 +230,10 @@ Todas estas falham **em silencio**: a coisa e criada, parece certa na tela e nao
   `references/gatilhos-e-condicoes.md` — copie de la, nao escreva de memoria.
 - **Se voce montar gatilho de card com acao de conversa** (enviar modelo WhatsApp, ligar o AI
   Agente, resolver conversa, atribuir agente a conversa, Aguardar, criar card, atributos), a acao e
-  IGNORADA. O gatilho de card executa apenas 10 acoes. Lista em `references/acoes.md`.
+  IGNORADA. O gatilho de card executa apenas 11 acoes. Lista em `references/acoes.md`.
+- **Se voce gravar a acao "Definir origem do lead" (`set_lead_origin`) numa automacao**, o salvar
+  recusa com 422 ("not supported"), embora a tela de automacao ofereca a opcao. Para marcar origem
+  automaticamente, use o bloco Acoes de um Flow (ou de um Fluxo de Acoes).
 - **Se voce puser condicao de conversa (etiqueta, status) num gatilho de card**, a condicao e
   APROVADA e a regra dispara em TODOS os cards de TODOS os funis. Os dois motores erram para lados
   contrarios: no de conversa, condicao que ele nao entende faz a regra nunca disparar.

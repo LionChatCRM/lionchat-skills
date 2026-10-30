@@ -143,19 +143,34 @@ hora" ligado).
 ### A criatividade que nao muda nada
 
 **Se voce fizer:** ajustar a criatividade num modelo de raciocinio (`o1`, `o3`, `o3-mini`, `o4-mini`,
-`gpt-5`, `gpt-5-mini`, `gpt-5.5`).
+`gpt-5`, `gpt-5-mini`, `gpt-5.5`) ou das familias `gpt-5.6` e `gpt-6`.
 **Acontece:** o valor grava sem erro e nao produz efeito nenhum - esses modelos so aceitam o padrao, entao
 o sistema nem manda o ajuste. Quem promete ao cliente "deixei mais solta" esta prometendo nada.
 **Conserto:** escolha um modelo que aceita criatividade (coluna "Aceita criatividade" da tabela em
 `references/modelo-e-ajustes.md`) ou ajuste o tom pelo texto das diretrizes de resposta.
 
-### O agente mudo por causa do modelo
+### O agente de agenda que nao agenda
 
-**Se voce fizer:** escolher um modelo da familia gpt-5.6.
-**Acontece:** o campo do modelo NAO e validado pelo servidor - qualquer texto e aceito e gravado. Essa
-familia recusa ferramentas, e como a IA usa ferramenta em praticamente toda resposta, 100% das chamadas
-falham e ela fica muda, em silencio.
-**Conserto:** use um dos 16 modelos da tabela em `references/modelo-e-ajustes.md`.
+**Se voce fizer:** desligar as quatro ferramentas de agenda (`view_agenda`, `view_booking_option`,
+`create_booking`, `reschedule_appointment`) achando que so tira uma parte.
+**Acontece:** desde 14/10 o agente so e tratado como "agente que agenda" com agenda na conta E pelo menos uma
+dessas quatro ligada. Sem nenhuma ligada, some o roteiro de agendamento do comportamento dele e ele deixa de ver
+os 8 campos de sistema do agendamento - mesmo a conta tendo agenda. E o certo para quem nao quer que a IA
+agende; e o errado para quem desligou "so a de remarcar".
+**Conserto:** confira em `lionchat_captain_assistants_tools` quais das quatro estao ligadas antes de prometer
+agendamento no texto.
+
+### A conversa encerrada por um "ok"
+
+**Se voce fizer:** contar com o interruptor de encerrar (`resolve_conversation`) para fechar a conversa quando o
+cliente se despede.
+**Acontece:** desde 15/09 a IA so encerra com as DUAS coisas: o interruptor ligado pelo admin (vale para os
+dois caminhos de fechamento, a ferramenta e o sinal interno) e prova de que o caso acabou. "Ok", "obrigado",
+"valeu" ou um emoji SOZINHOS nao provam nada e o fechamento e recusado; a IA segue o atendimento. "Obrigado,
+resolveu" passa. Caso real: paciente respondeu "Ok" a "vou te passar para o consultor", a IA fechou e a
+conversa ficou 7 dias fechada com ela esperando.
+**Conserto:** nao escreva no cenario "encerre quando o cliente agradecer". Quem nao quer que a IA encerre
+desliga `resolve_conversation` em `config.disabled_tools`.
 
 ---
 
@@ -167,6 +182,8 @@ falham e ela fica muda, em silencio.
   `get_flow_result`, `lookup_media_content`, `list_labels`, `schedule_self_callback`) da o mesmo erro. Elas
   carregam sozinhas; escreva o passo em portugues, sem a mencao.
 - **Criar agente sem vaga no plano** volta erro de limite.
+- **Trocar o modelo para um nome que nao esta na lista** volta 422 (desde 08/09). Antes gravava qualquer texto
+  e a IA ficava muda; hoje a recusa avisa.
 - **Cenario com `[@Nome](document://ID)` apontando documento de OUTRO agente** volta erro no salvamento.
 - **Somar mais de 23 horas no acompanhamento** e recusado no salvamento.
 - **Tipo de arquivo que nao casa com o tipo real** e recusado no cadastro da midia.

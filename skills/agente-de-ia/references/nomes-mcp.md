@@ -109,6 +109,16 @@ nome logico** - ele nao existe.
 | `lionchat_captain_liquid_variables_list` | referencia rapida de variaveis (e o autocompletar das ferramentas de API, nao a lista completa da instrucao). Quem confere de verdade e a revisao de qualidade |
 | `lionchat_captain_voices_list` | catalogo de vozes por provedor |
 
+## Ligacao com IA (outra skill: `agente-de-ligacao`)
+
+| Nome | O que e |
+|---|---|
+| `lionchat_captain_call_agents_*` | agentes de LIGACAO (a voz que liga para o cliente). Nao confunda com `lionchat_captain_assistants_*`: o agente de texto so entra como executor dos pedidos da ligacao, pelo campo `captain_assistant_id` do agente de ligacao |
+| `lionchat_captain_call_test_phones_*` | numeros autorizados para a ligacao de teste |
+
+Tudo de ligacao se monta pela skill `agente-de-ligacao`. Nao grave nada de ligacao no `config` do agente de
+texto: as antigas chaves `config.call_*` foram removidas em 24/09.
+
 ## Terreno (o que decide quais ferramentas vao existir)
 
 `lionchat_labels_list` e `lionchat_labels_create` (etiqueta COM descricao), `lionchat_teams_list` e

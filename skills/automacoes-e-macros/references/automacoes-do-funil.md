@@ -35,8 +35,13 @@ Nao ha ferramenta dedicada. O caminho e:
 **Gravar as configuracoes SUBSTITUI tudo.** O que voce nao mandar de volta some — metas, agentes,
 times e as outras automacoes junto. Leia sempre antes de escrever.
 
-Nao ha nenhuma validacao desse conteudo: nome errado de gatilho ou de acao grava com sucesso e a
-automacao simplesmente nunca dispara, sem erro e sem lugar nenhum para olhar.
+Quase nada desse conteudo e validado: nome errado de gatilho ou de acao grava com sucesso e a
+automacao simplesmente nunca dispara, sem erro e sem lugar nenhum para olhar. A unica excecao e a
+acao "Criar tarefa" (`create_task`): regra nova ou alterada e conferida e volta 422 dizendo qual
+regra e qual campo consertar. Regra sem `id` ganha um `id` do servidor ao salvar.
+
+**Ordem:** as automacoes do mesmo gatilho rodam na ORDEM da lista. Quer que uma rode antes da outra,
+ponha antes na lista.
 
 ---
 
@@ -46,16 +51,18 @@ automacao simplesmente nunca dispara, sem erro e sem lugar nenhum para olhar.
 |---|---|---|
 | Card criado | `card_created` | a palavra `card_created` |
 | Card chegou numa etapa | `stage_moved` | a chave da etapa de **destino** |
-| Card marcado como Ganho ou Perdido | `status_change` | `won` ou `lost` |
+| Card marcado como Ganho, Perdido ou Adiado | `status_change` | `won`, `lost` ou `snoozed` (11/10/2026) |
 
-Nao existe `status_changed` com "d" no fim. Nome errado = automacao morta em silencio.
+Nao existe `status_changed` com "d" no fim. Nome errado = automacao morta em silencio. `snoozed`
+dispara quando o card PASSA a ser adiado (trocar a data de um card ja adiado nao dispara). Nao existe
+gatilho "Aberto" aqui - para "card voltou do adiamento" use o gatilho "Card aberto" de um Flow.
 
 O valor que acompanha o gatilho e **obrigatorio**: automacao sem esse valor, sem acao escolhida, ou
 desligada, e descartada pela tela no proximo salvamento do funil pelo cliente.
 
 ---
 
-## As 8 acoes reais
+## As 9 acoes reais
 
 | Acao | Nome tecnico | Configuracao |
 |---|---|---|
@@ -64,9 +71,10 @@ desligada, e descartada pela tela no proximo salvamento do funil pelo cliente.
 | Criar nota | `create_note` | `{"note_text": "texto"}` |
 | Aplicar modelo de checklist | `apply_checklist_template` | `{"template_id": 3}` |
 | Atualizar checklist | `update_checklist` | `{"checklist_updates": [...]}` |
-| Avisar a equipe | `notify_team` | `{"message": "texto"}` |
+| Avisar a equipe | `notify_team` | `{"message": "texto"}` — NAO faz nada (ver armadilhas) |
 | Copiar o card para outro funil | `duplicate_item` | `{"funnel_id": 7, "stage": "chave_da_etapa"}` |
 | Enviar webhook | `send_webhook` | `{"webhook_url": "https://..."}` |
+| Criar tarefa (20/10/2026) | `create_task` | `{title, description, task_type, agenda_id, priority, occupies_agenda, duration_minutes, due: {amount, unit, at, business_days}, responsible: {mode, user_id, team_id, fallback_user_id}}` — so com a Agenda unificada ligada; os mesmos campos da acao "Criar tarefa" do bloco Acoes do Flow (skill `criar-fluxos`) |
 
 Nao existe `duplicate_to_funnel`. A acao de copiar card chama-se `duplicate_item`.
 
@@ -74,9 +82,12 @@ Nao existe `duplicate_to_funnel`. A acao de copiar card chama-se `duplicate_item
 
 ## Armadilhas
 
-- **"Avisar a equipe" nao avisa ninguem hoje.** Ela apenas registra no servidor. Nao proponha essa
-  acao como forma de alertar a equipe — para isso use a automacao normal, com a acao de e-mail para o
+- **"Avisar a equipe" nao avisa ninguem.** Ela apenas registra no servidor, e desde 22/10/2026 a
+  tela nem oferece mais essa opcao (regra antiga com ela continua aparecendo, com aviso de "sem
+  efeito"). Nao proponha - para alertar a equipe use a automacao normal, com a acao de e-mail para o
   time.
+- **"Atribuir agente" nos gatilhos Ganho e Perdido nao faz nada**: a automacao roda com o card ja
+  fechado, e card fechado nao aceita responsavel novo. A tela tambem tirou essa combinacao.
 - **"Mover para etapa" nunca roda no gatilho "Card chegou numa etapa"**, de proposito (senao dois
   cards ficariam se empurrando eternamente). A tela esconde a opcao; se ela for gravada por fora, o
   motor ignora.
@@ -88,5 +99,5 @@ Nao existe `duplicate_to_funnel`. A acao de copiar card chama-se `duplicate_item
   nao diz o motivo, nao mostra a configuracao lida e some junto com o card. Nao ha nada equivalente
   ao Historico da automacao normal. Por isso, sempre que der para resolver o mesmo problema com a
   automacao normal, prefira a automacao normal.
-- **Nada disso manda mensagem para o cliente.** As 8 acoes mexem no card, no checklist e em avisos
-  internos. Mensagem para o cliente sai por automacao normal (imediata) ou por Flow (com espera).
+- **Nada disso manda mensagem para o cliente.** As 9 acoes mexem no card, no checklist, na Agenda e
+  em avisos internos. Mensagem para o cliente sai por automacao normal (imediata) ou por Flow (com espera).

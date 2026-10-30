@@ -3,7 +3,7 @@
 Indice:
 
 1. Como o publico e montado
-2. Os 7 criterios, um a um
+2. Os 8 criterios, um a um
 3. Os 2 modos de combinacao
 4. Os 7 operadores do filtro de atributo
 5. A exclusao (nao enviar para)
@@ -30,9 +30,13 @@ Formato geral de cada item:
 { "type": "Label", "id": 12 }
 ```
 
+**O publico e SEMPRE uma lista de objetos.** Mandar texto ou numero no lugar da lista e recusado
+com 422 ("audience precisa ser uma lista de criterios"); um criterio unico mandado como objeto vira
+lista de um. Na estimativa, texto JSON de uma lista tambem e aceito.
+
 ---
 
-## 2. Os 7 criterios, um a um
+## 2. Os 8 criterios, um a um
 
 ### `Label` — etiqueta de CONVERSA
 
@@ -101,9 +105,43 @@ Nos tres, `key` e a chave do atributo (nao o nome de exibicao). As chaves vem de
 { "type": "AgentTeam", "assignee_ids": [7, 9], "team_ids": [2] }
 ```
 
-Pega os contatos cuja conversa esta com aquele atendente OU com aquele time, independente do status
-da conversa. Pelo menos uma das duas listas precisa estar preenchida, senao o criterio e ignorado.
-Os identificadores vem de `lionchat_agents_list` e `lionchat_teams_list`.
+Pega os contatos que tem alguma conversa com aquele atendente OU com aquele time, independente do
+status da conversa. Os identificadores vem de `lionchat_agents_list` e `lionchat_teams_list`.
+
+Desde 24/09/2026 cada lado aceita tambem um modo, que troca a lista de ids:
+
+| Campo | Valor | Significa |
+|---|---|---|
+| `assignee_mode` | `none` | conversa SEM atendente ("Sem atendente") |
+| `assignee_mode` | `any` | conversa com qualquer atendente |
+| `assignee_mode` | `specific` ou ausente | usa `assignee_ids` |
+| `team_mode` | `none`, `any`, `specific` | o mesmo, para time |
+
+```json
+{ "type": "AgentTeam", "assignee_mode": "none" }
+```
+
+Atendente e time SEMPRE somam (quem casar em qualquer um entra), mesmo em blocos `AgentTeam`
+separados - nao da para exigir "deste atendente E deste time" por aqui. O modo vale para qualquer
+conversa do contato. Bloco sem nenhum lado valido (sem modo e sem ids) e ignorado.
+
+### `Segment` — segmento de contatos da conta (desde 22/10/2026)
+
+```json
+{ "type": "Segment", "id": 15 }
+```
+
+Usa um segmento de contatos ja salvo na conta (o mesmo da barra lateral de Contatos). O
+identificador vem de `lionchat_custom_filters_list` - so os do tipo contato.
+
+- **A regra do segmento e lida na HORA do disparo** (e na estimativa), entao quem entrou ou saiu do
+  segmento ate la e respeitado. Quem recebe e exatamente quem a tela do segmento mostra.
+- Vale no WhatsApp oficial, no QR Code e na Campanha de Fluxo. **Em SMS e recusado** (422).
+- **Falha fechada**: se o segmento for apagado, for de outra conta ou estiver com a regra vazia ou
+  quebrada, a campanha NAO manda nada e o motivo aparece no card dela. Na estimativa isso aparece
+  como `segment_unavailable` com `estimated_count` nulo - nao crie a campanha nesse estado.
+- **Segmento usado por campanha programada nao pode ser apagado**: a exclusao e recusada (422) com o
+  nome da campanha. Tire o segmento da campanha ou espere o disparo.
 
 ---
 
@@ -155,7 +193,7 @@ Regras que doem quando se erra:
 
 ## 5. A exclusao (nao enviar para)
 
-Mesmo formato do publico, mesmos 7 tipos, mesmos operadores. Dentro da exclusao a combinacao e
+Mesmo formato do publico, mesmos 8 tipos (inclusive o segmento), mesmos operadores. Dentro da exclusao a combinacao e
 SEMPRE uniao — o modo escolhido para o publico nao vale ali.
 
 Onde ela vai:
@@ -189,6 +227,8 @@ entrega um publico diferente do numero que voce mostrou.
 A resposta traz:
 
 - `estimated_count` — quantas pessoas COM TELEFONE atendem aos criterios. Nao existe campo `count`.
+- `segment_unavailable` — so aparece quando um segmento do publico ou da exclusao sumiu ou quebrou
+  (`estimated_count` vem nulo). Avise e nao crie.
 - `limit_info` — o teto do dia da Meta: `tier`, `cap`, `used_24h`, `remaining`, `will_send_now` e
   `batches_preview` (o cronograma dia a dia do restante).
 
@@ -254,6 +294,9 @@ O caminho equivalente, que funciona sempre:
 
 Vantagem colateral: a etiqueta fica na ficha e serve de exclusao nos disparos seguintes.
 
+Se o recorte e uma regra (e nao uma lista fixa), o caminho mais limpo e um segmento de contatos com
+essa regra, usado como `{ "type": "Segment", "id": N }`.
+
 Ao orientar a importacao, avise: **o telefone precisa vir com o codigo do pais** (por exemplo
 `5511988887777`; o sinal de mais e opcional). Linha sem codigo de pais vira erro e o contato nao e
 criado.
@@ -270,10 +313,11 @@ Confira estes pontos antes de mostrar qualquer numero ao cliente:
 | `Funnel` sem `stages` | O criterio inteiro some da conta |
 | Criterio de atributo sem `key` | O criterio some |
 | Criterio de atributo sem `value` (fora de `present` e `blank`) | O criterio some |
-| `AgentTeam` com as duas listas vazias | O criterio some |
+| `AgentTeam` com as duas listas vazias e sem modo | O criterio some |
 | Operador escrito com outro vocabulario | Vira comparacao exata |
 | `audience_mode` mandado solto na criacao | Ignorado; vale o padrao (uniao) |
-| Publico de SMS com qualquer criterio que nao seja `Label` | Resolve zero pessoas |
+| Publico de SMS com qualquer criterio que nao seja `Label` | Resolve zero pessoas (segmento em SMS e recusado com 422) |
+| Segmento apagado ou com regra quebrada na hora do disparo | A campanha nao manda nada; o motivo fica no card |
 
 ---
 

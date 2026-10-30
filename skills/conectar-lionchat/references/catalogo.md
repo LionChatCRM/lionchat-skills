@@ -4,12 +4,12 @@ Indice:
 
 1. Como as ferramentas se chamam
 2. O sufixo numerico e a armadilha mais cara do catalogo
-3. As 76 areas, com o slug e a contagem
+3. As 78 areas, com o slug e a contagem
 4. As ferramentas que nao vem do catalogo (embutidas no conector)
-5. Os 12 documentos de referencia que voce pode pedir
+5. Os 14 documentos de referencia que voce pode pedir
 6. Os 9 roteiros prontos
 7. Ensaios: como ver o resultado sem criar nada
-8. As 17 ferramentas que exigem o OK do cliente
+8. As 21 ferramentas que exigem o OK do cliente
 9. O que a resposta esconde de voce
 
 ---
@@ -21,8 +21,8 @@ O padrao e `lionchat_<area>_<acao>`. As acoes mais comuns sao: `list` (listar), 
 `search` (buscar por texto). Existem outras (`toggle`, `move`, `execute`, `retry`, `import`...),
 entao a lista acima nao esgota o catalogo.
 
-Sao 850 ferramentas hoje. **Antes de dizer que uma funcao nao existe, pesquise pelo prefixo da
-area.** Alguns clientes de IA (o ChatGPT em especial) nao carregam o catalogo inteiro de uma vez.
+Sao 969 ferramentas no catalogo hoje (contagem de 30/10/2026), mais as embutidas do conector (secao 4).
+**Antes de dizer que uma funcao nao existe, pesquise pelo prefixo da area.** Alguns clientes de IA (o ChatGPT em especial) nao carregam o catalogo inteiro de uma vez.
 
 Cada ferramenta traz na ficha: um titulo em portugues, o que ela devolve, casos de uso e as
 ferramentas irmas. **Leia o titulo, sempre.**
@@ -31,7 +31,7 @@ ferramentas irmas. **Leia o titulo, sempre.**
 
 ## 2. O sufixo numerico e a armadilha mais cara do catalogo
 
-Existem 246 ferramentas com sufixo numerico (`_1`, `_2`, ate `_19`). Elas **nao sao variantes** da
+Existem 252 ferramentas com sufixo numerico (`_1`, `_2`, ate `_19`). Elas **nao sao variantes** da
 ferramenta base. Sao operacoes completamente diferentes que por acaso mexem no mesmo recurso.
 
 Exemplos reais, todos da familia "contatos":
@@ -65,7 +65,7 @@ Outros nomes que enganam:
 
 ---
 
-## 3. As 76 areas, com o slug e a contagem
+## 3. As 78 areas, com o slug e a contagem
 
 A coluna **Slug** e o valor aceito no filtro do conector LOCAL (`LIONCHAT_CATEGORIES`).
 A coluna **Nome da area** e o valor aceito no filtro do conector REMOTO (`?categories=`), em
@@ -77,10 +77,11 @@ erro nenhum.
 | account | Conta | 4 |
 | account_variables | Variaveis da Conta | 5 |
 | agendamento | Agendamento | 1 |
-| agent_availability | Disponibilidade | 4 |
+| agent_availability | Disponibilidade | 5 |
 | agents | Agentes | 10 |
 | announcements | Anuncios | 5 |
 | assignment_policies | Politicas de Atribuicao | 11 |
+| assinatura_eletronica | Assinatura eletronica | 17 |
 | auditoria | Auditoria | 1 |
 | automation_rules | Regras de Automacao | 7 |
 | biblioteca_de_midia | Biblioteca de Midia | 6 |
@@ -89,16 +90,16 @@ erro nenhum.
 | campanhas_sms_voz | Campanhas SMS/Voz | 5 |
 | canned_responses | Respostas Rapidas | 6 |
 | capacity_policies | Politicas de Capacidade | 11 |
-| captain_assistants | Assistentes | 46 |
+| captain_assistants | Assistentes | 57 |
 | captain_documents | Base de Conhecimento | 6 |
 | chat_interno | Chat Interno | 11 |
-| companies | Empresas | 6 |
-| contacts | Contatos | 37 |
-| conversations | Conversas | 39 |
+| companies | Empresas | 19 |
+| contacts | Contatos | 42 |
+| conversations | Conversas | 40 |
 | copilot_prompts | Prompts Salvos | 4 |
 | csat | CSAT | 4 |
 | csat_template | CSAT Template | 2 |
-| custom_attributes | Atributos Personalizados | 5 |
+| custom_attributes | Atributos Personalizados | 11 |
 | custom_filters | Filtros Personalizados | 5 |
 | custom_roles | Roles Personalizados | 5 |
 | dashboard_apps | Dashboard Apps | 5 |
@@ -107,19 +108,20 @@ erro nenhum.
 | ferramentas_da_ia | Ferramentas da IA | 11 |
 | flow_sessions | Sessoes | 3 |
 | flows | Flows | 21 |
-| formularios | Formularios | 12 |
-| funnels | Funis | 14 |
+| formularios | Formularios | 21 |
+| funnels | Funis | 15 |
 | google_calendar | Google Calendar | 14 |
 | ia_captain | IA / Captain | 2 |
 | inbox_members | Membros de Inbox | 4 |
 | inbox_migration | Migracao de Inbox | 3 |
-| inboxes | Caixas de Entrada | 21 |
-| integracoes | Integracoes | 86 |
+| inboxes | Caixas de Entrada | 29 |
+| integracoes | Integracoes | 93 |
+| integracoes_google_calendar | Integracoes / Google Calendar | 1 |
 | kanban_agents | Agentes (Kanban) | 3 |
 | kanban_bulk | Operacoes em Massa | 4 |
 | kanban_checklist | Checklist | 6 |
 | kanban_config | Config Kanban | 6 |
-| kanban_items | Itens | 28 |
+| kanban_items | Itens | 40 |
 | kanban_notes | Notas | 4 |
 | kanban_v2 | Kanban V2 | 5 |
 | labels | Labels | 5 |
@@ -137,17 +139,17 @@ erro nenhum.
 | public_conversations | Conversas (Cliente) | 5 |
 | public_csat | Pesquisa CSAT | 1 |
 | public_messages | Mensagens (Cliente) | 3 |
-| reports | Relatorios | 38 |
+| reports | Relatorios | 39 |
 | scheduled_messages | Mensagens Agendadas | 10 |
 | search | Busca | 6 |
 | sla | SLA | 8 |
 | support_access | Acesso de Suporte | 3 |
-| tasks | Agenda / Tarefas | 16 |
+| tasks | Agenda / Tarefas | 35 |
 | teams | Times | 11 |
 | upload | Upload | 3 |
 | voip | VoIP | 1 |
 | voip_calls | Chamadas | 26 |
-| waha_groups | Grupos WhatsApp | 14 |
+| waha_groups | Grupos WhatsApp | 21 |
 | webhooks | Webhooks | 6 |
 | whatsapp_templates | Templates WhatsApp | 9 |
 
@@ -168,6 +170,7 @@ disser que existe e a ferramenta nao aparecer, e isso.
 | `lionchat_list_my_accounts` | so no REMOTO | as contas do usuario, com papel e situacao |
 | `lionchat_switch_account` | so no REMOTO | troca a conta da sessao inteira; a escolha fica gravada |
 | `lionchat_contacts_bulk_create` | so no REMOTO | cria ate 1000 contatos numa chamada. Cada campo personalizado usado precisa JA EXISTIR na conta, senao e descartado |
+| `lionchat_companies_bulk_create` | so no REMOTO | cria ou atualiza ate 1000 empresas numa chamada; `check_only: true` confere sem gravar. Acompanhe com `lionchat_companies_import_status`. No local, crie uma a uma com `lionchat_companies_create` |
 | `lionchat_flows_schema_reference` | nos DOIS | o manual completo do desenho de fluxo. Nao gasta chamada. **Obrigatorio antes de criar ou alterar fluxo** |
 | `lionchat_search_tools` | REMOTO compacto | procura no catalogo por linguagem natural, com ou sem acento |
 | `lionchat_describe_tool` | REMOTO compacto | a ficha completa de uma ferramenta |
@@ -175,7 +178,7 @@ disser que existe e a ferramenta nao aparecer, e isso.
 
 ---
 
-## 5. Os 12 documentos de referencia que voce pode pedir
+## 5. Os 14 documentos de referencia que voce pode pedir
 
 Sao documentos longos que ficam guardados no conector e so ocupam espaco quando voce os pede. Peca
 pelo endereco. Nem todo cliente de IA le sozinho — peca explicitamente.
@@ -194,6 +197,8 @@ pelo endereco. Nem todo cliente de IA le sozinho — peca explicitamente.
 | `lionchat://docs/data-model` | como as coisas se ligam entre si |
 | `lionchat://docs/glossary` | termos, situacoes e opcoes de cada campo |
 | `lionchat://docs/troubleshooting` | erros e cenarios de produto |
+| `lionchat://docs/assinatura-eletronica` | **obrigatorio** antes de criar modelo de contrato ou enviar contrato para assinar |
+| `lionchat://docs/agenda-multiplas-unidades` | antes de montar varias agendas (unidades, salas, profissionais) e programas de sessoes |
 
 ---
 
@@ -242,13 +247,14 @@ Use SEMPRE que existir. E o que separa "eu acho que vai funcionar" de "eu te mos
 
 **Nao existe ensaio de planilha.** As tres ferramentas de importacao por arquivo
 (`lionchat_contacts_import`, `lionchat_contacts_import_validate`, `lionchat_kanban_items_import`)
-exigem um arquivo, e enviar arquivo nao existe na conexao por IA: elas aparecem na lista e sempre
-falham. Para criar muitos contatos, use `lionchat_contacts_bulk_create` (so no conector remoto, ate
-1000 por chamada) ou mande o cliente importar pela tela.
+exigem um arquivo, e enviar arquivo do computador nao existe na conexao por IA: elas aparecem na lista e
+sempre falham. Para criar muitos contatos, use `lionchat_contacts_bulk_create` (so no conector remoto, ate
+1000 por chamada) ou mande o cliente importar pela tela. Para empresas existe ensaio:
+`lionchat_companies_bulk_create` com `check_only: true` (tambem so no remoto).
 
 ---
 
-## 8. As 17 ferramentas que exigem o OK do cliente
+## 8. As 21 ferramentas que exigem o OK do cliente
 
 Estas RECUSAM a primeira chamada de proposito. A recusa nao e defeito: e o pedido de autorizacao.
 Descreva o efeito exato ao cliente, espere o "sim" e reenvie a MESMA chamada com `confirm:true`.
@@ -265,6 +271,14 @@ Descreva o efeito exato ao cliente, espere o "sim" e reenvie a MESMA chamada com
 - `lionchat_meta_lead_bulk_destroy` — excluir varios formularios de anuncio de uma vez
 - `lionchat_captain_assistants_quality_apply_proposal` — aplicar no agente as mudancas que a
   revisao de qualidade sugeriu
+- `lionchat_conversations_bulk_destroy` — excluir varias conversas de uma vez (voce nao apaga nada
+  sem pedido explicito do cliente)
+- `lionchat_funnels_remove_stage` — excluir uma etapa do funil movendo os cards dela, em silencio,
+  para outra etapa
+- `lionchat_kanban_ai_analyses_apply` — aplicar nos cards as sugestoes escolhidas da analise do funil
+  por IA. Nao tem como desfazer, e as automacoes, fluxos e conversoes do funil disparam normalmente
+- `lionchat_inboxes_capi_dataset_link` — criar na Meta (ou recuperar) o conjunto de dados de anuncio de
+  WhatsApp e ligar a uma caixa WhatsApp Oficial
 
 **Esta lista nao substitui a sua regra de confirmacao.** Ela e o piso do sistema, nao o teto do seu
 comportamento: voce confirma com o cliente antes de QUALQUER criacao, alteracao, exclusao ou envio

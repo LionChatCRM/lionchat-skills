@@ -15,6 +15,7 @@ Indice:
 11. Macro de "assumir e priorizar"
 12. Macro de "passar para o comercial" (rodizio + etiqueta do contato)
 13. Macro que dispara um Fluxo de Acoes
+14. Lembrete se ninguem respondeu em poucos minutos (espera que confere)
 
 Antes de usar qualquer receita: **levante os numeros e nomes reais da conta** (etiquetas, equipes,
 caixas, funis, etapas, respostas prontas, AI Agente) — os valores abaixo sao ilustrativos. E lembre
@@ -77,8 +78,9 @@ Acoes:
 **Quando usar:** "todo contato novo tem que aparecer no meu funil".
 
 **Perguntar antes:** qual funil, qual etapa, o card ja nasce com oferta ou checklist? **E avise:**
-o card nasce com responsavel — o da conversa ou, se nao houver, um agente sorteado por rodizio do
-funil; e nesse caso o sorteado tambem vira responsavel da CONVERSA.
+o card recebe so o responsavel da CONVERSA (se ele tiver acesso ao funil). O Kanban nao sorteia
+ninguem: conversa sem responsavel = card sem responsavel, e quem distribui e a caixa. Com "Permitir
+cards duplicados" desmarcado, dois eventos do mesmo lead chegando juntos nao criam dois cards.
 
 ```
 Nome:    Lead novo entra no funil
@@ -246,8 +248,9 @@ Acoes:
 ```
 
 **Cuidados deste gatilho:**
-- So estas 10 acoes rodam: mensagem, etiqueta, responsavel do card, mover card, nota no card,
-  cronometro, Ganho/Perdido, prioridade do card e webhook. Qualquer outra e descartada em silencio.
+- So estas 11 acoes rodam: mensagem, etiqueta, responsavel do card, mover card, nota no card,
+  cronometro, Ganho/Perdido, prioridade do card, adiar card e webhook. Qualquer outra e descartada em
+  silencio.
 - **Nunca** ponha condicao de conversa (etiqueta, status) aqui: o que esse motor nao entende ele
   **aprova**, e a regra passa a valer para todos os cards de todos os funis.
 - "Adicionar Nota ao Card" nesse gatilho precisa do texto puro (`["texto"]`), nao do objeto com
@@ -358,3 +361,32 @@ Acoes:
 - Se o fluxo ja estiver rodando naquela conversa, um segundo clique nao faz nada.
 - Para conferir: historico do fluxo (`lionchat_flows_executions_list`); a execucao aparece como
   iniciada pela macro, com o nome dela.
+
+---
+
+## 14. Lembrete se ninguem respondeu em poucos minutos (espera que confere)
+
+**Quando usar:** "se o cliente escrever e ninguem responder em 5 minutos, poe prioridade alta e avisa
+a equipe". (Espera de horas ou dias e Flow.)
+
+```
+Nome:    Sem resposta em 5 minutos
+Gatilho: message_created
+Condicoes:
+  [{"attribute_key":"message_type","filter_operator":"equal_to",
+    "values":["incoming"],"query_operator":null}]
+Acoes:
+  [{"action_name":"wait",
+    "action_params":[{"seconds":300,"only_if_open":true,"only_if_no_reply":true}]},
+   {"action_name":"change_priority","action_params":["high"]},
+   {"action_name":"add_private_note","action_params":["Cliente sem resposta ha 5 minutos."]}]
+```
+
+- `only_if_open`: na volta, so segue se a conversa ainda estiver aberta ou pendente.
+- `only_if_no_reply`: so segue se NINGUEM respondeu o cliente durante a espera (atendente, IA ou
+  outra automacao contam como resposta).
+- Barrou = o resto da regra nao roda e o historico mostra o passo `wait_check` como `skipped`. E o
+  esperado, nao defeito.
+- Teto da espera: 300 segundos. Mais que isso e cortado em silencio.
+- Cada mensagem do cliente abre uma execucao propria: se ele mandar tres mensagens seguidas, ate tres
+  esperas correm juntas. Avise o cliente; se incomodar, use etiqueta de controle ou monte em Flow.

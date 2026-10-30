@@ -1,6 +1,6 @@
 ---
 name: agente-de-ia
-description: Monta, revisa e corrige o Agente de IA do LionChat de ponta a ponta pelo conector - modelo, instrucoes, protecoes, cenarios, base de conhecimento, biblioteca de midia, ferramentas, transferencia para humano, acompanhamento automatico, teste no Playground e revisao de qualidade. Use quando o usuario disser "monta meu agente de IA", "cria uma IA que atende meu WhatsApp", "a IA esta inventando informacao", "a IA nao responde", "quero que a IA agende", "quero que a IA envie o catalogo", "quero comparar duas IAs", ou pedir cenario, base de conhecimento, follow-up, resposta em audio ou ferramenta da IA. Sempre pergunta antes e so cria depois de confirmacao explicita.
+description: Monta, revisa e corrige o Agente de IA do LionChat de ponta a ponta pelo conector - modelo, instrucoes, protecoes, cenarios, base de conhecimento, biblioteca de midia, ferramentas, transferencia para humano, acompanhamento automatico, teste no Playground e revisao de qualidade. Use quando o usuario disser "monta meu agente de IA", "cria uma IA que atende meu WhatsApp", "a IA esta inventando informacao", "a IA nao responde", "quero que a IA agende", "quero que a IA envie o catalogo", "quero comparar duas IAs", ou pedir cenario, base de conhecimento, follow-up, resposta em audio ou ferramenta da IA. Ligacao com IA (a IA que LIGA para o cliente) e da skill agente-de-ligacao. Sempre pergunta antes e so cria depois de confirmacao explicita.
 ---
 
 # Agente de IA do LionChat
@@ -15,6 +15,14 @@ Montar um agente bom nao e escrever um texto grande. E montar quatro coisas que 
 (quem ele e), **cenarios** (o passo a passo de cada situacao), **base de conhecimento** (a verdade sobre o
 negocio) e **ferramentas** (o que ele consegue de fato executar). Quando qualquer uma dessas quatro falta,
 a IA preenche o buraco inventando.
+
+**Ligacao com IA e outra peca, com skill propria (`agente-de-ligacao`).** Desde 24/09 a voz que liga para o
+cliente mora em **Agentes de ligacao** (`lionchat_captain_call_agents_*`), separada dos agentes de texto: roteiro,
+primeira frase, jeito de falar, voz e tempo maximo ficam LA. O agente de texto que voce monta aqui so entra como
+EXECUTOR dos pedidos feitos na ligacao, ligado pelo campo `captain_assistant_id` do agente de ligacao, e para isso
+precisa ter LIGADAS as ferramentas que os pedidos usam. As antigas chaves `config.call_*` do agente de texto foram
+removidas: nao grave nada de ligacao no `config` dele. Se o cliente pedir "a IA ligar para o lead", siga a skill
+`agente-de-ligacao`.
 
 ## Fluxo obrigatorio (nao pule etapas)
 
@@ -111,7 +119,8 @@ se o recurso da conta existir antes.
 1. **Criar o agente** - `lionchat_captain_assistants_create` com `name` e `description`. A descricao vai
    INTEIRA para o comportamento dele; escreva o papel, nunca um rotulo de bastidor.
 2. **Modelo e criatividade** - `lionchat_captain_assistants_update`. Ler `references/modelo-e-ajustes.md`
-   antes: ha modelos em que o ajuste de criatividade nao faz nada e uma familia que deixa a IA 100% muda.
+   antes: o servidor so aceita os 22 modelos da lista (outro nome volta 422) e em varios deles o ajuste de
+   criatividade nao faz nada.
 3. **Instrucao, protecoes e diretrizes** - `config.instructions`, `guardrails`, `response_guidelines`.
    Como escrever: `references/escrever-cenario.md`.
 4. **Base de conhecimento e perguntas frequentes** - `lionchat_captain_documents_create` (uma pagina por
@@ -163,10 +172,13 @@ emergencia (`paused: true` no agente para tudo sem perder configuracao) e onde a
 4. **NUNCA prometa no texto do agente um caminho que a ferramenta nao executa.** Sem funil nao ha card, sem
    agenda nao ha agendamento, sem arquivo liberado nao ha envio de arquivo. A IA obedece o texto e inventa
    a execucao.
-5. **NUNCA use a familia de modelos gpt-5.6.** Ela recusa ferramentas e a IA fica 100% muda, em silencio.
-6. **NUNCA prometa criatividade em modelo de raciocinio** (o1, o3, o3-mini, o4-mini, gpt-5, gpt-5-mini,
-   gpt-5.5). O valor ate grava, mas o sistema nao manda o ajuste para esses modelos: ele nao faz nada.
-   Se o cliente quer controlar o tom pela criatividade, escolha outro modelo.
+5. **NUNCA grave modelo fora da lista de `references/modelo-e-ajustes.md`.** Desde 08/09 o servidor confere e
+   recusa (422) a troca para um nome desconhecido. As familias gpt-5.6 (luna, terra, sol) e gpt-6 (luna, sol)
+   estao LIBERADAS e funcionam com ferramentas - a antiga proibicao do gpt-5.6 nao vale mais.
+6. **NUNCA prometa criatividade em modelo que nao aceita o ajuste** (o1, o3, o3-mini, o4-mini, gpt-5,
+   gpt-5-mini, gpt-5.5, gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, gpt-6-luna, gpt-6-sol). O valor ate grava,
+   mas o sistema nao manda o ajuste para esses modelos: ele nao faz nada. Se o cliente quer controlar o tom
+   pela criatividade, escolha outro modelo.
 7. **NUNCA deixe `{{alguma.coisa}}` no texto sem rodar a revisao de qualidade depois.** Variavel que o
    sistema nao preenche nao da erro: some do texto e a IA entrega a frase com o buraco para o cliente.
 8. **NUNCA deixe as protecoes vazias.** Sem elas nao existe limite escrito para o que ele nao pode falar.
@@ -208,6 +220,13 @@ parece certa na tela e nao funciona. Detalhe e mais casos em `references/armadil
   Lista completa de motivos em `references/ativar-e-diagnosticar.md` - confira ANTES de mexer no prompt.
 - **Se voce criar time ou etiqueta sem descricao**, a IA nao sabe quando usar: e a descricao, nao o nome,
   que ela le para decidir rotear e etiquetar.
+- **Se voce desligar as quatro ferramentas de agenda, o agente deixa de ser "agente que agenda"**, mesmo com
+  agenda na conta: some o roteiro de agendamento do comportamento dele e os 8 campos de sistema do
+  agendamento. Para agendar ele precisa das DUAS coisas: agenda configurada E pelo menos uma das ferramentas
+  de agenda ligada.
+- **Se o cliente deixar a IA encerrar conversa**, ela so encerra com o interruptor ligado e com prova de que o
+  caso acabou: um "ok", "obrigado" ou emoji sozinho NAO prova, e o fechamento e recusado. Quem nao quer que a
+  IA encerre desliga `resolve_conversation`.
 
 ## O que eu faco e o que eu nao faco
 
@@ -219,6 +238,8 @@ parece certa na tela e nao funciona. Detalhe e mais casos em `references/armadil
 > so depois que voce autorizar.
 >
 > Eu NAO cadastro a chave da OpenAI da conta (isso e feito no painel, em Integracoes) e eu nao apago nada.
+> A IA que LIGA para o cliente (Ligacao com IA) e montada pela skill `agente-de-ligacao`; aqui eu so preparo o
+> agente de texto que executa os pedidos dela.
 > Eu tambem nao mexo no Copiloto, que e outra coisa: o Copiloto ajuda o SEU ATENDENTE dentro do painel e
 > nao fala com o cliente.
 >

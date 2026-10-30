@@ -38,9 +38,11 @@ Todas falham EM SILENCIO. Nao ha erro na tela, o registro parece certo e o compo
 - **O convite ainda nao foi aceito.** Times e caixas informados no convite ficam pendentes e nao
   aparecem em `lionchat_inbox_members_show`. So passam a valer quando a pessoa confirmar o e-mail.
   Nao refaca a operacao.
-- **Cargo personalizado sem nenhuma permissao de conversa.** Sem nenhuma das quatro, a pessoa so
+- **Cargo personalizado sem nenhuma permissao de conversa.** Sem nenhuma das cinco, a pessoa so
   enxerga conversa em que foi colocada como participante ou que esta num card do Kanban dela. E as
-  quatro SOMAM: marcar duas entrega os dois conjuntos, nao a intersecao.
+  cinco SOMAM: marcar duas entrega os dois conjuntos, nao a intersecao.
+- **Menu oculto no cargo.** Se o administrador desmarcou "Acessar menu" de uma area
+  (`hidden_menus`), a tela daquela area some para a pessoa, mesmo com a caixa certa.
 
 ---
 
@@ -52,14 +54,16 @@ Todas falham EM SILENCIO. Nao ha erro na tela, o registro parece certo e o compo
 - **Horario da conta nao esta cadastrado ou esta desligado.** Sem ele, nenhuma caixa nao-widget
   consegue mandar aviso de ausencia.
 - **Texto do aviso em branco.** Campo vazio nao envia nada; nao existe texto padrao.
+- **Interruptor do aviso desligado.** Desde 17/09/2026 o aviso precisa do interruptor
+  (`out_of_office_enabled`) LIGADO alem do texto. Ele nasce desligado em caixa nova.
 - **Saudacao com o interruptor ligado e texto vazio, ou o contrario.** Precisa dos dois.
 - **O cliente esperava a saudacao E o aviso na mesma madrugada.** Fora do horario sai SO o aviso; a
   saudacao fica guardada para quando ele voltar dentro do horario.
 - **Ja saiu um aviso hoje naquela conversa.** No maximo um por dia por conversa.
 - **Um atendente respondeu nos ultimos 5 minutos.** O aviso e segurado para nao interromper conversa
   viva no fim do expediente.
-- **O campo do aviso foi mandado pela ferramenta de atualizar a caixa.** Ele nao esta declarado e foi
-  descartado em silencio: o valor nunca chegou ao banco.
+- **So o texto foi mandado pela ferramenta.** Ela aceita `out_of_office_message` e
+  `out_of_office_enabled`; mandar so o texto deixa o aviso desligado. Releia a caixa e confira os dois.
 
 ---
 
@@ -68,9 +72,13 @@ Todas falham EM SILENCIO. Nao ha erro na tela, o registro parece certo e o compo
 Esta e a familia mais perigosa.
 
 - **Campo nao declarado na ferramenta.** A ferramenta de atualizar a caixa so aceita nome, saudacao
-  (ligar e texto), ligar a distribuicao, o bloco de distribuicao e atributos extras. Qualquer outra
-  chave e apagada antes de sair, a resposta volta com sucesso e o banco continua igual. Ver a lista
-  em `configurar-caixa.md`.
+  (ligar e texto), aviso de ausencia (ligar e texto), ligar a distribuicao, o bloco de distribuicao
+  e `channel.additional_attributes`. Qualquer outra chave fica fora do contrato: nada garante que
+  seja gravada e a resposta volta com sucesso do mesmo jeito. Ver a lista em `configurar-caixa.md`.
+- **Interruptor do canal fora de `channel`.** `additional_attributes` solto, no nivel de cima, e
+  descartado pelo servidor. E "false" em texto nao e falso: mande booleano.
+- **"Aceitar Canais" / "Aceitar Lista de Transmissao" ligados.** O servidor desliga de novo ao
+  salvar, sem erro, desde 09/10/2026.
 - **Bloco de distribuicao substituido inteiro.** Mandar so uma chave apaga as outras. Leia, junte,
   mande completo.
 - **Chave desconhecida dentro do bloco de distribuicao.** So quatro sao aceitas pelo servidor; as
@@ -169,8 +177,10 @@ fantasma - some da tela e o comportamento passa a ser o da politica. Nunca confi
   as criadas antes de marco de 2026 ficaram como estavam: cada mensagem nova abre um card novo e a
   operacao enche de conversas repetidas. Confirme o valor real antes de afirmar como esta.
 - **"Aceitar Grupos" desligado.** Mensagem de grupo e descartada em silencio. Sem erro, sem conversa.
-- **Ligar aceitar grupos, canais ou lista de transmissao REINICIA a sessao** do WhatsApp por alguns
-  segundos. Avise antes. O interruptor de recusar ligacoes nao reinicia.
+  Entrar em grupo por convite pela ferramenta tambem e recusado (422 `groups_disabled`).
+- **Ligar ou desligar Aceitar Grupos REINICIA a sessao** do WhatsApp por alguns segundos. Avise
+  antes. O interruptor de recusar ligacoes nao reinicia.
+- **Canal e lista de transmissao do WhatsApp** nao viram conversa em caixa nenhuma desde 09/10/2026.
 - **Grupo em caixa Oficial.** Nao existe. Ao migrar conversas de QR Code para Oficial, os grupos
   ficam para tras; se a caixa antiga for apagada, essas conversas se perdem.
 - **Campanha em canal que nao aceita.** So Website, SMS, Twilio SMS, WhatsApp (os dois tipos) e

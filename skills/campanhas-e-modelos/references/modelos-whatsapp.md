@@ -143,6 +143,7 @@ Ver a secao seguinte — as combinacoes sao regra da Meta, nao do LionChat.
 | Chamada | Liga para o proprio numero do WhatsApp da empresa | 2, somando com link e telefone |
 | Copiar codigo | Copia um cupom ou voucher | 1 |
 | Codigo de verificacao | So em modelo de Autenticacao | 1 e exclusivo |
+| Formulario (`FLOW`) | Abre um Formulario do WhatsApp (o formulario nativo da Meta, preenchido sem sair da conversa) | 1 |
 
 Regras de convivencia:
 
@@ -151,6 +152,7 @@ Regras de convivencia:
 - O botao de codigo de verificacao e exclusivo: com ele, nenhum outro botao pode existir. E ele so
   existe na categoria Autenticacao.
 - Botao de copiar codigo SEM exemplo e recusado pela Meta.
+- **Botao de formulario** (`{"type": "FLOW", "text": "...", "flow_id": "<id do formulario PUBLICADO na Meta, como texto>", "flow_action": "navigate"}`, texto de ate 25 caracteres): o formulario precisa existir e estar PUBLICADO antes. Montar, testar e publicar o formulario e o trabalho da skill `formulario-whatsapp` - encaminhe para ela e so depois crie o modelo com o botao.
 
 **Link do proprio WhatsApp em botao e PROIBIDO pela Meta** (convite de grupo ou link direto de
 conversa). Nao adianta insistir — ja houve cliente tentando tres vezes achando que era instabilidade
@@ -188,10 +190,14 @@ O mapa e por posicao. Para cada posicao, uma origem e um campo:
 
 | Origem | Campos possiveis |
 |---|---|
-| `contact` (a ficha da pessoa) | `name`, `name.split.first` (primeiro nome), `phone_number`, `email`, ou `custom_attribute.<chave>` |
+| `contact` (a ficha da pessoa) | `name`, `name.split.first` (primeiro nome), `name.split[1..]` (sobrenome), `phone_number`, `email`, `id`, ou `custom_attribute.<chave>` |
+| `variable` (cadastro, endereco e empresa do contato, desde 07/10/2026) | `contact.cpf`, `contact.cnpj`, `contact.rg`, `contact.passport`, `contact.date_of_birth`, `contact.gender`, `contact.marital_status`, `contact.profession`, `contact.company_name`, `contact.job_title`; `contact.address.cep`, `.street`, `.number`, `.complement`, `.neighborhood`, `.city`, `.state`, `.country`; `contact.company.legal_name`, `.cnpj`, `.phone`, `.email`, `.address.city`, `.address.state`; `inbox.name`, `inbox.id`, `account.id`. **Lista fechada**: campo fora dela resolve vazio |
+| `company` (campo PERSONALIZADO da empresa do contato, desde 16/10/2026) | `custom_attribute.<chave>` |
 | `conversation` (o atendimento) | `display_id`, `assignee.name`, `team.name`, `custom_attribute.<chave>` |
-| `account` (a empresa) | `name`, `custom_attribute.<chave>` |
+| `account` (a empresa dona da conta) | `name`, `custom_attribute.<chave>` |
 | `custom` | um texto fixo, igual para todo mundo |
+
+Contato sem empresa (ou conta com o modulo Empresas desligado) deixa vazias as posicoes de empresa.
 
 Exemplo:
 
@@ -204,9 +210,12 @@ Tres coisas que precisam ser ditas ao cliente:
 
 - **O mapa substitui tudo.** Posicao que voce nao mandar e REMOVIDA; mandar um mapa vazio limpa
   todos os apontamentos. Sempre releia o modelo e reenvie o conjunto completo.
-- **Variavel sem apontamento nao falha o envio**: sai um PONTO no lugar dela, para todo mundo. Na
-  lista de modelos aparece um aviso "Falta preencher variavel". Ja aconteceu com 65 pessoas de uma
-  vez, que leram uma frase terminando em ponto no meio.
+- **Variavel sem valor nao falha o envio**: sai um PONTO no lugar dela. Na lista de modelos aparece
+  um aviso "Falta preencher variavel". Ja aconteceu com 65 pessoas de uma vez, que leram uma frase
+  terminando em ponto no meio. Desde 07/10/2026 a campanha oficial completa sozinha a posicao que
+  chegou vazia com o apontamento do modelo - por isso apontar todas as variaveis e a melhor protecao.
+  O ponto continua saindo quando a posicao nao tem apontamento, quando o contato nao tem aquele dado
+  ou quando o campo da campanha pede um dado diferente do apontamento.
 - Modelo de Autenticacao NAO aceita apontamento (o codigo nao pode virar nome de contato).
 
 ---
@@ -290,9 +299,14 @@ modelo e encontrado pelo par NOME + IDIOMA, e so entre os APROVADOS:
 }
 ```
 
-- `processed_params.body` leva um valor por posicao. **Preencha TODAS as posicoes** — posicao vazia
-  vira um ponto na mensagem de todo mundo.
-- Os valores aceitam variavel de contato (por exemplo `{{contact.name}}`), resolvida por pessoa.
+- `processed_params.body` leva um valor por posicao. **Preencha TODAS as posicoes.** Posicao que
+  chega vazia e completada pelo apontamento do modelo, se houver; sem apontamento (ou sem o dado no
+  contato), vira um ponto na mensagem.
+- Os valores aceitam variavel de contato, cadastro, endereco e empresa (por exemplo
+  `{{contact.name}}`, `{{contact.cpf}}`, `{{contact.address.city}}`,
+  `{{contact.company.legal_name}}`), resolvida por pessoa. Para dado da CONVERSA (numero,
+  responsavel, equipe), o caminho seguro e apontar no modelo e deixar a posicao vazia. Na campanha,
+  "responsavel" e o atendente que a propria campanha vai atribuir (se ela atribui alguem).
 - Se o modelo tem cabecalho de arquivo e voce nao mandar nada, entra o arquivo padrao do modelo.
 - Se o par nome e idioma nao encontrar nenhum modelo aprovado (por exemplo porque a Meta pausou o
   modelo), o envio E TENTADO e a Meta RECUSA — as falhas aparecem no placar. Isso e diferente de

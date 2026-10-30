@@ -19,7 +19,7 @@ Indice:
 
 | O que o cliente pede | Por que nao da pela IA | O que dizer |
 |---|---|---|
-| Conectar o WhatsApp por QR Code | o codigo precisa ser lido com a camera do celular dele | "Eu consigo ligar a sessao e ate buscar o codigo, mas quem le o QR Code com o celular e voce. Vai em Caixas de Entrada, abre a caixa e escaneia." |
+| Conectar o WhatsApp por QR Code | o codigo precisa ser lido com a camera do celular dele | "Quem le o QR Code com o celular e voce. Eu posso gerar um link de conexao para quem esta com o celular na mao abrir e ler, sem precisar entrar no painel — ou voce vai em Caixas de Entrada, abre a caixa e escaneia." |
 | Conectar Instagram ou Facebook | a Meta exige o clique dele na tela de permissao, e nao ha ferramenta nenhuma pra isso | "A Meta exige que voce autorize clicando, e isso so existe na tela. Eu nao consigo clicar por voce." |
 | Conectar Google Agenda, Google Contatos ou Conta Azul | quem autoriza e ele, na tela do Google / da Conta Azul | "Eu gero o link de autorizacao e te mando; quem abre e clica em Permitir e voce. Depois disso eu configuro o resto." |
 | Conectar o WhatsApp oficial (Cadastro Incorporado da Meta) | a janela de cadastro da Meta e uma tela, com cliques | "O cadastro do numero oficial acontece numa janela da Meta que voce precisa preencher. Depois disso eu configuro o resto." |
@@ -27,6 +27,13 @@ Indice:
 O que voce CONSEGUE fazer nessa area:
 
 - ligar ou religar a sessao do WhatsApp QR Code da caixa e ver a situacao dela;
+- **gerar um LINK PUBLICO de conexao** (desde 28/08), que abre o QR numa pagina para quem esta com o
+  celular na mao, sem acesso ao painel. Tres tipos: caixa QR Code
+  (`lionchat_inboxes_waha_connect_link_create`), apoio da conexao hibrida de uma caixa oficial
+  (`lionchat_inboxes_coex_backup_connect_link_create`) e linha de ligacao
+  (`lionchat_inboxes_lioncalls_connect_link_create`). Devolvem o endereco e a validade. So administrador;
+  caixa ja conectada volta 422. **O link conecta um canal de verdade:** peca o "sim" antes, mande so para
+  quem vai ler o QR e revogue (`..._connect_link_revoke`) assim que conectar ou se o link vazar;
 - buscar o codigo QR. **Ele volta como TEXTO, nao como imagem** — para o cliente escanear, esse
   texto precisa virar um desenho de QR, entao na pratica o caminho facil e ele abrir a caixa no
   painel. O codigo tambem vence em menos de um minuto;
@@ -56,8 +63,9 @@ cartao, ver fatura ou saldo.
 
 ## 3. Arquivos e planilhas
 
-**Enviar arquivo nao existe na conexao por IA.** Quatorze ferramentas tem campo de arquivo. Em
-**dez** delas o arquivo e obrigatorio: essas aparecem na sua lista e sempre falham. Sao:
+**Enviar arquivo DIRETO do computador nao existe na conexao por IA.** Arquivo que esta num LINK publico,
+sim (ver "Os caminhos que existem" abaixo). Quatorze ferramentas tem campo de arquivo. Em **dez** delas o
+arquivo e obrigatorio: essas aparecem na sua lista e sempre falham. Sao:
 
 - importar contatos por planilha (tres delas: importar, conferir antes e a versao com mapeamento)
 - importar cards do funil por planilha, e o preview dessa importacao
@@ -74,8 +82,15 @@ endereco de arquivo) e `lionchat_captain_documents_create` (que aceita endereco 
 - Muitos contatos de uma vez: `lionchat_contacts_bulk_create` — **so no conector remoto**, ate 1000
   por chamada. Cada campo personalizado usado precisa JA EXISTIR na conta, senao a importacao
   descarta em silencio. A importacao roda em segundo plano: confira depois buscando os contatos.
-- Midia que ja esta na internet: `lionchat_upload_create` aceita um endereco de arquivo (URL) em vez
-  do arquivo. Teste antes com `lionchat_upload_validate`.
+- Muitas empresas de uma vez: `lionchat_companies_bulk_create` — **so no conector remoto**, ate 1000 por
+  chamada (`check_only: true` confere sem gravar); acompanhe com `lionchat_companies_import_status`.
+- **Arquivo que ja esta na internet (desde 23/10 aceita foto, video, audio e documento — PDF, Word,
+  Excel, CSV, ZIP):** `lionchat_upload_create` com `external_url` devolve `blob_id`. Para mandar o
+  arquivo numa conversa, ponha esse `blob_id` no campo `attachments` de
+  `lionchat_conversations_messages_create` (vale tambem em conversa de grupo do WhatsApp QR Code).
+  Para a Biblioteca de Midia do agente de IA, o mesmo `blob_id` vai em `blob_signed_id`. Link que abre
+  uma PAGINA (ex.: Google Drive `.../view`) e recusado — use o link de download direto. Teste antes com
+  `lionchat_upload_validate` e confira o teto de cada tipo em `lionchat_upload_limits_show`.
 - Base de conhecimento do agente de IA: da para criar por endereco de pagina ou por texto colado; o
   arquivo PDF e que nao sobe.
 - Qualquer outra planilha: o cliente importa pela tela.

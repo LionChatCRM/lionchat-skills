@@ -75,7 +75,7 @@ A ferramenta de criar campo personalizado exige tres coisas e aceita mais alguma
 | `attribute_display_name` | sim | O nome que a equipe ve. Pode ter acento e espaco: "Endereco da unidade" |
 | `attribute_key` | sim | A chave tecnica. **Minusculas, sem acento e sem espaco** — use `_`. Ex.: `endereco_unidade` |
 | `attribute_display_type` | sim | Um de: `text`, `number`, `currency`, `percent`, `link`, `date`, `list`, `checkbox`, `time`, `datetime`, `secret` |
-| `attribute_model` | nao, mas SEMPRE mande | `contact_attribute` (fica na ficha) ou `conversation_attribute` (fica no atendimento). **O padrao e conversa** — sem mandar, o campo do contato nasce no lugar errado |
+| `attribute_model` | nao, mas SEMPRE mande | `contact_attribute` (fica na ficha), `conversation_attribute` (fica no atendimento), `company_attribute` (fica na EMPRESA; so com o modulo Empresas, e nao aceita o tipo Confidencial) ou `account_attribute` (variavel da conta). **O padrao e conversa** — sem mandar, o campo do contato nasce no lugar errado. Sempre com o sufixo `_attribute` |
 | `attribute_values` | so no tipo Lista | As opcoes fixas, ex.: `["Basico", "Premium"]` |
 | `attribute_timezone` | so no tipo Hora | Fuso, padrao America/Sao_Paulo |
 | `attribute_description` | nao | Explica ao time para que serve o campo. Aparece na ficha e no seletor de variaveis |
@@ -94,7 +94,14 @@ Regras que valem a pena saber antes de criar:
 - **A tela de criacao so oferece Texto, Numero, Link, Data, Hora, Data e Hora, Lista e Caixa de
   selecao.** Moeda, Porcentagem e Confidencial funcionam por aqui mas nao aparecem naquele seletor —
   o cliente vai editar como texto se abrir a tela. So proponha esses tres se ele entender isso.
-- **Card do Kanban e outro lugar.** Esta ferramenta so cria campo de contato e de conversa. Campo de
+- **Campo de EMPRESA tem nomes reservados** alem dos de contato: `name`, `domain`, `description`,
+  `legal_name`, `cnpj`, `phone`, `email`, `address`, `social_profiles`, `contacts_count`,
+  `created_at`, `last_activity_at` (sao o cadastro nativo da empresa).
+- **Os campos podem ser agrupados em pastas** (categorias que abrem e fecham na tela), uma aba por
+  vez: `lionchat_custom_attribute_categories_create` / `_assign` / `_reorder`. Exige administrador.
+  Variavel da conta nao tem pasta. Apagar a pasta nunca apaga campo nem valor.
+- **Card do Kanban e outro lugar.** Esta ferramenta so cria campo de contato, de conversa, de empresa
+  e variavel da conta. Campo de
   card mora na configuracao do Kanban e usa outro vocabulario de tipos. Cuidado com um detalhe: na
   TELA o terceiro item do seletor "Aplica-se a" e Card; nas ferramentas, o numero 2 significa
   Variavel da Conta. Nao copie o numero da tela.
@@ -113,7 +120,9 @@ personalizado do contato.**
 | `identifier` | codigo em outro sistema | igual, diferente, contem, nao contem |
 | `city` | cidade | igual, diferente, contem, nao contem |
 | `country_code` | pais | igual, diferente |
-| `company` | empresa | igual, diferente, contem, nao contem |
+| `company_name` | empresa (o nome; com empresa ligada, e o nome dela) | igual, diferente, contem, nao contem |
+| `job_title` | cargo | igual, diferente, contem, nao contem |
+| `company` | **chave antiga que NUNCA casa** - nada grava nela. Use `company_name` | (nao use) |
 | `cpf` | CPF | igual, diferente, contem, nao contem, preenchido, nao preenchido |
 | `cnpj` | CNPJ | igual, diferente, contem, nao contem, preenchido, nao preenchido |
 | `rg` | RG | igual, diferente, contem, nao contem, preenchido, nao preenchido |
@@ -139,6 +148,11 @@ Observacoes:
 - Os campos de origem e de rastreamento (primeira origem, ultima origem, UTM, cliques) sao campos
   personalizados de sistema: nao aparecem na lista de campos por padrao, mas **funcionam no filtro**.
   Peca a listagem incluindo os campos de sistema para descobrir as chaves.
+- **Campo personalizado da EMPRESA do contato** (desde 16/10/2026) tambem filtra contatos: condicao
+  com `custom_attribute_type: company_attribute`. As comparacoes seguem o tipo do campo (tabela da
+  secao 2); "diferente", "nao contem" e "nao preenchido" incluem quem nao tem empresa. Com o modulo
+  Empresas desligado, ninguem casa. Por enquanto so os campos PERSONALIZADOS da empresa filtram - o
+  cadastro dela (CNPJ, razao social) nao.
 
 ## 5. Como se escreve uma condicao de filtro
 
@@ -150,7 +164,7 @@ A ferramenta de filtrar contatos recebe uma lista de condicoes. Cada condicao te
 | `filter_operator` | `equal_to`, `not_equal_to`, `contains`, `does_not_contain`, `is_present`, `is_not_present`, `is_greater_than`, `is_less_than`, `starts_with`, `today`, `yesterday`, `last_days`, `days_ago`, `days_before` |
 | `values` | lista de valores. Varios valores na mesma condicao funcionam como "ou" entre eles |
 | `query_operator` | `and` ou `or` — liga esta condicao com a PROXIMA. Na ultima, deixe vazio |
-| `custom_attribute_type` | so quando a chave for campo de CONVERSA e voce estiver filtrando contatos: `conversation_attribute` |
+| `custom_attribute_type` | so quando a chave for campo de CONVERSA (`conversation_attribute`) ou de EMPRESA (`company_attribute`) e voce estiver filtrando contatos |
 
 Coisas que quebram e nao sao obvias:
 
@@ -204,19 +218,20 @@ condicoes da secao 5.
 
 **Cuidado com o embrulho, que e diferente do filtro avulso.** No filtro de contatos as condicoes vao
 soltas, dentro de `payload`. No segmento salvo elas vao **dentro de `query`, e ainda dentro de
-`payload`**: `query` recebe `{ "payload": [ ...as condicoes... ] }`. Mandar a lista direta em `query`
-NAO da erro — o segmento e criado, aparece na barra lateral com o nome certo e nao filtra nada. Ao
-terminar, abra o segmento e confira que ele mostra gente.
+`payload`**: `query` recebe `{ "payload": [ ...as condicoes... ] }`. Regra vazia, embrulho errado ou
+condicao sem chave ou sem comparacao e recusada com 422. Mesmo aceito, ao terminar abra o segmento e
+confira que ele mostra gente.
 
-**Duas coisas que o cliente precisa ouvir de voce:**
+**O que o cliente precisa ouvir de voce (desde 22/10/2026):**
 
-1. **O segmento e privado de quem criou.** O colega da equipe nao ve. A documentacao antiga diz o
-   contrario; o comportamento real e privado. Diga isso ao criar, senao alguem vai concluir que o
-   sistema perdeu o dado.
-2. **Segmento NAO serve como publico de campanha.** O publico da campanha entende tag da conversa,
-   tag do contato, atributo de conversa, atributo de contato, atributo de card, funil e atendente ou
-   time — **nunca um segmento salvo**. Se o cliente quer disparar para um recorte, o recorte precisa
-   ser remontado dentro da campanha, ou virar uma etiqueta de contato aplicada em massa.
+1. **O segmento e da CONTA.** Toda a equipe ve e usa. Criar, editar e apagar exige administrador ou
+   cargo com gerenciar contatos, gerenciar campanhas ou gerenciar automacoes (sem isso, 401) - quem
+   criou nao ganha direito extra por ter criado. Teto de 1.000 segmentos por conta.
+2. **Segmento SERVE como publico de campanha** - no "Para quem enviar" e no "Nao enviar para", no
+   WhatsApp oficial, no QR Code e na Campanha de Fluxo (em SMS nao). A regra e lida na hora do
+   disparo. Por isso mexer num segmento muda o publico das campanhas programadas que o usam, e um
+   segmento em uso por campanha programada nao pode ser apagado (422 com o nome da campanha). Se o
+   segmento quebrar antes do disparo, a campanha nao manda nada.
 
 ## 9. Onde o filtro de contato tambem e usado
 

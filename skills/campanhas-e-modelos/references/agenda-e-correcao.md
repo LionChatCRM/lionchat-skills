@@ -195,7 +195,8 @@ o disjuntor de spam, que pausa o disparo por 30 minutos e volta sozinho.
 ainda ha folga no dia, o sistema manda a proxima leva sozinho, reconsultando o teto da Meta ao vivo.
 No modo "ate o limite e para" isso nao acontece.
 
-**"Criei a campanha e nao saiu nada"** — Confira, nesta ordem: publico vazio; caixa oficial com a
+**"Criei a campanha e nao saiu nada"** — Confira, nesta ordem: publico vazio; segmento do publico ou
+da exclusao apagado ou com a regra quebrada (o motivo aparece no card da campanha); caixa oficial com a
 funcionalidade de campanha desligada na conta; caixa por QR Code desconectada; horario agendado que
 passou ha mais de 3 dias sem o disparo ser pego (nesse caso ela nunca mais sai e o certo e criar
 outra).

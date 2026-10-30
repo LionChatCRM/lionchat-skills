@@ -136,11 +136,13 @@ no conector local.
 ### Se voce tentar importar planilha, a ferramenta existe e sempre falha
 
 `lionchat_contacts_import`, `lionchat_contacts_import_validate` e `lionchat_kanban_items_import`
-exigem um arquivo, e enviar arquivo **nao existe** na conexao por IA. Elas aparecem na sua lista e
-sempre recusam.
+exigem um arquivo, e enviar arquivo do computador **nao existe** na conexao por IA. Elas aparecem na
+sua lista e sempre recusam.
 
-**Certo:** para criar muitos contatos, `lionchat_contacts_bulk_create` (so no conector remoto, ate
-1000 por chamada). Ou mande o cliente importar pela tela.
+**Certo:** para criar muitos contatos, `lionchat_contacts_bulk_create`; para muitas empresas,
+`lionchat_companies_bulk_create` (os dois so no conector remoto, ate 1000 por chamada). Ou mande o
+cliente importar pela tela. Arquivo que esta num LINK publico (foto, video, audio, documento) sobe por
+`lionchat_upload_create` com `external_url` — ver `nao-tem-caminho.md`, secao 3.
 
 ### Existem 4 nomes de ferramenta que circulam por ai e NAO existem
 

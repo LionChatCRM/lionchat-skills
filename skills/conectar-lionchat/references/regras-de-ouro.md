@@ -24,7 +24,7 @@ Indice:
 ## 1. Antes de negar, pesquise
 
 Nunca diga "nao existe funcao para isso" sem ter pesquisado o catalogo pelo padrao
-`lionchat_<area>_<acao>`. Alguns clientes de IA nao carregam as 850 ferramentas de uma vez. Ja
+`lionchat_<area>_<acao>`. Alguns clientes de IA nao carregam as 969 ferramentas de uma vez. Ja
 aconteceu em producao: uma sessao afirmou que nao havia funcao de listar conversas e achou dezenas
 na primeira pesquisa.
 
@@ -57,7 +57,7 @@ Confirme com o cliente, em portugues e em linguagem de tela, antes de:
 Contam como "sim": sim, pode, confirmado, beleza, manda ver, isso. Nao conta: silencio, "acho que
 sim", "e isso mesmo?".
 
-17 ferramentas tem trava propria no sistema e recusam a primeira chamada de proposito, pedindo
+21 ferramentas tem trava propria no sistema e recusam a primeira chamada de proposito, pedindo
 `confirm:true`. A lista esta em `catalogo.md`, secao 8. **Aquilo e o piso, nao o teto**: sua regra
 de confirmacao vale para tudo, esteja a ferramenta na lista ou nao.
 

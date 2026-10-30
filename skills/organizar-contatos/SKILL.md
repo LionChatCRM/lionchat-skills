@@ -1,6 +1,6 @@
 ---
 name: organizar-contatos
-description: Entrevista o cliente sobre o negocio dele e organiza a base de contatos do LionChat — decide o que vira etiqueta e o que vira campo personalizado, escolhe o tipo certo de cada campo, cria as origens de lead, as variaveis da conta e os segmentos, e prepara a base para campanha e automacao. Use quando o cliente quiser "organizar meus contatos", "criar um campo novo", "criar etiqueta", "importar minha planilha", "montar um segmento", "separar meus clientes", "marcar de onde vem o lead", ou quando reclamar que "o filtro nao acha ninguem", "a campanha nao pega ninguem", "a variavel sai em branco" ou "tem contato duplicado". Sempre propoe e pede confirmacao antes de criar qualquer coisa.
+description: Entrevista o cliente sobre o negocio dele e organiza a base de contatos do LionChat — decide o que vira etiqueta e o que vira campo personalizado, escolhe o tipo certo de cada campo, cria as origens de lead, as variaveis da conta, os segmentos, as empresas (com os campos delas) e os vinculos entre fichas, e prepara a base para campanha e automacao. Use quando o cliente quiser "organizar meus contatos", "criar um campo novo", "criar etiqueta", "importar minha planilha", "montar um segmento", "separar meus clientes", "marcar de onde vem o lead", "cadastrar as empresas", "ligar o contato a empresa", "ligar a mae ao filho", "o cliente mudou de numero", ou quando reclamar que "o filtro nao acha ninguem", "a campanha nao pega ninguem", "a variavel sai em branco" ou "tem contato duplicado". Sempre propoe e pede confirmacao antes de criar qualquer coisa.
 ---
 
 # Organizar a base de contatos no LionChat
@@ -22,12 +22,15 @@ confirmacao explicita do cliente, e NUNCA apaga nada.
 
 Antes de criar qualquer coisa, leia o que a conta JA tem, para nao duplicar nem sobrescrever: os
 campos personalizados de contato e de conversa (peca tambem os de sistema, senao os campos de origem
-e de rastreamento parecem nao existir), as etiquetas, as origens de lead e as variaveis da conta.
+e de rastreamento parecem nao existir), as etiquetas, as origens de lead, as variaveis da conta, os
+segmentos de contatos e - se a conta tiver o modulo Empresas ligado (`companies` nos recursos de
+`lionchat_account_show`) - as empresas e os campos de empresa.
 
 Depois entreviste. **Faca 1 ou 2 perguntas por vez** — disparar dez de uma vez cansa e o cliente
 responde mal. Se ele ja respondeu algo, nao repergunte.
 
-1. O que a empresa vende, e o cliente dela e pessoa ou empresa?
+1. O que a empresa vende, e o cliente dela e pessoa ou empresa? (se for empresa com varias pessoas
+   de contato, o modulo Empresas agrupa essas pessoas)
 2. Quais decisoes voces tomam olhando a ficha do cliente? (ex.: "se e plano premium eu atendo
    diferente", "se ja comprou eu nao mando promocao de primeira compra")
 3. Me de 3 exemplos reais de lista que voces gostariam de puxar hoje e nao conseguem.
@@ -50,7 +53,7 @@ Aplique esta regra, nesta ordem:
 
 1. **Ja existe pronto?** Nao crie nada. CPF, CNPJ, RG, passaporte, nascimento, genero, estado civil,
    profissao e endereco completo sao dados cadastrais nativos. Nome, e-mail, telefone, cidade, pais,
-   empresa, bloqueado e a origem do lead tambem ja existem. Duplicar quebra a validacao propria, a
+   empresa, cargo, bloqueado e a origem do lead tambem ja existem. Duplicar quebra a validacao propria, a
    busca por documento e as variaveis prontas. A lista completa esta em
    `references/campos-nativos-e-etiquetas.md`.
 2. **E uma resposta sim ou nao, do tipo "pertence a este grupo"?** E ETIQUETA. Nao tem valor, e o
@@ -59,6 +62,9 @@ Aplique esta regra, nesta ordem:
    PERSONALIZADO. Exemplos: plano, valor do orcamento, data da proxima revisao, unidade de atendimento.
 4. **Esse valor muda a cada atendimento?** Entao e campo de CONVERSA, nao de contato. No contato o
    valor e um so: a segunda compra apaga a primeira e o historico se perde.
+5. **O valor e da EMPRESA e vale para todas as pessoas dela** (segmento de mercado, porte, contrato
+   da empresa)? Com o modulo Empresas ligado, e campo de EMPRESA (`company_attribute`). Razao social,
+   CNPJ, telefone, e-mail e endereco da empresa ja sao cadastro nativo dela.
 
 Sinal de que voce errou: se precisa de mais de umas cinco etiquetas para responder UMA pergunta
 (cidade, plano, unidade), aquilo e campo do tipo Lista, nao um punhado de etiquetas.
@@ -97,14 +103,22 @@ CAMPOS DO CONTATO (X) — valem para sempre
 CAMPOS DA CONVERSA (X) — um por atendimento
   valor_orcamento  Numero -> cada orcamento guarda o seu; no contato o segundo apagaria o primeiro
 
+CAMPOS DA EMPRESA (X) — so com o modulo Empresas, valem para todos os contatos dela
+  segmento_mercado Lista (Varejo, Industria) -> vai dar para filtrar contatos pela empresa
+
+EMPRESAS (X) e quem fica em cada uma (ate 100 contatos por empresa)
+
 VARIAVEIS DA CONTA (X)
   endereco_loja, link_cardapio
 
 ORIGENS DE LEAD (X)
   indicacao, evento
 
-SEGMENTOS (X) — atencao: segmento e privado de quem cria
+SEGMENTOS (X) — sao da CONTA: toda a equipe ve e pode usar como publico de campanha
   "Premium sem compra em 90 dias"
+
+VINCULOS ENTRE FICHAS (X)
+  [mae] <-> [filho] -> o aviso da consulta do filho vai para o WhatsApp da mae
 ```
 
 Termine com a pergunta literal: **"Confirma que posso criar tudo isso? (sim, nao, ou me diga o que
@@ -123,11 +137,17 @@ filtrar por um campo que ja existe.
 3. **Campos da conversa** — a mesma ferramenta, com `conversation_attribute`.
 4. **Variaveis da conta** — a ferramenta de variaveis da conta.
 5. **Origens de lead** — a ferramenta de origens.
-6. **Contatos**, se for o caso: um a um pela ferramenta de criar contato, ou ate 1000 de uma vez pela
+6. **Campos de empresa e empresas** (so com o modulo Empresas ligado): o campo com o modelo
+   `company_attribute`; a empresa pela ferramenta de criar empresa (ou ate 1000 de uma vez pela
+   criacao de empresas em lote, so no conector remoto); e cada contato ligado a ela pela ferramenta
+   de contatos da empresa. Detalhe em `references/campos-nativos-e-etiquetas.md`, secao 7.
+7. **Contatos**, se for o caso: um a um pela ferramenta de criar contato, ou ate 1000 de uma vez pela
    ferramenta de criacao em lote (so no conector remoto — confira antes de prometer). **Importar
    arquivo de planilha nao funciona por aqui**: mande o cliente usar a tela.
-7. **Segmentos** — a ferramenta de filtros salvos, com o tipo de filtro `contact`.
-8. **Respostas Prontas** — por ultimo, quando os campos ja existem, para as variaveis resolverem.
+8. **Vinculos entre fichas** — a ferramenta de vinculos do contato, um par por vez.
+9. **Segmentos** — a ferramenta de filtros salvos, com o tipo de filtro `contact`. Criar segmento exige
+   administrador ou cargo com gerenciar contatos, campanhas ou automacoes.
+10. **Respostas Prontas** — por ultimo, quando os campos ja existem, para as variaveis resolverem.
 
 Antes de criar cada item, liste o que ja existe e compare pelo nome. Ao criar, mostre uma linha por
 item: `Criando etiqueta "lead-quente"... OK`.
@@ -151,15 +171,16 @@ Pronto. Criei na sua conta:
   X campos do contato e X da conversa -> menu Atributos Personalizados
   X variaveis da conta -> Configuracoes, Variaveis da conta
   X origens de lead -> menu Origens de Lead
-  X segmentos       -> Contatos, na barra lateral, em Segmentos
+  X segmentos       -> Contatos, na barra lateral, em Segmentos (a equipe toda ve)
+  X empresas        -> menu Empresas
+  X vinculos        -> aba Vinculos da ficha de cada contato
 
 NAO CRIEI (e por que):
   - [item] -> [motivo em uma frase]
 
 SO DA PARA FAZER NA MAO, NO PAINEL:
-  - Importar a planilha (Contatos, botao de importar)
-  - Criar vinculo entre duas fichas (aba Vinculos da ficha)
-  - Juntar duas fichas duplicadas, se voce achar alguma
+  - Importar a planilha de contatos (Contatos, botao de importar)
+  - Juntar duas fichas duplicadas, se voce achar alguma (eu mostro a previa, voce decide)
 ```
 
 ## Regras que nao podem ser violadas
@@ -169,10 +190,13 @@ SO DA PARA FAZER NA MAO, NO PAINEL:
 2. **NUNCA apague nada.** Nao existe botao de desfazer aqui: apagar um contato apaga junto TODAS as
    conversas dele, e a acao em massa de exclusao e a operacao mais destrutiva da plataforma. Se o
    cliente quiser apagar, explique o efeito e mande fazer na mao no painel.
-3. **NUNCA junte duas fichas duplicadas por conta propria** — juntar e irreversivel. Aponte as
-   suspeitas e deixe o cliente decidir.
+3. **NUNCA junte duas fichas duplicadas por conta propria** — juntar e irreversivel e APAGA uma das
+   fichas. Aponte as suspeitas, mostre a previa da juncao (`lionchat_contact_merge_preview`: quem
+   fica, quem deixa de existir, o que e descartado) e deixe o cliente decidir par a par.
 4. **NUNCA sobrescreva telefone, e-mail ou nome ja preenchido** sem perguntar. O telefone gravado
-   costuma ser o que funciona no WhatsApp ha anos.
+   costuma ser o que funciona no WhatsApp ha anos. **Se a pessoa MUDOU de numero**, o caminho e
+   `lionchat_contacts_change_phone`, nunca editar a ficha: editar so o telefone da ficha NAO muda o
+   endereco de entrega, e as mensagens continuam indo para o numero antigo.
 5. **NUNCA aplique etiqueta pela ferramenta que substitui a lista** sem antes ler as etiquetas atuais
    da ficha — ela troca a lista inteira. Para so acrescentar, use a acao em massa de contatos, que
    apenas adiciona.
@@ -182,9 +206,9 @@ SO DA PARA FAZER NA MAO, NO PAINEL:
    aquilo se faz no painel.
 8. **NUNCA prometa importar a planilha do cliente por aqui** — subir arquivo nao passa por esta
    conexao. Ou o cliente usa a tela, ou voce cria a lista pela ferramenta de criacao em lote.
-9. **NUNCA prometa que o segmento salvo pode ser usado como publico de campanha.** Nao pode: o
-   publico da campanha entende tag da conversa, tag do contato, atributo, funil e atendente ou time —
-   nunca um segmento salvo.
+9. **NUNCA prometa empresa ou campo de empresa numa conta sem o modulo Empresas.** A tela de
+   Empresas fica escondida e os campos de empresa nem sao aceitos. Pergunte antes se o cliente
+   consegue abrir o menu Empresas.
 10. **SEMPRE em portugues do Brasil** no que aparece na tela; a chave tecnica do campo fica em
     minusculas, sem acento e sem espaco. **NAO use emoji** em nome de etiqueta, campo ou segmento.
 11. **NAO chute o negocio do cliente.** Se ele foi vago, pergunte mais. Campo criado sem entender o
@@ -214,10 +238,10 @@ Estas nao dao erro: a coisa e criada, parece certa e nao funciona. Sao as que ma
 - **Variavel que nao existe nao da erro: sai em branco na mensagem do cliente.** Confira a lista de
   variaveis reais antes de escrever qualquer texto. Variavel da conta do tipo Confidencial tambem
   resolve vazia em mensagem, de proposito.
-- **Ficha do tipo Visitante, sem telefone, sem e-mail e sem identificador, nao aparece na lista nem
-  entra em filtro, segmento ou exportacao.** Ficha criada a mao (painel, ferramenta) nasce como Lead
-  e aparece mesmo so com o nome; quem some e a ficha anonima de widget ou de canal. Se o cliente
-  disser que um contato "sumiu", confira isso antes de qualquer outra coisa.
+- **Ficha do tipo Visitante nao aparece na lista de contatos.** Desde 11/10/2026 toda ficha nasce
+  Lead (inclusive por planilha, integracao e historico importado); so continuam Visitante o visitante
+  ANONIMO do chat do site e o contato de grupo ou canal do WhatsApp. Se o cliente disser que um
+  contato "sumiu", confira o tipo dele antes de qualquer outra coisa.
 - **Na planilha, telefone sem o codigo do pais recusa a linha inteira**, e a conferencia previa nao
   testa telefone: passar verde ali nao garante importacao limpa.
 - **Coluna apontada para um campo que nao existe e descartada em silencio na importacao.** O cliente
@@ -225,11 +249,17 @@ Estas nao dao erro: a coisa e criada, parece certa e nao funciona. Sao as que ma
 - **Reimportar a mesma lista sobrescreve o nome de toda a base** — o nome e sempre gravado por cima.
 - **O mesmo celular vira duas fichas quando uma tem o nono digito e a outra nao.** A busca ja procura
   nas duas formas, mas os pares antigos continuam separados e so se juntam pela mesclagem manual.
-- **Segmento salvo e privado de quem criou.** O colega nao ve. Avise sempre, senao alguem conclui que
-  o sistema perdeu o dado.
-- **Segmento gravado com o embrulho errado nasce vazio e nao reclama.** As condicoes do segmento vao
-  numa camada a mais que as do filtro avulso (ver `references/tipos-de-campo-e-filtros.md`). Depois de
-  criar, abra o segmento e confirme que ele mostra gente.
+- **Segmento e da CONTA (desde 22/10/2026), nao de quem criou.** Toda a equipe ve e usa; mexer nele
+  muda o que todo mundo ve - e o publico das campanhas que o usam. Apagar segmento usado por campanha
+  programada e recusado.
+- **Segmento com o embrulho errado e recusado (422).** As condicoes vao numa camada a mais que as do
+  filtro avulso (ver `references/tipos-de-campo-e-filtros.md`). Mesmo aceito, abra o segmento e
+  confirme que ele mostra gente.
+- **Filtrar contato por `company` nao acha ninguem.** E uma chave antiga que nada preenche. A empresa
+  do contato e `company_name`; o cargo, `job_title`; campo da empresa, condicao com
+  `custom_attribute_type: company_attribute`.
+- **Empresa nao se liga sozinha pelo dominio do e-mail.** Desde 25/09/2026, empresa e vinculo de
+  contato sao sempre manuais.
 - **Campo escrito por integracao nao acorda nada.** Webhook, lead do Meta e gateway de pagamento
   gravam em silencio: nao disparam automacao nem fluxo. E texto num campo de Numero e jogado fora.
 - **CPF, RG, CNPJ, passaporte, nascimento e genero so aceitam a PRIMEIRA gravacao.** A segunda
@@ -242,9 +272,11 @@ Estas nao dao erro: a coisa e criada, parece certa e nao funciona. Sao as que ma
 > crio as origens de lead, as variaveis da empresa, os segmentos e as respostas prontas, e deixo tudo
 > pronto para campanha e automacao usarem.
 >
+> Tambem cadastro as empresas e ligo cada contato a sua empresa, crio vinculos entre fichas (mae e
+> filho, responsavel e dependente) e troco o numero de quem mudou de telefone sem perder a conversa.
+>
 > Eu nao apago nada, nao junto fichas duplicadas sozinho e nao consigo subir a sua planilha por aqui
-> — a importacao de arquivo se faz na tela de Contatos. Vinculo entre duas pessoas tambem e so no
-> painel.
+> — a importacao de arquivo se faz na tela de Contatos.
 >
 > Me conta o que voces vendem, quais decisoes voces tomam olhando a ficha do cliente e quais listas
 > voces gostariam de puxar e hoje nao conseguem. A partir disso eu proponho a estrutura e voce aprova

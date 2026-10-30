@@ -83,18 +83,23 @@ Aqui o alvo e FLUXO, nao automacao: recuperacao pede pergunta, espera e caminhos
 
 ## 4. Consulta marcada na clinica vira lembrete um dia antes
 
-1. Confira a integracao com `lionchat_eclinica_integrations_list`: situacao, unidades e enderecos.
-2. Prepare o alvo (automacao com caixa, ou fluxo com caixa e gatilho de webhook). Guarde o numero.
-3. **Aqui a montagem final e TELA.** O mapeamento de evento e, principalmente, as reguas de lembrete
-   (quantos dias antes, qual alvo, o filtro "so quando" por procedimento ou profissional, e a hora
-   fixa) sao configuradas em Configuracoes, Integracoes, e-Clinica. Entregue o roteiro e o numero do
-   alvo que voce criou.
+1. Confira a integracao com `lionchat_eclinica_integrations_show` (ou `_list`): situacao, unidades,
+   enderecos, mapeamento e lembretes que JA existem.
+2. Prepare o alvo (automacao com caixa, ou fluxo com caixa e gatilho de webhook). Guarde o numero. Na
+   automacao use as variaveis `{{eclinica_lembrete.data_consulta}}`, `{{eclinica_lembrete.hora_consulta}}`
+   etc., nunca a ficha (`eclinica_*` do contato).
+3. Monte a nova linha de lembrete: `{"days_before": 1, "event_type": "agendamento", "flow_id": N,
+   "label": "Vespera", "dispatch_time": "09:00"}`. Junte com as linhas que ja existem e grave a lista
+   INTEIRA com `lionchat_eclinica_integrations_update` (`reminder_config`). Mandar so a nova apaga as
+   outras do cliente.
 4. **Passo do cliente:** cadastrar o endereco de CADA unidade no painel da e-Clinica. Uma filial sem
    o endereco dela simplesmente nao manda nada.
 5. Provar: `lionchat_eclinica_reminder_history_list` mostra os lembretes disparados; ha reenvio de um
-   deles se precisar.
-6. Avise: dois lembretes que caiam no MESMO agendamento com o mesmo numero de dias de antecedencia
-   disputam a mesma linha e o paciente recebe so um - mesmo que os filtros sejam diferentes.
+   deles (so `failed`) se precisar.
+6. Avise: e um aviso POR CONSULTA (duas consultas no dia = dois avisos); dois lembretes que caiam no
+   MESMO agendamento com o mesmo numero de dias disputam a mesma linha e o paciente recebe so um -
+   mesmo que os filtros sejam diferentes (linhas totalmente iguais sao recusadas com 422); e, na
+   automacao, as condicoes NAO sao avaliadas.
 
 ---
 
@@ -152,7 +157,8 @@ para usar na mensagem - inclusive linha digitavel do boleto e PIX copia e cola.
    E, se a pessoa quiser marcar tambem o comeco: uma etapa com `{"enabled": true, "name": "Lead"}`.
 3. Teste com `lionchat_kanban_items_meta_capi_fire` num cartao real, sem precisar move-lo.
 4. Confira no historico por funil o que foi mandado e o que a plataforma respondeu.
-5. Avise: cartao que anda para tras nao dispara, e Pixel, Analytics e Google Ads disparam juntos.
+5. Avise: a etapa dispara uma vez por cartao (voltar a ela nao manda de novo), e Pixel, Analytics e
+   Google Ads disparam juntos. Purchase sem valor sai com R$ 1,00 na Meta.
 
 ---
 

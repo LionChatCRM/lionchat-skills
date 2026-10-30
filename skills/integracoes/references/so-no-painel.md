@@ -45,8 +45,10 @@ entregar o link e cuidar do que vem depois.
 | **Linear** | conexao no navegador | criar tarefa a partir da conversa, vincular e desvincular |
 | **Shopify** | conexao no navegador | ver os pedidos do cliente dentro da conversa |
 
-Google Calendar e Google Contatos: **uma conexao por conta e so administrador**. Desconectar o
-Calendar apaga a escolha das agendas compartilhadas, e ela nao volta ao reconectar.
+Google Calendar: **so administrador, uma conexao por AGENDA (unidade)** desde 13/09/2026 - conta com
+varias agendas liga uma conta Google em cada. Google Contatos: uma conexao por conta, so
+administrador. Desconectar o Calendar apaga a escolha das agendas compartilhadas, e ela nao volta ao
+reconectar.
 
 ---
 
@@ -56,8 +58,9 @@ Calendar apaga a escolha das agendas compartilhadas, e ela nao volta ao reconect
 de alguem colar aquele endereco la. Enquanto isso nao acontece, nao chega absolutamente nada - e o
 painel nao tem como avisar.
 
-Quem gera endereco (`webhook_url` na resposta): os 7 checkouts, o Webhook Universal, a Omie e a
-e-Clinica (esta com um endereco por unidade, alem do geral).
+Quem gera endereco (`webhook_url` na resposta): os 7 checkouts, o Webhook Universal, a Omie, a
+e-Clinica (esta com um endereco por unidade, alem do geral) e o VTCall (o endereco vem em
+`lionchat_vtcall_settings_show`, so para administrador).
 
 Quem **nao** gera endereco nenhum: **Meta Lead Ads** e **Conta Azul**. Nao procure.
 
@@ -67,21 +70,23 @@ Detalhes que mudam a instrucao:
 - **Greenn:** la o endereco e cadastrado **por produto**, nao uma vez so.
 - **e-Clinica:** um endereco por unidade. Cada filial precisa do seu.
 - **Omie:** o endereco vai nos webhooks nativos da Omie.
+- **VTCall:** o endereco vai no painel do PABX VTCall. Os ramais dos atendentes (um por pessoa) voce
+  cadastra pelo conector.
 
 ---
 
-## 4. e-Clinica: token, unidades e lembretes sao tela
+## 4. e-Clinica: token e unidades sao tela
 
-Pelo conector a e-Clinica e **so leitura**. Ficam na tela (Configuracoes, Integracoes, e-Clinica):
+Ficam na tela (Configuracoes, Integracoes, e-Clinica):
 
 - cadastrar e editar unidade (apelido, token da clinica);
-- colar o token gerado pelo usuario principal no painel da e-Clinica;
-- o mapeamento de qual evento dispara o que;
-- **as reguas de lembrete automatico**: quantos dias antes, qual fluxo ou automacao dispara, o
-  filtro "so quando" (por procedimento, por profissional) e a hora fixa do disparo.
+- colar o token gerado pelo usuario principal no painel da e-Clinica.
 
-O que voce consegue: ler a situacao, ver o historico de eventos, reprocessar um evento, ver o
-historico dos lembretes disparados e reenviar um deles.
+O que voce consegue pelo conector (desde 31/08/2026): gravar o mapeamento de qual evento dispara o
+que e as reguas de lembrete automatico (dias antes, fluxo ou automacao, filtro "so quando", hora do
+disparo) com `lionchat_eclinica_integrations_update` - que SUBSTITUI tudo, entao leia antes e devolva
+completo. Alem disso: ler a situacao, ver o historico de eventos, reprocessar um evento, ver o
+historico dos lembretes disparados e reenviar um deles. Detalhe em `ferramentas-mcp.md`, secao 6.
 
 ---
 

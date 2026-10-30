@@ -1,6 +1,31 @@
 # LionChat API — Endpoints para Configuracao
 
-**Base URL:** `https://app.lionchat.com.br`
+**Caminho preferido: o conector do LionChat.** Cada secao abaixo tem uma ferramenta `lionchat_*`
+equivalente. Com o conector voce manda os MESMOS campos dos exemplos, sem token e sem se preocupar com o
+embrulho (`{"label": {...}}` etc.) - ele embrulha sozinho onde a rota exige. Os exemplos em `curl` ficam como
+referencia do formato e para o caminho sem conector.
+
+| Secao | O que | Ferramenta do conector |
+|---|---|---|
+| 0 | provar a conexao e a conta | `lionchat_current_account` (remoto) / `lionchat_ping` (local) + `lionchat_account_show` |
+| 1 | configuracoes gerais da conta | `lionchat_account_settings_update` (NAO `lionchat_account_update`, que e o perfil do usuario) |
+| 2.1 | atributos de contato, conversa e empresa | `lionchat_custom_attributes_list` / `_create` |
+| 2.2 a 2.4 | atributos de card, motivos, checklists | `lionchat_kanban_config_list` / `lionchat_kanban_config_update` |
+| 2.5 | categorias (pastas) de atributos | `lionchat_custom_attribute_categories_create` / `_assign` / `_list` |
+| 3 | etiquetas | `lionchat_labels_list` / `_create` |
+| 4 | respostas rapidas | `lionchat_canned_responses_list` / `_create` |
+| 5 | times | `lionchat_teams_list` / `_create` |
+| 6 e 7 | funil e automacoes de etapa | `lionchat_funnels_list` / `_create` / `_show` / `_update` |
+| 8 | regras de automacao globais | `lionchat_automation_rules_list` / `_create` |
+| 9 | SLA | `lionchat_sla_create` |
+| 10 | macros | `lionchat_macros_create` |
+| 11 | horario da caixa | `lionchat_inboxes_list` / `lionchat_inboxes_update` |
+| 12 | variaveis da conta | `lionchat_account_variables_create` |
+| - | convidar atendentes | `lionchat_agents_create` / `lionchat_agents_bulk_create` |
+
+---
+
+**Base URL (caminho sem conector):** `https://app.lionchat.com.br`
 
 **Autenticacao:** header `api_access_token: SEU_TOKEN` em toda chamada.
 
@@ -34,7 +59,8 @@ curl -s --request GET \
 | Resposta | O que significa | O que dizer ao cliente |
 |----------|-----------------|------------------------|
 | 200 | Token e conta OK | segue |
-| 401 | Token invalido, expirado, ou o usuario nao tem permissao | "Confere o API token em Configuracoes > Perfil" |
+| 401 com "Invalid Access Token" | Token invalido ou expirado | "Confere o API token em Configuracoes > Perfil" |
+| 401 com "You are not authorized..." | O token vale, mas o usuario nao tem permissao para aquilo (ou nao e membro da conta) | "Seu usuario nao tem permissao para isso - precisa de um administrador." Nao adianta trocar o token |
 | 404 | A conta nao existe **OU** seu usuario nao tem acesso a ela | "Confere o numero da conta na URL do painel — e se voce e mesmo membro dessa conta" |
 
 **NAO existe 403 aqui.** O sistema propositalmente responde 404 para conta alheia (nao vaza a existencia de
@@ -65,6 +91,10 @@ curl -s --request PATCH \
 
 `auto_resolve_after`: minutos antes de resolver automaticamente conversa abandonada. 10080 = 7 dias.
 
+Pelo conector: `lionchat_account_settings_update`. **Fuso invalido e descartado sem erro** - releia com
+`lionchat_account_show`. Em conta que ja usa a integracao e-Clinica, trocar o fuso RECALCULA os lembretes
+pendentes para o mesmo horario de relogio no fuso novo (desde 07/10): avise o cliente antes.
+
 ---
 
 ## 2. Campos personalizados
@@ -81,10 +111,16 @@ O LionChat tem **3 tipos de atributos personalizados**, armazenados em 2 lugares
 
 **Sem wrap key.** (O Rails embrulha sozinho; se voce mandar embrulhado tambem funciona. Padronize no plano.)
 
-`attribute_display_type`: `0`=text, `1`=number, `2`=currency, `3`=percent, `4`=link, `5`=date, `6`=list, `7`=checkbox.
+`attribute_display_type`: `0`=text, `1`=number, `2`=currency, `3`=percent, `4`=link, `5`=date, `6`=list,
+`7`=checkbox, `8`=secret (valor escondido; e o tipo das variaveis secretas da conta - empresa recusa),
+`9`=time (hora "HH:MM"), `10`=datetime (data e hora). O nome tambem e aceito no lugar do numero
+(`"time"`, `"datetime"`). Gatilho de Data e o bloco Esperar do Fluxo so leem `date` e `time` separados -
+`datetime` nao entra neles.
 
-`attribute_model`: `0`=conversation_attribute, `1`=contact_attribute (o valor `2`=account_attribute e reservado
-pro sistema — nao usar).
+`attribute_model`: `0`=conversation_attribute, `1`=contact_attribute, `3`=company_attribute (atributo da
+EMPRESA do contato: so com o modulo Empresas ligado na conta; tipo secret recusado; chaves como `name`,
+`cnpj`, `email`, `phone` sao reservadas). O valor `2`=account_attribute e o das variaveis da conta (secao 12)
+— nao use aqui. O nome com sufixo tambem e aceito (`"contact_attribute"`).
 
 ```bash
 curl -s --request POST \
@@ -191,6 +227,8 @@ MOTIVO — e quem define a lista de opcoes e voce. Sem lista cadastrada, a pergu
 relatorio de motivos fica vazio: o cliente sabe que perdeu 40 negocios e nao sabe por que.
 
 Duas listas separadas, `win_reasons` e `loss_reasons`. Cada item: `{ "id": "<voce escolhe>", "title": "Texto que o vendedor ve" }`.
+O `id` e TEXTO (numero e convertido em texto) e e obrigatorio, assim como o `title`; `id` repetido na mesma
+lista e recusado. Mandar a lista como textos soltos (`["Achou caro"]`) e recusado com 422 - sempre objetos.
 
 ```bash
 curl -s --request PUT \
@@ -256,6 +294,21 @@ curl -s --request PUT \
 Guarde o `id` do modelo: e ele que vai em `action_config.template_id` da automacao de etapa.
 
 **Mesma regra do array inteiro:** leia os `checklist_templates` existentes antes e mande a lista completa.
+
+### 2.5 Categorias de atributos (pastas)
+
+Desde 17/10 os atributos podem ficar em PASTAS que abrem e fecham, por aba (Conversa, Contato, Empresa,
+Card). E opcional: atributo sem categoria aparece em "Sem categoria", como antes. Vale a pena quando a conta
+tem muitos campos (ex.: "Dados do paciente", "Sobre o imovel").
+
+- Criar a pasta: `lionchat_custom_attribute_categories_create` com `name` (1 a 60 letras, sem repetir na aba;
+  "Sem categoria" e reservado) e `attribute_model` SEMPRE com o sufixo: `conversation_attribute`,
+  `contact_attribute`, `company_attribute` ou `kanban_item_attribute` (aba Card). Ate 50 por aba. Nao aceita
+  atributos junto.
+- Colocar um atributo na pasta: `lionchat_custom_attribute_categories_assign` com `attribute_model`,
+  `attribute_key` (na aba Card, o NOME do campo exatamente como gravado, com maiusculas e espacos) e
+  `category_id`. Um atributo fica numa pasta so; `category_id` nulo tira da pasta.
+- So administrador.
 
 ---
 
@@ -428,6 +481,15 @@ Portanto, para acrescentar automacoes a um funil que ja existe:
 Ao **criar** o funil (POST), o caminho e mais simples: como voce mesmo definiu as chaves das etapas, ja pode
 mandar `settings.automations` junto no mesmo pedido.
 
+### ATENCAO — tirar etapa que tem card e recusado
+
+Se um PATCH de `stages` tirar uma etapa que ainda tem cards, o servidor recusa com 422 e o codigo
+`STAGE_HAS_ITEMS`, listando as etapas ("Estas etapas ainda tem cards. Escolha para onde mandar os leads antes
+de excluir."). Nada e gravado. Nao tente "forcar": diga ao cliente quantos cards estao la e pergunte para onde
+vao. O caminho pelo conector e `lionchat_funnels_remove_stage` (move os cards EM SILENCIO para a etapa de
+destino e apaga a etapa; exige `confirm:true`) ou, para mover disparando as automacoes da etapa de destino,
+`lionchat_funnels_create_2` (migrate_stage). Numa conta nova, sem cards, isso nao acontece.
+
 ---
 
 ## 7. Automacoes de etapa (dentro do funil)
@@ -454,28 +516,54 @@ Automacao de etapa vive **dentro do funil**, em `settings.automations` (array). 
 |--------------|---------------|----------------|
 | `card_created` | `card_created` | um card novo entra no funil |
 | `stage_moved` | a chave da etapa de **destino** (ex: `proposta_enviada`) | o card **chega** naquela etapa |
-| `status_change` | `won` ou `lost` | o card e marcado como ganho ou perdido |
+| `status_change` | `won`, `lost` ou `snoozed` | o card e marcado como ganho, perdido ou ADIADO (desde 11/10; dispara so na passagem de aberto para adiado) |
 
-`enabled: false` desliga a automacao sem apagar.
+`enabled: false` desliga a automacao sem apagar (e a tela mantem a regra desligada ao salvar). De a cada
+automacao um `id` unico (a tela usa `automation_<numero>`): ela casa as regras pelo `id`, e duas regras sem
+`id` se confundem. A ordem da lista e a ordem de execucao quando varias disparam no mesmo acontecimento.
 
 ### Acoes (`action` + `action_config`)
 
 | action | action_config | O que faz |
 |--------|---------------|-----------|
 | `move_to_stage` | `{ "stage": "<chave da etapa>" }` | move o card para outra etapa |
-| `assign_agent` | `{ "agent_id": N }` | atribui um atendente ao card |
+| `assign_agent` | `{ "agent_id": N }` | atribui um atendente ao card. **So com card ABERTO**: no gatilho ganho/perdido o card ja esta fechado e nada acontece (a tela nem oferece mais essa combinacao). O atendente precisa ter acesso ao funil |
 | `create_note` | `{ "note_text": "texto" }` | escreve uma nota interna no card |
 | `update_checklist` | `{ "checklist_updates": [...] }` | marca/desmarca itens do checklist do card |
-| `notify_team` | `{ "message": "texto" }` | avisa o time |
+| `notify_team` | `{ "message": "texto" }` | **NAO USE.** Hoje so grava um registro interno: ninguem e avisado (a tela nem oferece mais). Para avisar o time, use automacao global (`send_email_to_team`) ou `create_note` |
 | `duplicate_item` | `{ "funnel_id": N, "stage": "<chave>", "distribute_agents": true }` | cria uma copia do card em outro funil/etapa |
 | `send_webhook` | `{ "webhook_url": "https://..." }` | dispara um webhook para um sistema externo |
 | `apply_checklist_template` | `{ "template_id": "<id do modelo>" }` | aplica um checklist pronto ao card (secao 2.4) |
+| `create_task` | ver abaixo | cria uma tarefa na Agenda presa ao card (desde 20/10). Exige a Agenda unificada ligada na conta |
 
-**Sao essas oito. Nao existem outras.** Em particular:
+**Sao essas nove. Nao existem outras.** Em particular:
 
 - **NAO existe `send_message`** — automacao de etapa **nao manda mensagem para o cliente**.
 - **NAO existe `apply_label` / `add_note` / `assign_team`** — o mais proximo de nota e `create_note`.
 - **NAO existe `delay_seconds`** — automacao de etapa e imediata, nao tem atraso.
+
+**`create_task` — formato do `action_config`:**
+
+```json
+{
+  "title": "Ligar para {{contact.name}}",
+  "task_type": "call",
+  "priority": "medium",
+  "due": { "amount": 1, "unit": "days", "at": "10:00", "business_days": true },
+  "responsible": { "mode": "card_owner", "fallback_user_id": 12 }
+}
+```
+
+- `title` obrigatorio. `task_type`: um dos tipos de fabrica da Agenda ou um tipo ativo da conta.
+  `agenda_id` nulo = agenda padrao. `priority`: `none`, `low`, `medium`, `high` ou `urgent`.
+- Prazo (`due`): `unit` `hours` (1 a 720) ou `days` (0 a 365); `at` ("HH:MM") e `business_days` so com
+  `days`. Opcionais: `occupies_agenda` (bloqueia o horario) e `duration_minutes` (1 a 1440; ausente = tempo
+  do tipo).
+- Responsavel (`responsible.mode`): `card_owner` (exige `fallback_user_id` para quando o card nao tem dono),
+  `fixed` (exige `user_id`), `funnel_rotation` (rodizio de quem acessa o funil) ou `team_rotation` (exige
+  `team_id`).
+- Regra torta e recusada com 422 dizendo a posicao e o campo. Uma tarefa por acontecimento; card importado
+  por planilha nao cria tarefa.
 
 Regras:
 - Com o gatilho `stage_moved`, a acao `move_to_stage` e **ignorada** de proposito (evita loop infinito de
@@ -594,12 +682,16 @@ Acoes disponiveis (`action_name`):
 
 | Grupo | Acoes |
 |-------|-------|
-| Atendimento | `assign_agent`, `assign_team`, `assign_captain_assistant` (liga o agente de IA), `mute_conversation`, `snooze_conversation`, `resolve_conversation`, `open_conversation`, `pending_conversation`, `change_priority`, `add_sla` |
+| Atendimento | `assign_agent`, `assign_team`, `assign_captain_assistant` (liga o agente de IA), `deactivate_captain` (desliga o agente de IA da conversa), `mute_conversation`, `snooze_conversation`, `resolve_conversation`, `open_conversation`, `pending_conversation`, `change_status` (`["open"]`, `["pending"]`...), `change_priority`, `add_sla` |
 | Etiquetas | `add_label`, `remove_label` |
 | Mensagens | `send_message`, `send_canned_response`, `send_whatsapp_template`, `send_attachment`, `add_private_note`, `send_email_to_team`, `send_email_transcript` |
-| Kanban | `create_kanban_item`, `move_kanban_item_to_stage`, `assign_agent_to_kanban_item`, `add_note_to_kanban_item`, `set_kanban_item_status`, `start_kanban_item_timer`, `stop_kanban_item_timer` |
+| Kanban | `create_kanban_item`, `move_kanban_item_to_stage`, `assign_agent_to_kanban_item`, `add_note_to_kanban_item`, `set_kanban_item_status`, `snooze_kanban_item` (adia o card: `[{"funnel_id": N, "amount": 2, "unit": "days"}]`, `unit` `hours` ou `days`), `start_kanban_item_timer`, `stop_kanban_item_timer` |
 | Dados | `update_contact_attribute`, `update_conversation_attribute` |
+| Contrato | `send_signature_document` (manda um modelo de contrato para a pessoa da conversa assinar - ver skill `assinatura-eletronica`) |
 | Outros | `send_webhook_event`, `wait` |
+
+**`set_lead_origin` NAO e aceito** em regra de automacao, mesmo aparecendo como opcao em alguma tela: a
+criacao volta 422 ("Automation actions set_lead_origin not supported"). Nao use.
 
 **`wait` tem teto de 5 minutos (300 segundos).** Serve pra dar respiro entre duas mensagens, nao pra
 follow-up. Valor maior e cortado pra 300 em silencio. Follow-up de horas/dias = FlowBuilder (secao 7).
@@ -607,11 +699,12 @@ follow-up. Valor maior e cortado pra 300 em silencio. Follow-up de horas/dias = 
 ### ATENCAO — evento de CARD usa uma lista MENOR de acoes
 
 Quando `event_name` e `kanban_item_created` ou `kanban_item_stage_changed`, a regra roda por um motor
-diferente, que aceita **so estas dez acoes**:
+diferente, que aceita **so estas onze acoes**:
 
 `send_message`, `add_label`, `change_priority`, `assign_agent_to_kanban_item`,
 `add_note_to_kanban_item`, `move_kanban_item_to_stage`, `set_kanban_item_status`,
-`start_kanban_item_timer`, `stop_kanban_item_timer`, `send_webhook_event`.
+`snooze_kanban_item` (aqui sem `funnel_id`: adia o proprio card), `start_kanban_item_timer`,
+`stop_kanban_item_timer`, `send_webhook_event`.
 
 Qualquer outra acao (`assign_team`, `send_canned_response`, `send_whatsapp_template`,
 `add_private_note`, `assign_captain_assistant`, `update_contact_attribute`, `wait`...) e **ignorada em
@@ -784,12 +877,12 @@ campanha, automacao e fluxo.
 
 | O que | Por que |
 |-------|---------|
-| Conectar WhatsApp | Precisa escanear QR Code no celular |
+| Conectar WhatsApp | Precisa escanear QR Code no celular. Pelo conector da para gerar um LINK de conexao para quem esta com o celular (`lionchat_inboxes_waha_connect_link_create`) - quem le o QR continua sendo a pessoa |
 | Conectar Instagram/Facebook | Fluxo OAuth (abre navegador) |
 | Integracao Guru/Hotmart/Eduzz | Cliente precisa pegar token na outra plataforma |
 | Google Calendar | OAuth |
 | Upload de avatar/foto de perfil | Manual no painel |
-| Convidar agentes novos | Envio de email — o cliente faz em Agentes > Convidar |
+
 | Desenhar fluxos do FlowBuilder | Fora do escopo desta skill |
 
 ---
@@ -798,10 +891,11 @@ campanha, automacao e fluxo.
 
 | Status | Causa | Acao |
 |--------|-------|------|
-| 401 | Token invalido/expirado, ou sem permissao | Para tudo. "Confere o API token em Configuracoes > Perfil" |
+| 401 "Invalid Access Token" | Token invalido/expirado | Para tudo. "Confere o API token em Configuracoes > Perfil" |
+| 401 "You are not authorized to do this action" | O usuario nao tem permissao para aquela area (precisa de administrador ou cargo que libere) | NAO e o token. Pula o item e reporta no resumo final |
 | 403 | Recurso nao liberado na conta (o caso conhecido e o SLA) | Pula o item e reporta no resumo final |
 | 404 | Conta nao existe **ou** o usuario nao tem acesso a ela; ou endpoint que nao existe mais | Confere o numero da conta e o acesso. Se for `/kanban/automations`, veja a secao 7 |
-| 422 | Validacao falhou **ou** falta/sobra de wrap key (`param is missing or the value is empty: X`) | Mostra a mensagem exata e corrige o formato do payload |
+| 422 | Validacao falhou **ou** falta/sobra de wrap key (`param is missing or the value is empty: X`) **ou** etapa com cards (`STAGE_HAS_ITEMS`, secao 6) | Mostra a mensagem exata e corrige o formato do payload |
 | 429 | Limite de requisicoes | Espera 5s e tenta de novo |
 | 500 | Erro interno | Tenta 1 vez, se falhar de novo pula e reporta no final |
 

@@ -3,9 +3,9 @@
 Indice:
 
 1. A regra de ouro dos parametros
-2. As 33 acoes da automacao (formato exato)
-3. A macro: as 41 acoes e as 10 que so ela tem
-4. As 10 acoes que os gatilhos de card realmente executam
+2. As 34 acoes da automacao (formato exato)
+3. A macro: as 42 acoes e as 10 que so ela tem
+4. As 11 acoes que os gatilhos de card realmente executam
 5. O menu de acoes MUDA conforme o gatilho e a caixa
 6. Variaveis que a automacao preenche de verdade
 7. A "Caixa de Envio" redireciona, nao filtra
@@ -25,7 +25,11 @@ Indice:
 
 ---
 
-## 2. As 33 acoes da automacao (formato exato)
+## 2. As 34 acoes da automacao (formato exato)
+
+Contagem de 30/10/2026. A tela da automacao oferece tambem "Definir origem do lead"
+(`set_lead_origin`), mas ela NAO esta na lista que o salvar aceita: gravar devolve 422 ("not
+supported"). Nao use - origem marcada a mao e acao do bloco Acoes do Flow.
 
 ### Falar com o cliente
 
@@ -68,7 +72,7 @@ arquivo ja anexado aquela regra tambem funciona (o parametro e o numero dele).
 | Atribuir um Time | `assign_team` | `[numero_da_equipe]` ou `["nil"]` / `[0]` para tirar |
 | Atribuir AI Agente | `assign_captain_assistant` | `[numero_do_assistente]` ou `[{"assistant_id": 17, "proactive": true}]`. `proactive: false` = assume e espera o cliente falar. `["nil"]` desliga e marca que foi desligado de proposito |
 | Desligar o AI Agente | `deactivate_captain` | `[]` — tira a IA da conversa |
-| Enviar documento para assinatura | `send_signature_document` | `[numero_do_modelo]` (de `lionchat_signature_documents_list`) — manda o contrato para a pessoa da conversa. Exige a assinatura eletronica ligada na conta |
+| Enviar documento para assinatura | `send_signature_document` | `[numero_do_modelo]` (de `lionchat_signature_documents_list`) — manda o contrato para a pessoa da conversa. Exige a assinatura eletronica ligada na conta. Modelo de contrato, papeis e acompanhamento da assinatura: skill `assinatura-eletronica` |
 | Adicionar uma Etiqueta | `add_label` | `["etiqueta1", "etiqueta2"]` — **NOMES**, nao numeros |
 | Remover uma Etiqueta | `remove_label` | `["etiqueta1"]` |
 | Alterar Prioridade | `change_priority` | `["low"]`, `["medium"]`, `["high"]`, `["urgent"]` ou `["nil"]` para limpar |
@@ -81,7 +85,7 @@ arquivo ja anexado aquela regra tambem funciona (o parametro e o numero dele).
 | (nao aparece na tela) | `change_status` | `["open"]`, `["pending"]`, `["resolved"]` ou `["snoozed"]` |
 | Alterar atributo do contato | `update_contact_attribute` | `[{"attribute_key": "chave", "value": "texto ou variavel"}]` |
 | Alterar atributo da conversa | `update_conversation_attribute` | idem — mesclado, nao apaga os outros atributos |
-| Aguardar | `wait` | `[segundos]` — ver alerta |
+| Aguardar | `wait` | `[segundos]` ou `[{"seconds": 120, "only_if_open": true, "only_if_no_reply": true}]` — ver alerta |
 
 **ALERTA — Atribuir ao Agente.** O agente precisa ser **membro da caixa daquela conversa** (ou
 administrador da conta) e ter a conta confirmada. Se nao for, a acao e pulada em silencio: a
@@ -98,6 +102,13 @@ erro. Como ultima acao da lista, nao faz nada. Na hora de retomar, o sistema con
 existe, se ainda esta ligada e se a conversa ainda existe — se algo mudou, ele simplesmente nao
 retoma. Espera de horas ou dias e Flow, nao automacao.
 
+**Espera que confere (26/09/2026).** No formato objeto o "Aguardar" ganha duas caixinhas opcionais,
+conferidas na VOLTA: `only_if_open` (so segue se a conversa ainda estiver aberta ou pendente) e
+`only_if_no_reply` (so segue se ninguem respondeu o cliente durante a espera - qualquer mensagem
+publica de saida conta: atendente, IA ou outra automacao). Se barrar, o resto da regra NAO roda e o
+historico mostra o passo `wait_check` como `skipped`, com o motivo. O formato antigo `[120]` continua
+valendo, sem conferencia. E o jeito certo de "manda um lembrete em 3 minutos se ninguem respondeu".
+
 **Nota sobre "Alterar atributo da conversa":** ela nao aparece no menu do gatilho "Acao na conversa",
 de proposito — gravar atributo de conversa dispara o proprio gatilho de novo, em cadeia.
 
@@ -112,6 +123,7 @@ de proposito — gravar atributo de conversa dispara o proprio gatilho de novo, 
 | Iniciar Timer do Card Kanban | `start_kanban_item_timer` | `[{funnel_id}]` |
 | Parar Timer do Card Kanban | `stop_kanban_item_timer` | `[{funnel_id}]` |
 | Kanban: Ganho ou Perda | `set_kanban_item_status` | `[{funnel_id, status}]` — `won`, `lost` ou `open` |
+| Adiar card | `snooze_kanban_item` | `[{funnel_id, amount, unit}]` — `unit` `hours` ou `days`, `amount` inteiro >= 1 (11/10/2026). Adia por N horas/dias a partir da execucao; card ganho/perdido ou sem card = passo com FALHA visivel |
 
 **Sobre Criar Card Kanban:**
 
@@ -119,15 +131,19 @@ de proposito — gravar atributo de conversa dispara o proprio gatilho de novo, 
 - Se ja existir card ABERTO daquela conversa no mesmo funil e `allow_duplicates` for falso, ele
   **move o card existente** para a etapa indicada em vez de criar outro. Card ja marcado como Ganho
   ou Perdido nao conta: nasce card novo.
+- Desde 09/10/2026 o card **nao nasce em dobro** quando dois eventos do mesmo lead chegam juntos (com
+  `allow_duplicates` falso, buscar e criar passam por uma fila por conversa e funil). Se a fila ficar
+  ocupada demais, o passo aparece com FALHA em vez de verde sem card. `allow_duplicates` e conferido
+  como sim/nao de verdade: o texto `"false"` conta como desmarcado.
 - `title` e `description` so valem com `edit_card_details: true` e aceitam variaveis. Titulo vazio =
   nome do contato.
 - `offer_ids` soma o valor das ofertas no card; cada item de `checklist_template_ids` vira um grupo
   proprio de tarefas.
-- **Efeito colateral que precisa ser avisado ao cliente:** o card nasce ja com responsavel. O
-  sistema tenta o responsavel da conversa e, se nao houver (ou ele nao tiver acesso ao funil), sorteia
-  um agente do funil por rodizio. E se a conversa estiver SEM responsavel, o agente sorteado tambem
-  vira o responsavel da conversa. Isso e atribuicao acontecendo sem ninguem ter pedido — pergunte se
-  o funil tem rodizio configurado antes de montar "lead novo vira card".
+- **Responsavel do card (desde 29/09/2026):** o card recebe SO o responsavel da CONVERSA, se ele
+  tiver acesso ao funil. **O Kanban nao sorteia ninguem** e nunca mexe no responsavel da conversa -
+  quem distribui e a caixa. Conversa sem responsavel = card sem responsavel; se a caixa atribuir alguem
+  logo depois, o card adota essa pessoa sozinho. Se o cliente quer rodizio, ele e da caixa (ou de
+  "Dividir entre Agentes" na macro), nao do card.
 - O card tambem herda a prioridade e os atributos personalizados da conversa.
 
 **As demais acoes de card sao PULADAS se nao houver card** naquele funil, e o passo pode aparecer
@@ -136,17 +152,17 @@ na mesma regra.
 
 ---
 
-## 3. A macro: as 41 acoes e as 10 que so ela tem
+## 3. A macro: as 42 acoes e as 10 que so ela tem
 
-A macro aceita **41** acoes (17/09/2026). Ate 31/08 eram 28: o cardapio foi ampliado em 04/09
-(contrato), 10/09 (onze acoes novas) e 17/09 (disparar Fluxo de Acoes). O nome da acao e conferido
-ao salvar - nome fora da lista devolve 422.
+A macro aceita **42** acoes (contagem de 30/10/2026). Ate 31/08 eram 28: o cardapio foi ampliado em
+04/09 (contrato), 10/09 (onze acoes novas), 17/09 (disparar Fluxo de Acoes) e 11/10 (Adiar card). O
+nome da acao e conferido ao salvar - nome fora da lista devolve 422.
 
 **A macro NAO tem** (a automacao tem): Enviar Template WhatsApp e Aguardar.
 
-**Tem igual a automacao**, no mesmo formato da secao 2: todas as outras 31, inclusive Alterar
+**Tem igual a automacao**, no mesmo formato da secao 2: todas as outras 32, inclusive Alterar
 atributo do contato, Alterar atributo da conversa, Desligar o AI Agente, Enviar documento para
-assinatura e Adicionar SLA.
+assinatura, Adicionar SLA e Adiar card.
 
 **So a macro tem:**
 
@@ -201,17 +217,19 @@ o cliente costuma dizer so "etiqueta" - pergunte qual.
    acoes deram certo — confira o resultado na conversa.
 4. **Macro nao tem chave liga/desliga.** Ou ela existe (e aparece para quem tem visibilidade), ou e
    apagada.
-5. **Visibilidade:** `personal` (so quem criou) ou `global` (a conta toda). Agente comum sempre grava
+5. **Toda execucao deixa uma pilula na conversa** (26/09/2026): "Macro: [nome] executada por
+   [atendente]", no mesmo estilo do "Automacao: [nome] disparou". E o rastro que o cliente ve.
+6. **Visibilidade:** `personal` (so quem criou) ou `global` (a conta toda). Agente comum sempre grava
    pessoal, mesmo pedindo global — so administrador consegue criar macro global. Macro pessoal de
    outra pessoa nao aparece nem executa para os demais.
-6. **Ao executar por ferramenta,** o campo pede o **numero da conversa que aparece no painel**, nao
+7. **Ao executar por ferramenta,** o campo pede o **numero da conversa que aparece no painel**, nao
    um identificador interno.
-7. **Criar Card Kanban sem escolher o funil** salva na tela. Hoje a acao e pulada, mas a macro
+8. **Criar Card Kanban sem escolher o funil** salva na tela. Hoje a acao e pulada, mas a macro
    continua dizendo ao atendente "executada com sucesso" e o card nao existe.
 
 ---
 
-## 4. As 10 acoes que os gatilhos de card realmente executam
+## 4. As 11 acoes que os gatilhos de card realmente executam
 
 Nos gatilhos **Card Kanban Criado** e **Card Kanban Movido** quem executa e um motor diferente. Ele
 conhece apenas estas:
@@ -228,8 +246,9 @@ conhece apenas estas:
 | `set_kanban_item_status` | Ganho / Perdido / reabrir | `["won"]` ou `[{status: "won"}]` |
 | `change_priority` | Prioridade do CARD (nao da conversa) | `["high"]` |
 | `send_webhook_event` | Avisa sistema de fora com os dados do card | `["https://..."]` |
+| `snooze_kanban_item` | Adia o proprio card do evento (11/10/2026) | `[{"amount": 3, "unit": "days"}]` — aqui nao precisa de `funnel_id`. Falha visivel se nao der para adiar |
 
-**Todas as outras 20 acoes sao ignoradas em silencio** — o menu da tela oferece, o motor descarta e
+**Todas as outras 23 acoes sao ignoradas em silencio** — o menu da tela oferece, o motor descarta e
 so fica um aviso no registro do servidor. Isso inclui: Enviar Template WhatsApp, Atribuir AI Agente,
 Resolver Conversa, Atribuir ao Agente (da conversa), Criar Card Kanban, Alterar atributo, Aguardar,
 Adicionar SLA, Enviar Resposta Pronta, Enviar Anexo, Nota Privada.
@@ -281,8 +300,15 @@ A automacao so conhece estes conjuntos de variaveis:
 - `{{agent.*}}` — o **responsavel da conversa** (nao quem criou a regra). Se a conversa nao tiver
   responsavel, sai vazio
 - `{{account.*}}` — dados da conta
-- `{{agendamento.*}}` — **so** quando a automacao foi disparada por um lembrete de agendamento da
-  e-Clinica
+- `{{contact.company.*}}` — a EMPRESA do contato (so com o modulo Empresas ligado):
+  `{{contact.company.name}}`, `{{contact.company.cnpj}}`, `{{contact.company.custom_attribute.CHAVE}}`.
+  Contato sem empresa = vazio. Os textos soltos da ficha sao `{{contact.company_name}}` e
+  `{{contact.job_title}}` (cargo)
+- `{{eclinica_lembrete.*}}` — **so** quando a automacao foi disparada por um lembrete de agendamento
+  da e-Clinica. E o nome certo (28/09/2026); o antigo `{{agendamento.*}}` continua funcionando.
+  **Nunca** use os campos `eclinica_*` da FICHA do contato (`{{contact.custom_attribute.eclinica_...}}`)
+  num lembrete: a ficha guarda UMA consulta, a do ultimo aviso da clinica, e pode ser OUTRA consulta
+  (caso real: lembrete da consulta de amanha saiu com a data de hoje)
 
 **Variavel que a automacao nao conhece sai VAZIA, em silencio** — sem erro e sem aviso. Nao copie
 variaveis de outra tela (Flow, campanha, modelo do WhatsApp): cada motor sabe coisas diferentes.

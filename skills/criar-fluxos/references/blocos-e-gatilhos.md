@@ -24,6 +24,7 @@ falhar em silencio. Onde os dois divergirem, vale o que o conector devolver.
 15. Os fios: tabela de saidas por bloco
 16. Condicoes de saida do fluxo
 17. Regras por canal
+18. Bloco Ligar com IA (`ai_call`)
 
 ---
 
@@ -34,8 +35,8 @@ O tipo vai em `flow_type` e **nao muda depois de criado**.
 | `flow_type` | Nome na tela | Caixa | Blocos que NAO tem |
 |---|---|---|---|
 | `conversation` | Mensagem (um a um ou grupo) | uma ou mais, do mesmo canal | Fim |
-| `ai_tool` | Ferramenta da IA | nenhuma (a validacao recusa) | Aguardar resposta, Espera, Gestao de Grupos; no bloco Acoes, a aba Sistema inteira |
-| `action` | **Acoes** (selo ambar na lista) | **nenhuma - roda em todas** | Enviar mensagem, Aguardar resposta, Gestao de Grupos, Fim |
+| `ai_tool` | Ferramenta da IA | nenhuma (a validacao recusa) | Aguardar resposta, Espera, Gestao de Grupos, Ligar com IA; no bloco Acoes, a aba Sistema inteira e a acao Criar tarefa |
+| `action` | **Acoes** (selo ambar na lista) | **nenhuma - roda em todas** | Enviar mensagem, Aguardar resposta, Gestao de Grupos, Ligar com IA, Fim |
 
 ### O Fluxo de Acoes (novo em 17/09/2026)
 
@@ -48,17 +49,18 @@ acoes. Serve para o que antes obrigava a repetir o mesmo fluxo caixa por caixa.
   variavel e Nota adesiva. O bloco Acoes aparece com TODAS as abas (Conversas, Contatos, Funil,
   Agenda quando a conta tem Agenda, e Sistema).
 - **Blocos que nao tem** (a paleta nao oferece, o salvar recusa e o motor recusa se chegar por
-  fora): Enviar mensagem, Aguardar resposta, Gestao de Grupos e Fim. Aguardar resposta ficou de
-  fora de proposito: dois fluxos esperando a MESMA mensagem do cliente na mesma conversa disputariam
-  a resposta.
+  fora): Enviar mensagem, Aguardar resposta, Gestao de Grupos, Ligar com IA e Fim. Aguardar resposta
+  ficou de fora de proposito: dois fluxos esperando a MESMA mensagem do cliente na mesma conversa
+  disputariam a resposta. Ligar com IA ficou de fora porque ligar e falar com o cliente.
 - **Onde roda**: em conversa individual E de grupo. O modo fica fixo em individual no cadastro, mas
   o despacho deixa o Fluxo de Acoes passar nos dois.
 - **Como dispara**: pelos mesmos gatilhos do bloco Inicio do fluxo de mensagem (conversa criada,
   mensagem recebida, etiqueta, card, atributo, data, agendamento, contrato...), sem olhar a caixa;
   pela macro "Disparar flow (de acoes)"; pelo bloco "Iniciar outro flow" de qualquer outro fluxo; e
-  a mao pela ferramenta `lionchat_conversations_flow_sessions_create`. **A lista de fluxos da
-  lateral da conversa hoje NAO mostra o Fluxo de Acoes** (ela so lista fluxos ligados aquela caixa)
-  - para o atendente disparar pela tela, use a macro.
+  a mao pela ferramenta `lionchat_conversations_flow_sessions_create`. **Desde 08/10/2026 o
+  "Iniciar flow" da lateral da conversa tambem mostra o Fluxo de Acoes ativo**, em qualquer caixa e
+  tambem em conversa de grupo (antes so listava fluxo ligado aquela caixa). A macro continua sendo o
+  jeito de dar um botao proprio para a equipe.
 - **NAO dispara** pelo gatilho "Webhook recebido" nem pelos gatilhos de formulario publico: essas
   pontas criam a conversa na caixa do fluxo, e ele nao tem caixa. A tela oferece esses gatilhos e
   eles nunca disparam - nao monte assim.
@@ -112,6 +114,8 @@ e convertido nem corrigido.
 | `sla_missed` | Um prazo de SLA estoura | `sla_policy_id`, `sla_type: any/frt/nrt/rt` |
 | `card_created` / `card_moved` | Card criado ou movido de etapa no funil | `funnel_ids: ["37"]` (TEXTO), `funnel_stages: ["37:chave_interna"]` |
 | `card_won` / `card_lost` | Card marcado como ganho ou perdido | `funnel_ids: []` (textos) |
+| `card_snoozed` / `card_opened` (11/10/2026) | Card foi ADIADO / card adiado ABRIU (pela data, por alguem ou por automacao) ou card ganho/perdido foi REABERTO. Card novo nao dispara `card_opened` (isso e `card_created`) | `funnel_ids: []` (textos). `{{trigger.kanban.previous_status}}` (`snoozed`, `won`, `lost`) separa os casos |
+| `card_open_in_stage` / `card_open_in_funnel` (28/10/2026) | Gatilho de PRAZO, o "lead parado": dispara UMA vez quando o card cruza o prazo. Na etapa = tempo desde que o card ENTROU na etapa atual (uma vez por entrada na etapa); no funil = idade do card desde a criacao (uma vez por card) | `funnel_ids: []`, `funnel_stages: ["37:chave"]` (so no "na etapa"; vazio = qualquer etapa), `duration_value` (inteiro), `duration_unit: minutes, hours ou days` |
 | `conversation_attribute_changed` / `card_attribute_changed` | Um campo personalizado da conversa ou do card vira o valor combinado | `logic`, `rules: [{ attr_key, operator, value }]` |
 | `contact_attribute_changed` | Campo personalizado do CONTATO muda | `logic`, `rules: [{ attrSource: contact, attr_key, operator, value }]` |
 | `date_trigger` | Uma data guardada na ficha chega (aniversario, exame, vencimento) | `attr_key`, `offset_direction`, `offset_days`, `repeat_yearly`, `send_time`, e outros |
@@ -123,6 +127,8 @@ e convertido nem corrigido.
 | `booking_treatment_completed` / `booking_treatment_late` | Programa de sessoes (na tela: "programa"): a ULTIMA sessao recebeu Compareceu ou Faltou / a proxima sessao passou da data sem nada marcado (varredura diaria as 9h, uma vez por semana por sessao) | mesmo painel do agendamento. Recebem tambem `{{programa.*}}` |
 | `signature_sent`, `signature_viewed`, `signature_signed_signer`, `signature_signed_witness`, `signature_signed_other`, `signature_all_signed`, `signature_refused`, `signature_expired` | Contrato de assinatura eletronica: enviado, aberto, titular assinou, testemunha assinou, outro papel assinou, todos assinaram, recusado, prazo vencido | `document_ids: []` (textos; vazio = qualquer modelo) |
 | `signature_delivered` | O link do contrato chegou a UMA pessoa - dispara uma vez por participante, na conversa DELA. **E o gatilho certo para lembrete de assinatura** (o `signature_sent` cai so na conversa do contrato) | `document_ids: []` |
+| `signature_awaiting_approval`, `signature_proofs_approved`, `signature_proofs_rejected` (29/10/2026) | Documentos PEDIDOS na assinatura: esperando a conferencia da equipe, aprovados, reprovados (por pessoa, na conversa dela). Quem recebe so por e-mail nao dispara | `document_ids: []` |
+| `whatsapp_form_answered` (17/10/2026) | O cliente RESPONDEU um Formulario do WhatsApp (o nativo da Meta). Dispara na conversa da resposta, DEPOIS de o formulario gravar os dados | `whatsapp_form_id: "<id>"` (texto; vazio = qualquer formulario) |
 | `group_participant_joined` / `group_participant_left` | Alguem entrou ou saiu de um grupo de WhatsApp | so em fluxo de caixa WhatsApp por QR Code |
 
 Escreva o nome exato da coluna `key`. **Nao existe** o gatilho `cron` (para data, use
@@ -134,11 +140,30 @@ Numeros de funil e de etapa vao como TEXTO. A etapa e a chave interna, no format
 
 Os gatilhos de contrato so aparecem com a assinatura eletronica ligada na conta, e os de programa
 de sessoes com a Agenda. Contrato mandado so por e-mail (a pessoa sem conversa) nao dispara nada.
+Montagem de contrato, papeis, documentos pedidos e as variaveis `{{contrato.*}}`: skill
+`assinatura-eletronica`. Montagem do Formulario do WhatsApp: skill `formulario-whatsapp`.
 
-**Iniciar o fluxo a mao** nao precisa de gatilho nenhum. Pela lateral da conversa, a lista mostra
-os fluxos de mensagem ATIVOS ligados aquela caixa e do mesmo modo (grupo ou individual) - o Fluxo de
-Acoes hoje nao aparece ali. Pela ferramenta, `lionchat_conversations_flow_sessions_create` aceita
-qualquer fluxo ativo de mensagem ou de Acoes.
+**Gatilhos de prazo do card ("Card aberto na etapa" / "Card aberto no funil"), o que precisa ser
+dito ao cliente:**
+- Prazo de 15 minutos a 365 dias; fora disso o salvar recusa (422). Relogio corrido, conferido de 5
+  em 5 minutos (pode chegar ate ~5 minutos depois do prazo).
+- Conta card ABERTO ou ADIADO, nunca ganho ou perdido. Card sem conversa nao dispara; com varias
+  conversas, roda em cada uma. O card que disparou e o "card do gatilho" (condicoes de card olham
+  para ele).
+- So dispara quem CRUZA o prazo com o fluxo ligado: card que ja passou do prazo quando o fluxo foi
+  ligado nunca dispara. Mudar prazo, etapa ou funil do gatilho = gatilho novo.
+- Ficam FORA da trava de gatilho duplicado: dois fluxos com o mesmo prazo na mesma caixa disparam os
+  dois.
+
+**Formulario publico preenchido pela EQUIPE** (pela conversa, 20/10/2026) tambem dispara
+`lead_form_completed` e `lead_form_milestone`, igual ao link. So `lead_form_abandoned` nao dispara
+quando quem preencheu foi a equipe.
+
+**Iniciar o fluxo a mao** nao precisa de gatilho nenhum. Pela lateral da conversa ("Iniciar flow"),
+a lista mostra os fluxos de mensagem ATIVOS ligados aquela caixa e do mesmo modo (grupo ou
+individual), mais todo Fluxo de Acoes ativo (desde 08/10/2026), em ordem alfabetica. Pela
+ferramenta, `lionchat_conversations_flow_sessions_create` aceita qualquer fluxo ativo de mensagem ou
+de Acoes.
 
 Saida do Inicio: `success`.
 
@@ -259,7 +284,7 @@ regra roda certa e aparece errada na tela do cliente:
 | Situacao do SLA | `_sla_check` | `sla_check` (valores `frt_breached`, `frt_ok`, `nrt_breached`, `nrt_ok`, `rt_breached`, `rt_ok`, `has_sla`, `no_sla`) |
 | Existe card no funil | `_kanban_check` | `kanban_exists` |
 | Card esta na etapa X | `_kanban_stage` | `kanban_in_stage` |
-| Card ganho / perdido | `_kanban_status` | `kanban_won`, `kanban_lost` |
+| Card ganho / perdido / adiado | `_kanban_status` | `kanban_won`, `kanban_lost`, `kanban_snoozed` (11/10/2026: o card esta ADIADO naquele funil; nao existe condicao "card aberto") |
 | Horario comercial | `_business_hours` | `business_hours`, `outside_business_hours` |
 | Visitou pagina / disparou evento no site | `_pagetrack` | `pagetrack_visited`, `pagetrack_event` |
 | **O que o cliente respondeu** | `{{last_response}}` | `equal_any` e as variacoes com `_any` |
@@ -267,6 +292,8 @@ regra roda certa e aparece errada na tela do cliente:
 | Caixa da conversa (17/09/2026) | `{{inbox.id}}` | `equal` / `not_equal`, com `values` e `valueType: "inbox"` |
 | Tipo de caixa (17/09/2026) | `{{inbox.channel_type}}` | `equal` / `not_equal`, com `values` e `valueType: "channel_type"` |
 | Origem do lead / Atributo de campanha | `attrSource: "conversation"` + `attr_key` | ver abaixo |
+| Veio de anuncio pago? (25/10/2026) | `attrSource: "conversation"` + `attr_key: "origin_paid"` | `equal` (Sim) / `not_equal` (Nao), ver abaixo |
+| Atributo da empresa (16/10/2026) | `attrSource: "company"` + `attr_key` | ver abaixo |
 | Situacao do contrato (14/09/2026) | `_signature_status` | `signature_status`, com `valueType: "signature_status"` |
 
 As duas de resposta sao as mais usadas no dia a dia ("se o cliente escreveu X, vai por aqui").
@@ -295,12 +322,38 @@ desenha campo nenhum para ela. Nunca compare pelo NOME da caixa: quebra quando o
 
 `origin_kind` tem valores fechados: `paid_ad` (anuncio), `lead_form` (formulario), `organic`,
 `direct`, `referral` (indicacao) e `manual` (origem cadastrada). A comparacao e pelo VALOR - o
-rotulo em portugues ("Anuncio") nunca casa. Para a plataforma use `origin_platform` (`facebook`,
+rotulo em portugues ("Anuncio") nunca casa. **Para "so lead de anuncio" prefira a condicao "Veio de
+anuncio pago?"** (abaixo): `origin_kind = paid_ad` esquece o lead do FORMULARIO do anuncio (que e
+`lead_form`). Para a plataforma use `origin_platform` (`facebook`,
 `instagram`, `google`, `tiktok`, `linkedin`, `youtube`, `whatsapp`, `direct`, ou `custom:<slug>` para
 origem cadastrada pelo cliente, listada em `lionchat_lead_origins_list`). O atalho "Origem do lead"
 da tela e o mesmo formato com `attrScope: "lead_origin"` e `attr_key: "origin_platform"`. Com
 `equal`, `not_equal`, `contains` e `not_contains` o valor vai em `values`; se for em `value`, o
 motor compara certo e a tela reabre com a caixa de valor VAZIA.
+
+**Veio de anuncio pago?** Junta clique no anuncio e formulario do anuncio (chave virtual, calculada
+na hora; nao precisa existir atributo):
+
+```
+{ "valueType": "attr_config", "attrSource": "conversation", "attrScope": "origin_paid",
+  "attr_key": "origin_paid", "operator": "equal", "value": "", "values": ["paid"] }
+```
+
+`not_equal` = "Nao" (inclui conversa sem origem e origem cadastrada a mao).
+
+**Atributo da empresa** (so com o modulo Empresas ligado na conta): olha a empresa do contato da
+conversa (no maximo uma).
+
+```
+{ "valueType": "attr_config", "attrSource": "company", "attr_key": "segmento",
+  "operator": "equal", "value": "", "values": ["varejo"] }
+```
+
+`attr_key` e a chave de um campo personalizado da empresa, ou um campo do cadastro com prefixo:
+`company.name`, `company.legal_name`, `company.cnpj` (comparado so pelos digitos), `company.phone`,
+`company.email`, `company.address.city`, `company.address.state`. Contato sem empresa = valor vazio
+(as negativas casam). Modulo desligado = nunca casa, nem a negativa. Nao vale como condicao de saida
+do fluxo. No texto da mensagem: `{{contact.company.name}}`, `{{contact.company.custom_attribute.CHAVE}}`.
 
 **Situacao do contrato.** Valores fixos: `person_signed`, `person_not_signed`, `all_signed`,
 `pending`, `refused`, `expired`, `cancelled`. Ela RELE o contrato na hora de avaliar (as variaveis
@@ -309,8 +362,9 @@ certo mesmo que a pessoa tenha assinado no meio. So serve em fluxo disparado por
 contrato; sem contrato-gatilho responde FALSO.
 
 **Condicoes de card num fluxo disparado por card** (`card_created`, `card_moved`, `card_won`,
-`card_lost`): desde 04/09/2026 as quatro (existe card, card na etapa, ganho, perdido) e as de
-atributo do card olham o CARD QUE DISPAROU o fluxo. Para olhar os cards da conversa naquele funil,
+`card_lost`, `card_opened`, `card_snoozed`, `card_open_in_stage`, `card_open_in_funnel`): desde
+04/09/2026 as de card (existe card, card na etapa, ganho, perdido, adiado) e as de atributo do card
+olham o CARD QUE DISPAROU o fluxo. Para olhar os cards da conversa naquele funil,
 grave `card_source: "funnel"` na regra. Em fluxo que nao veio de card, nada muda.
 
 **Card na etapa sem etapa escolhida NUNCA casa** (desde 17/09/2026; antes virava "existe card no
@@ -327,7 +381,8 @@ Contra lista (usam `values`): `equal_any`, `not_equal_any`, `contains_any`, `not
 aquela saida nunca casa e todo mundo cai no `default`. Os unicos operadores que dispensam valor sao
 os de presenca (`is_empty`, `is_not_empty`), os de formato (`is_number`, `is_letter`, `is_email`,
 `is_phone`), os de atendente e AI Agente, `conversation_no_team`, `can_reply`, `can_reply_closed`,
-`business_hours`, `outside_business_hours`, `kanban_exists`, `kanban_won` e `kanban_lost`. A
+`business_hours`, `outside_business_hours`, `kanban_exists`, `kanban_won`, `kanban_lost` e
+`kanban_snoozed`. A
 situacao do contrato sem valor nao e pulada: cai no padrao "a pessoa assinou" (`person_signed`).
 
 Ao montar pela ferramenta, mande tambem `valueType: "variable"` nas regras comuns - sem ele a saida
@@ -365,6 +420,7 @@ No Fluxo de Acoes o bloco tem todas as abas abaixo. Na ferramenta da IA, a aba S
 | `mute_conversation` | Silencia a conversa | vazio |
 | `mark_unread` | Deixa como nao lida para o time (use apos transferir) | vazio |
 | `add_private_note` | Recado interno; o cliente nao ve. Aceita variaveis e mencao | `text` |
+| `set_lead_origin` (30/09/2026) | Marca a origem do lead na mao ("veio de indicacao") | `origin`: `facebook`, `instagram`, `google`, `tiktok`, `linkedin`, `email`, `messenger`, `direct` ou `custom:<slug>` de origem cadastrada (`lionchat_lead_origins_list`); `target`: `conversation` (padrao, ja atualiza a ultima origem da ficha) ou `contact`. Valor invalido = passo com erro |
 | `send_email_transcript` | Manda a conversa por e-mail | `email` |
 | `add_conversation_label` / `remove_conversation_label` | Etiqueta na CONVERSA | `labels: ["slug"]` |
 | `add_label` / `remove_label` | Etiqueta no CONTATO | `labels: ["slug"]` |
@@ -392,7 +448,8 @@ reconhecer, grava o original e deixa aviso amarelo no historico em vez de falhar
 |---|---|---|
 | `create_kanban_item` | Cria card | `funnel_id`, `funnel_stage` (obrigatorios), `title`, `description`, `allow_duplicates` |
 | `move_kanban_stage` | Move o card (funil e etapa sao o DESTINO). Sem card, cria | `funnel_id`, `funnel_stage` |
-| `set_won` / `set_lost` / `set_open` | Marca ganho, perdido ou reabre | vazio, mais `funnel_id` se preciso |
+| `set_won` / `set_lost` / `set_open` | Marca ganho, perdido ou reabre. `set_open` num card ADIADO abre o card na hora | vazio, mais `funnel_id` se preciso |
+| `snooze_kanban_item` (11/10/2026) | ADIA o card por N horas ou dias a partir da execucao (minimo 1 hora); adiar de novo troca a data | `funnel_id`, `amount` (inteiro >= 1), `unit: hours ou days`, `card_source` opcional. Card ganho/perdido ou sem card = passo com ERRO visivel (nao e pulado) |
 | `assign_agent_card` | Responsavel do card | `agent_id`, `mode: add (padrao), replace ou remove_all` |
 | `add_card_note` | Anotacao no card | **`text`** - com `content` a acao e pulada em silencio |
 | `add_card_checklist` | Aplica um modelo de checklist | `template_id` |
@@ -428,7 +485,8 @@ e em branco pula aquele destino.
 | Chave | O que faz | `config` |
 |---|---|---|
 | `set_booking_situation` | Muda a situacao do AGENDAMENTO QUE DISPAROU o fluxo | `situation`: `confirmed`, `attended` (compareceu), `no_show` (faltou), `completed`, `cancelled` |
-| `send_signature_document` | Manda um modelo de contrato para a pessoa da conversa assinar | `document_id` (de `lionchat_signature_documents_list`), `inbox_id` opcional |
+| `send_signature_document` | Manda um modelo de contrato para a pessoa da conversa assinar | `document_id` (de `lionchat_signature_documents_list`), `inbox_id` opcional e, desde 28/10/2026, `collection` (`ready` padrao: contrato pronto com a ficha; `form`: a pessoa preenche os dados dela pelo link antes de o contrato nascer), `message` (texto que vai junto do link, aceita variaveis) e `send_link` (`false` = so GERA o contrato, nao manda nada) |
+| `create_account_task` (20/10/2026) | "Criar tarefa": tarefa comum da Agenda presa ao card do fluxo (ou so a conversa, sem card) | `title` (obrigatorio), `description`, `task_type`, `agenda_id`, `priority`, `occupies_agenda`, `duration_minutes` (1 a 1440), `due: {amount, unit: hours ou days, at: "HH:MM", business_days}`, `responsible: {mode: card_owner, fixed, funnel_rotation ou team_rotation, user_id, team_id, fallback_user_id}`, `card_source`, `funnel_id` |
 
 `set_booking_situation` fica na aba Agenda, que so aparece com a Agenda ligada na conta e em fluxo
 individual. Em fluxo que NAO foi disparado por agendamento, o item fica com erro visivel (nao ha
@@ -437,6 +495,22 @@ desarma os lembretes do agendamento. Nao mexe em data - remarcar nao existe aqui
 
 `send_signature_document` monta o PDF com os dados da ficha: variavel do modelo sem valor na ficha
 deixa o item com erro e o motivo (ex.: falta o CPF). Exige a assinatura eletronica ligada na conta.
+O link sai NESTA conversa (ou por e-mail se a ficha nao tem telefone). Depois do bloco existem as
+variaveis `{{contrato.*}}` e `{{contrato.link}}` (o endereco de assinatura do titular) - e o jeito de
+mandar o link no proprio bloco de mensagem ou num modelo do WhatsApp, com `send_link: false`. A
+condicao "Situacao do contrato" passa a falar DESTE contrato. Bloco salvo antes dessas chaves manda o
+link como sempre. Montagem do modelo de contrato e regras de assinatura: skill
+`assinatura-eletronica`.
+
+`create_account_task` exige a Agenda unificada ligada na conta e so roda em fluxo de mensagem um a
+um e no Fluxo de Acoes: em ferramenta da IA e em fluxo de grupo o salvar aceita e o passo fica com
+ERRO. Os campos sao os mesmos da acao "Criar tarefa" das automacoes do funil. Prazo em horas (1 a
+720) ou dias (0 a 365; `at` e `business_days` so em dias). O modo do responsavel exige a chave dele
+(`card_owner` -> `fallback_user_id`; `fixed` -> `user_id`; `team_rotation` -> `team_id`).
+`card_source: "trigger"` = o card que iniciou o fluxo (fluxo que nao veio de card = erro);
+`"funnel"` (padrao da tela) = o card desta conversa no `funnel_id`, que e obrigatorio nesse modo
+(conversa sem card naquele funil = tarefa so na conversa, passo verde). Uma tarefa por passagem do
+bloco.
 
 O interruptor "Responder na hora" (`proactive`) **nao controla a cobranca automatica** da IA depois:
 sao coisas diferentes. Avise o cliente que, com ele ligado, a IA comeca a falar quase na hora.
@@ -630,6 +704,7 @@ aparece no desenho e nao leva ninguem.
 | Acoes | `success` (so isso) |
 | Espera | `success`, `error` |
 | Randomizador | o id de cada ramificacao (`A`, `B`, `C`) ou `success` no modo de distribuir atendentes |
+| Ligar com IA | `answered`, `no_answer`, `error` |
 | Requisicao | `success`, `error` |
 | IA | `success` e `error`; no modo intencao, `intent_<nome>`, `no_intent` e `error`; no modo sentimento, `positive`, `negative`, `neutral` e `error` |
 | Gestao de Grupos | `success`, `error`, `partial` |
@@ -658,7 +733,7 @@ hora e a execucao fica marcada como concluida.
 | `conversation_resolved` | A conversa e encerrada |
 | `agent_assigned` / `team_assigned` | Um atendente ou equipe assume (`value` opcional; vazio = qualquer) |
 | `kanban_won` / `kanban_lost` | O card vira ganho ou perdido (`value` = funil, opcional) |
-| `attribute_condition` | Um campo vira determinado valor: `logic`, `rules: [{ attr_key, attrSource, operator, value }]` |
+| `attribute_condition` | Um campo vira determinado valor: `logic`, `rules: [{ attr_key, attrSource, operator, value }]` (`attrSource: company` NAO vale aqui) |
 
 E a unica forma de o fluxo parar quando um atendente assume a conversa - ele **nao para sozinho**.
 
@@ -678,8 +753,44 @@ E a unica forma de o fluxo parar quando um atendente assume a conversa - ele **n
 - **Gatilhos de entrou/saiu do grupo**: so em fluxo cujas caixas sao todas WhatsApp por QR Code.
 - **Bloco de Gestao de Grupos**: roda em fluxo de qualquer canal, desde que a conta tenha uma caixa
   WhatsApp por QR Code. Conta sem nenhuma: o bloco nem aparece.
-- **Fluxo de grupo nao tem** os gatilhos e condicoes de navegacao no site nem o gatilho de data
-  (grupo nao tem um contato unico).
+- **Fluxo de grupo nao tem** os gatilhos e condicoes de navegacao no site, os gatilhos de
+  formulario publico e de contrato, o bloco Ligar com IA nem a acao Criar tarefa.
+- **Fluxo de grupo TEM gatilho de data** (desde 29/09/2026): a data e a do contato-grupo, ou a da
+  conversa do grupo com `attr_source: "conversation"`. O motor nao cruza: data de PESSOA nunca acorda
+  fluxo de grupo e data de GRUPO nunca acorda fluxo de mensagem um a um.
 - Quando muita gente sai de uma espera ao mesmo tempo, o sistema manda UM POR VEZ e o intervalo
   muda por canal: WhatsApp por QR Code, 40 segundos entre cada (risco de banimento e real);
   WhatsApp Oficial, 5 segundos; os demais canais, 2 segundos.
+
+---
+
+## 18. Bloco Ligar com IA (`ai_call`, 17/10/2026)
+
+Uma voz de IA liga para o TELEFONE DO CONTATO da conversa pelo WhatsApp (linha de ligacao) e
+conversa com ele. So em conta com Ligacao com IA e Ligacao pelo WhatsApp liberadas, e so em fluxo de
+**mensagem um a um**: o salvar recusa em fluxo de grupo, em Fluxo de Acoes e em ferramenta da IA.
+
+```json
+{ "id": "ligar", "type": "ai_call", "position": {"x": 600, "y": 300},
+  "data": { "aiCallAgentId": 4, "aiCallInboxId": 82 } }
+```
+
+- `aiCallAgentId`: id de um **AGENTE DE LIGACAO**, de `lionchat_captain_call_agents_list`. **NUNCA**
+  o id de um agente de texto (`lionchat_captain_assistants_list`).
+- `aiCallInboxId`: id de uma caixa de `meta.dial_inboxes`, na mesma lista.
+- `aiCallAgentName` / `aiCallInboxName`: opcionais, so para o resumo no desenho.
+- O salvar recusa agente ou caixa ESCOLHIDOS ou TROCADOS que nao existem nesta conta ("ai_call block
+  uses a call agent that does not exist in this account" / "... an inbox without a calling line in
+  this account"). Agente apagado ou linha desligada DEPOIS de salvo nao trava o liga/desliga: vira
+  erro na execucao.
+
+Saidas: `answered` (atendeu), `no_answer` (nao atendeu ou recusou) e `error` (nao deu para ligar; o
+motivo vai no historico). `answered`/`no_answer` sem fio = o fluxo termina ali.
+
+- Liga UMA vez. Para insistir: outro Ligar com IA depois de `no_answer`, com uma Espera no meio.
+  NUNCA ligue `error` direto em outro Ligar com IA.
+- Nao confere horario comercial: ponha a Condicao de horario antes.
+- O fluxo NAO recebe o que foi dito na ligacao; quem age sobre o conteudo e o agente de ligacao.
+
+O agente de ligacao (roteiro, primeira frase, voz, tempo maximo), as receitas e o diagnostico de
+"a IA ligou e ficou muda" moram na skill **`agente-de-ligacao`** - leia antes de propor a ligacao.

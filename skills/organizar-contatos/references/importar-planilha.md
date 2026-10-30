@@ -83,8 +83,8 @@ linha**: o contato entra e so aquele campo fica em branco, contado a parte no re
 | Tipo do campo | Como preencher | Exemplos que passam | O que da problema |
 |---|---|---|---|
 | Texto | qualquer texto | `Cliente desde 2020` | (sempre aceito) |
-| Numero, Moeda, Porcentagem | so numeros | `42`, `1.234,56` (Brasil), `1,234.56` (EUA) | `abc`, `vinte` |
-| Data | dia/mes/ano | `25/12/1990`, `25-12-1990` | `32/13/2025`, `ontem` |
+| Numero, Moeda, Porcentagem | so numeros | `42`, `1.500` (= 1500), `1.234,56` (Brasil), `1,234.56` (EUA) | `abc`, `vinte` |
+| Data | dia/mes/ano | `25/12/1990`, `25-12-1990`, `25/12/90` | `32/13/2025`, `ontem` |
 | Hora | HH:MM em 24 horas | `14:30`, `9:30`, `14h30` | `25:00`, `2 da tarde` |
 | Lista | uma das opcoes cadastradas | `ouro`, se a lista tiver "Ouro" | valor que nao esta na lista |
 | Caixa de selecao | sim ou nao | `sim`, `s`, `yes`, `1`, `x`, `v`, `verdadeiro` / `nao`, `n`, `no`, `0`, `falso` | `talvez` |
@@ -94,8 +94,15 @@ Detalhes que evitam retrabalho:
 - **Campo do tipo Data e Hora fica de fora**: a importacao nao converte esse tipo e a conferencia
   previa nao o testa — o texto entra cru e provavelmente inutil. Para planilha, prefira dois campos
   separados, um de Data e outro de Hora.
-- **Data e sempre no padrao brasileiro, dia primeiro.**
-- **Numero aceita a virgula decimal brasileira** com ponto de milhar.
+- **Data e sempre no padrao brasileiro, dia primeiro.** Ano com dois digitos funciona desde
+  23/10/2026 (`01/08/23` vira 2023; antes virava o ano 23).
+- **Numero aceita a virgula decimal brasileira** com ponto de milhar. Desde 23/10/2026, ponto em
+  grupos de tres (`1.500`, `1.234.567`) e lido como milhar - antes `1.500` virava 1,5. `1.5` e `12.50`
+  continuam decimal.
+- **A importacao de CARTOES do Kanban tambem grava atributo de contato** (desde 23/10/2026), e ali o
+  contato que ja existe tem o valor SUBSTITUIDO: conta como alteracao e acorda o fluxo "Atributo do
+  contato muda" e o aviso externo de contato atualizado, uma vez por linha. Avise antes de quem for
+  importar cartoes com atributo de contato ligado.
 - **Lista casa primeiro pelo valor exato** (sem diferenciar maiuscula) e, se nao achar, tenta de novo
   ignorando acento. Ainda assim, opcao que nao existe na lista fica em branco.
 - **Genero** na planilha: `m`, `f`, `o`, `na`. **Estado civil**: `solteiro`, `casado`,

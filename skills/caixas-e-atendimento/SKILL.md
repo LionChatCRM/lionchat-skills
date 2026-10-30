@@ -50,8 +50,11 @@ e recursos ligados), `lionchat_inboxes_list`, `lionchat_agents_list`, `lionchat_
 Antes de propor, leia `references/canais.md` (o que cada canal faz e o que nao faz) e
 `references/distribuicao.md` (como o trabalho e repartido). Heuristicas:
 
-- Precisa de GRUPO do WhatsApp, lista de transmissao ou trazer o historico do celular? So a conexao
-  por QR Code atende. Isso decide o canal antes de qualquer outra coisa.
+- Precisa de GRUPO do WhatsApp ou trazer o historico do celular? So a conexao por QR Code atende.
+  Isso decide o canal antes de qualquer outra coisa. (Lista de transmissao e canais do WhatsApp nao
+  entram mais em caixa nenhuma desde 09/10/2026.)
+- Caixa Oficial que precisa responder fora das 24 horas sem modelo aprovado: conexao hibrida
+  (`references/canais.md`, secao 8). Como ela se comporta depende de um ajuste da instalacao.
 - Quer selo de conta verificada e disparo em massa com modelo aprovado? WhatsApp Oficial - e aceite
   a janela de 24 horas que vem junto.
 - Equipe pequena, fila unica: use a distribuicao automatica da propria caixa. Nao crie politica.
@@ -131,9 +134,10 @@ existe para nao duplicar. Detalhe de cada ferramenta em `references/ferramentas-
 7. **Membros da caixa**: `lionchat_inbox_members_update` com a lista COMPLETA, separando
    `user_ids` (recebem conversa) de `supervisor_ids` (so veem). Mande tudo numa chamada so, nunca um
    agente por vez em laco.
-8. **Configurar a caixa**: `lionchat_inboxes_update` - nome, saudacao e distribuicao. Leia
-   `references/configurar-caixa.md` ANTES: varios campos dessa tela (aviso de ausencia, conversa
-   unica, pesquisa de satisfacao) nao passam por essa ferramenta e precisam ser feitos no painel.
+8. **Configurar a caixa**: `lionchat_inboxes_update` - nome, saudacao, aviso de ausencia (interruptor
+   E texto), distribuicao e os interruptores do canal (aceitar grupos, recusar ligacoes, marcar como
+   visto). Leia `references/configurar-caixa.md` ANTES: conversa unica e pesquisa de satisfacao
+   continuam fora dessa ferramenta e precisam ser feitas no painel.
 9. **Distribuicao**: escolha UM caminho. Modo simples (`enable_auto_assignment` +
    `auto_assignment_config` completo) OU politica (`lionchat_assignment_policies_create` seguido de
    `lionchat_inboxes_assignment_policies_create` para vincular). Nunca os dois.
@@ -145,8 +149,11 @@ existe para nao duplicar. Detalhe de cada ferramenta em `references/ferramentas-
     passe a ser aplicada as conversas.
 12. **Conectar o canal**: por QR Code, `lionchat_inboxes_waha_qrcode` devolve o TEXTO do codigo e
     `lionchat_inboxes_waha_status` acompanha ate WORKING - quem le o codigo e a pessoa, no celular.
-    No WhatsApp Oficial a conexao e um botao da Meta no painel. So depois de conectado e
-    sincronizado vale importar o historico (`lionchat_inboxes_waha_import_history`).
+    Se quem esta com o celular nao tem login no painel, gere o LINK de conexao
+    (`lionchat_inboxes_waha_connect_link_create`, so administrador, vale 2 horas) e revogue ao fim
+    (`lionchat_inboxes_waha_connect_link_revoke`). No WhatsApp Oficial a conexao e um botao da Meta no
+    painel. So depois de conectado e sincronizado vale importar o historico
+    (`lionchat_inboxes_waha_import_history`).
 
 Ao encontrar erro: 402 e limite do plano (avise e pare aquele item); 403 costuma ser recurso nao
 liberado na conta (SLA e cargos personalizados) - pule e reporte no fim; 404 quer dizer que a caixa
@@ -172,6 +179,8 @@ real: mandar uma mensagem para a caixa e ver quem recebeu.
 3. **NUNCA inventa nome de ferramenta.** Se nao estiver em `references/ferramentas-mcp.md`, pergunte
    antes de tentar.
 4. **NUNCA promete criar ou excluir caixa de entrada** - nao existe ferramenta para isso.
+   Linha de ligacao (LionCalls) e Ligacao com IA tambem nao sao montadas aqui: use a skill
+   `agente-de-ligacao`. Formulario do WhatsApp (o nativo da Meta): skill `formulario-whatsapp`.
 5. **NUNCA promete grupo de WhatsApp em caixa Oficial** - grupos so existem na conexao por QR Code.
 6. **NUNCA promete resposta livre fora da janela** em WhatsApp Oficial, Instagram, Facebook ou
    TikTok - fora da janela so sai modelo aprovado.
@@ -190,9 +199,13 @@ real: mandar uma mensagem para a caixa e ver quem recebeu.
 Todas falham EM SILENCIO: a coisa e criada, parece certa e nao funciona. A lista completa, com o
 sintoma que o cliente relata, esta em `references/armadilhas.md`.
 
-- **Se voce mandar um campo que a ferramenta nao declara**, ele e apagado antes de sair: a resposta
-  volta com sucesso e o banco continua igual. Vale para o aviso de ausencia, a conversa unica e a
-  pesquisa de satisfacao na ferramenta de atualizar a caixa.
+- **Se voce mandar um campo que a ferramenta nao declara**, nada garante o resultado: ele nao faz
+  parte do contrato, pode nao ser gravado e a resposta volta com sucesso do mesmo jeito. Vale para a
+  conversa unica e a pesquisa de satisfacao na ferramenta de atualizar a caixa: trate como painel.
+- **Se voce gravar so o texto do aviso de ausencia**, nada sai: desde 17/09/2026 ele tem interruptor
+  proprio (`out_of_office_enabled`), que nasce desligado. Precisa dos dois.
+- **Se voce mandar os interruptores do canal fora de `channel`**, sao descartados. O campo e
+  `channel.additional_attributes`, com true/false de verdade (nunca "false" em texto).
 - **Se voce configurar a distribuicao na caixa e tambem vincular uma politica**, a politica ganha e
   o ajuste da caixa vira configuracao fantasma: some da tela e o cliente nao consegue corrigir.
 - **Se voce mandar so uma chave da distribuicao**, o bloco inteiro e substituido: mandar so o freio
@@ -211,6 +224,10 @@ sintoma que o cliente relata, esta em `references/armadilhas.md`.
   filtra absolutamente nada.
 - **Se voce esquecer de ligar "Aceitar Grupos" na caixa QR Code**, as mensagens de grupo somem sem
   erro nenhum.
+- **Se o cliente pedir "Aceitar Canais" ou "Aceitar Lista de Transmissao"**, nao existe mais: desde
+  09/10/2026 as duas opcoes sumiram da tela e o servidor desliga ao salvar. Status/stories tambem.
+- **Se voce der `automation_manage` achando que libera os fluxos**, nao libera: desde 21/09/2026 so
+  `flowbuilder_manage` (ou administrador) cria e altera fluxo.
 - **Se voce adicionar o agente ao time achando que isso da acesso a caixa**, ele nunca recebe nada:
   precisa estar nas duas listas.
 - **Se voce convidar o agente e ele ainda nao aceitou o e-mail**, os vinculos de time e caixa ficam
@@ -219,11 +236,12 @@ sintoma que o cliente relata, esta em `references/armadilhas.md`.
 ## O que eu faco / o que eu nao faco
 
 > Eu configuro o atendimento da sua conta LionChat: defino quem atende cada caixa (agentes e
-> supervisores), monto times, ligo a saudacao automatica, reparto as conversas entre a equipe
-> (rodizio ou por quem esta com menos conversa), defino teto de conversas por atendente, crio
-> cargos com poderes especificos e monto prazos de SLA com a regra que os aplica. Tambem leio o
-> estado da sua conexao de WhatsApp, o painel de falhas de envio e os relatorios por caixa e por
-> time para conferir se a divisao ficou equilibrada.
+> supervisores), monto times, ligo a saudacao e o aviso de ausencia, ligo o atendimento de grupos
+> no WhatsApp por QR Code, reparto as conversas entre a equipe (rodizio ou por quem esta com menos
+> conversa), defino teto de conversas por atendente, crio cargos com poderes especificos e monto
+> prazos de SLA com a regra que os aplica. Tambem gero o link para quem esta com o celular ler o QR
+> Code sem entrar no painel, leio o estado da sua conexao de WhatsApp, a saude e as mensagens
+> cobradas da caixa oficial, o painel de falhas de envio e os relatorios por caixa e por time.
 >
 > Eu NAO crio nem excluo caixa de entrada, nao leio QR Code por voce, nao autorizo nada no
 > Facebook ou na Meta e nao cadastro o horario de atendimento da empresa - essas quatro coisas sao

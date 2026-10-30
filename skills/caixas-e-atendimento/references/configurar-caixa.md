@@ -27,12 +27,13 @@ Indice:
 | `greeting_message` | Texto da saudacao |
 | `enable_auto_assignment` | Habilitar atribuicao automatica |
 | `auto_assignment_config` | O bloco da Distribuicao Automatica (ver `distribuicao.md`) |
-| `additional_attributes` | Atributos extras do canal |
+| `out_of_office_enabled` | Interruptor do aviso de ausencia |
+| `out_of_office_message` | Texto do aviso de ausencia |
+| `channel.additional_attributes` | Interruptores do CANAL (vai DENTRO de `channel`) - ver abaixo |
 
-**Campo que nao esta nessa lista e APAGADO antes de sair.** A chamada volta com sucesso, o servidor
-responde 200 e o banco continua igual. Isso vale, entre outros, para:
+**Campo que nao esta nessa lista nao faz parte do contrato da ferramenta.** Nada garante que ele
+seja gravado, e a chamada volta com sucesso do mesmo jeito - nao use. Isso vale, entre outros, para:
 
-- `out_of_office_message` (aviso de ausencia)
 - `lock_to_single_conversation` (conversa unica)
 - `csat_survey_enabled` e `csat_config` (pesquisa de satisfacao)
 - `portal_id` (central de ajuda vinculada)
@@ -44,9 +45,21 @@ Tudo isso e feito no painel, na aba Configuracoes da propria caixa. Nao afirme q
 desses itens: proponha o valor, explique onde clicar e peca ao cliente que salve. Depois releia a
 caixa com `lionchat_inboxes_show` e confirme.
 
-**`additional_attributes` chega no corpo no nivel de cima**, e os interruptores do canal (aceitar
-grupos, recusar ligacoes, marcar como visto) vivem dentro do objeto do CANAL, nao da caixa. Trate
-esses interruptores como item de painel: aba Configuracao da caixa por QR Code.
+**Interruptores do canal: `channel.additional_attributes`.** Eles vivem dentro do objeto do CANAL,
+nao da caixa. Mandar `additional_attributes` solto, no nivel de cima, e descartado pelo servidor -
+o nome certo e `channel.additional_attributes`. Regras:
+
+- Na caixa de WhatsApp (QR Code e Oficial), Instagram, Facebook e TikTok a gravacao SOMA: so as
+  chaves enviadas mudam. Na caixa de API o objeto e TROCADO inteiro.
+- WhatsApp por QR Code: so estas chaves sao da tela - `accept_groups`, `reject_calls`,
+  `reject_calls_message` (texto) e `mark_as_seen`. Booleano de verdade (true/false), nunca "false"
+  em texto. O resto que aparece na leitura (sessao, importacao, proxy, migracao, conexao hibrida) e
+  interno do sistema: NUNCA mande.
+- WhatsApp Oficial: `mark_as_seen`.
+- `accept_status`, `accept_channels` e `accept_broadcast` ficam SEMPRE desligados desde 09/10/2026:
+  mandar true e desfeito ao salvar, sem erro.
+
+Exemplo: `channel.additional_attributes: {"accept_groups": true, "reject_calls": false}`.
 
 Uma observacao que salva tempo: dentro de `auto_assignment_config` qualquer chave passa pelo
 conector, mas o servidor so aceita quatro (`assign_offline_agents`, `fair_distribution_limit`,
@@ -84,14 +97,17 @@ Onde e feito: `lionchat_inboxes_update` alcanca os dois campos.
 ## 4. Aviso de ausencia
 
 - Sai quando o cliente escreve FORA do horario de atendimento.
-- Campo em branco significa que nada e enviado. Nao existe texto padrao.
+- Exige as duas coisas desde 17/09/2026: o interruptor `out_of_office_enabled` LIGADO e o texto
+  `out_of_office_message` preenchido. O interruptor nasce desligado; as caixas que ja tinham texto
+  nessa data foram ligadas na atualizacao. Texto em branco nao envia nada - nao existe texto padrao.
 - No maximo UM por dia por conversa, contado no fuso do dono do horario.
 - Nao sai se algum atendente respondeu nos ultimos 5 minutos - para nao interromper conversa viva no
   fim do expediente.
 - So mensagem do cliente dispara.
 
-Onde e feito: no painel, aba Configuracoes da caixa, logo abaixo da saudacao. A ferramenta de
-atualizar a caixa NAO alcanca esse campo.
+Onde e feito: `lionchat_inboxes_update` com `out_of_office_enabled` e `out_of_office_message` juntos,
+ou no painel, aba Configuracoes da caixa, logo abaixo da saudacao. Lembre que ele depende do horario
+de atendimento da CONTA (secao 5), que continua sendo item de painel.
 
 ---
 
@@ -188,6 +204,8 @@ Todos no painel. Vale conhecer para propor:
   robo, permitir dentro de aplicativo.
 - Dominios permitidos e validacao de identidade do visitante.
 - Imagem propria no botao flutuante (PNG, WEBP, JPEG ou GIF ate 1 MB). Vazio usa o desenho padrao.
+  Enviar imagem nova e so pela tela; VOLTAR ao desenho padrao tem ferramenta
+  (`lionchat_inboxes_bubble_icon_destroy`, so em caixa de site - outro tipo devolve 422).
 - Continuidade por e-mail: se o visitante sai, a resposta do atendente tambem vai por e-mail.
 - Coleta de e-mail antes de conversar.
 
@@ -199,8 +217,9 @@ So abrir o site ou so abrir o balao nao cria contato.
 
 ## 10. Ajustes especificos do WhatsApp por QR Code
 
-Na aba Configuracao da caixa (painel): aceitar grupos, aceitar canais, aceitar lista de transmissao,
-recusar ligacoes com texto de resposta e marcar como visto. Detalhe de cada um em `canais.md`.
+Interruptores da aba Configuracao: aceitar grupos, recusar ligacoes com texto de resposta e marcar
+como visto. Voce grava pelo `channel.additional_attributes` (secao 1) ou o cliente no painel.
+Detalhe de cada um em `canais.md`. "Aceitar canais" e "Aceitar lista de transmissao" nao existem mais.
 
 Conexao e historico voce acompanha por ferramenta:
 
@@ -208,6 +227,17 @@ Conexao e historico voce acompanha por ferramenta:
   ler o codigo; STOPPED e FAILED sao problema.
 - `lionchat_inboxes_waha_qrcode` devolve o TEXTO do codigo, nao uma imagem, e so funciona no estado
   SCAN_QR_CODE. O codigo expira em cerca de 20 a 60 segundos.
+- `lionchat_inboxes_waha_connect_link_create` gera um LINK publico e temporario (2 horas) para quem
+  esta com o celular ler o QR sem ter login no painel. So administrador. So um link vale por vez;
+  caixa ja conectada devolve 422. `lionchat_inboxes_waha_connect_link_revoke` mata o link e derruba a
+  sessao que ele abriu - revogue assim que a conexao terminar ou se o link vazar. Gerar o link e acao
+  de escrita: confirme antes.
+- **Queda avisa por e-mail.** Se a conexao cai e FICA fora (o sistema espera cerca de 30 minutos), os
+  administradores da conta recebem um e-mail com o link de reconexao - um so por queda. Cobre tambem
+  quem removeu o LionChat dos "Aparelhos conectados" no celular. Varias caixas caindo juntas e
+  problema da plataforma e nao gera e-mail.
+- **Numero adicionado a um grupo** com "Aceitar Grupos" ligado ganha a conversa do grupo na hora, com
+  uma pilula dizendo como entrou.
 - `lionchat_inboxes_waha_import_history` traz o historico do aparelho, de 1 a 90 dias. Uma rodada por
   vez. O texto entra em conversas de historico separadas, ja finalizadas e datadas no passado, sem
   acordar automacao nem agente de IA. As fotos e audios chegam depois, numa fila: bolha ambar
@@ -220,15 +250,28 @@ Conexao e historico voce acompanha por ferramenta:
 
 - O numero e o endereco de todas as conversas da caixa e nao e editavel depois.
 - `lionchat_inboxes_health` mostra o painel de Saude da conta na Meta: se da para enviar, o motivo
-  quando nao da, a nota de qualidade, a faixa de limite diario e quanto ja foi usado nas ultimas 24
-  horas.
+  quando nao da, a nota de qualidade, a faixa de limite diario, quanto ja foi usado nas ultimas 24
+  horas, as falhas de envio das ultimas 24 horas por motivo e (desde 06/10/2026, campo
+  `charges_30d`) as mensagens ENTREGUES nos ultimos 30 dias separadas em cobradas e gratis, por tipo.
+  Nao ha valor em reais: a Meta informa quantidade e tipo, nao preco. "Cobradas" sao so os modelos
+  pagos que chegaram ao cliente; resposta comum dentro da janela nao custa.
+- **Vigia do numero.** O sistema pergunta a Meta de tempos em tempos se o numero ainda esta na conta
+  do WhatsApp do cliente e se a caixa continua vinculada. Se nao estiver: bolinha vermelha na caixa
+  e um e-mail para os administradores (um por queda, depois de cerca de 30 minutos). O conserto e no
+  painel: aba Configuracao, botao Reconfigurar.
+- `lionchat_inboxes_capi_dataset_link` vincula a caixa ao conjunto de dados da Meta usado pelas
+  conversoes de anuncio de WhatsApp (ver a skill `integracoes`). Hoje isso e feito sozinho; a
+  ferramenta e o plano B. Acao de escrita: confirme antes.
 - Modelos de mensagem aprovados: `lionchat_inboxes_sync_templates` sincroniza e as ferramentas de
   modelo listam, criam e alteram.
 - Trazer o historico: `lionchat_inboxes_whatsapp_history_start`, `_status` e `_cancel`.
 - Conexao hibrida (enviar fora das 24 horas): `lionchat_inboxes_coex_backup_connect`, `_status` e
-  `_disconnect`. A leitura do QR e no celular.
+  `_disconnect`. A leitura do QR e no celular; para quem nao tem login no painel ha o link
+  `lionchat_inboxes_coex_backup_connect_link_create` / `_revoke` (mesmas regras do link da caixa QR).
+  Regras em `canais.md`, secao 8.
 - Ligacao pelo WhatsApp Oficial: `lionchat_inboxes_enable_whatsapp_calling` e
-  `lionchat_inboxes_disable_whatsapp_calling`.
+  `lionchat_inboxes_disable_whatsapp_calling`. Linha de ligacao LionCalls e Ligacao com IA: skill
+  `agente-de-ligacao`.
 
 Se a caixa foi criada a mao e voce precisar corrigir alguma credencial, o objeto de credenciais e
 SUBSTITUIDO inteiro: leia o atual e reenvie tudo, senao a caixa para de receber em silencio. Na

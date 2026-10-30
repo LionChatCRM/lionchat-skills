@@ -29,7 +29,8 @@ ferramenta que existe num pode nao existir no outro.
 
 Diferencas que afetam esta area:
 
-- **Criacao de contatos em lote** (`lionchat_contacts_bulk_create`) existe **so no conector remoto**.
+- **Criacao de contatos em lote** (`lionchat_contacts_bulk_create`) e **de empresas em lote**
+  (`lionchat_companies_bulk_create`) existem **so no conector remoto**.
 - **Trocar de conta e ver a conta ativa** (`lionchat_switch_account`, `lionchat_current_account`,
   `lionchat_list_my_accounts`) existem **so no conector remoto**.
 - **Testar a conexao** (`lionchat_ping`) existe **so no conector local**.
@@ -47,7 +48,8 @@ acao em palavras e diga ao cliente que aquilo se faz no painel.
 | `lionchat_contacts_search` | Busca por texto, ignorando acento e maiuscula, em **nome, e-mail, telefone e identificador** — e so nesses quatro. Um termo por vez: espaco nao separa termos aqui, e ela NAO acha por CPF, CNPJ nem RG |
 | `lionchat_search_list_1` | A busca AMPLA de contatos (a mesma da lupa do painel). Alem dos quatro campos acima, alcanca os campos personalizados e os documentos (CPF, CNPJ, RG por digitos). Espaco entre termos funciona como "e", ate 5 termos; termo com letra exige 3 caracteres, so digitos nao. **Use esta quando o cliente buscar por documento** |
 | `lionchat_contacts_filter` | O recorte avancado, 15 por pagina. Mesma linguagem do segmento salvo — ver `tipos-de-campo-e-filtros.md` |
-| `lionchat_contacts_update` | Edita a ficha. **Nunca sobrescreva telefone, e-mail ou nome ja preenchido sem confirmar** |
+| `lionchat_contacts_update` | Edita a ficha. **Nunca sobrescreva telefone, e-mail ou nome ja preenchido sem confirmar.** Trocar o telefone por aqui NAO muda o endereco de entrega - serve so para corrigir cadastro de quem nunca conversou. Aceita `company_id` para ligar a ficha a uma empresa |
+| `lionchat_contacts_change_phone` | **A pessoa mudou de numero.** Troca o telefone mantendo a mesma conversa e o envio passando a ir para o numero novo. Recusa se o numero ja for de outra ficha (409); `merge_with` junta as duas e APAGA a outra - so com previa e sim explicito. Ver `campos-nativos-e-etiquetas.md`, secao 12 |
 | `lionchat_contacts_update_cadastral` | Grava CPF, RG, CNPJ, passaporte, nascimento, genero, estado civil, profissao e endereco. Os seis primeiros so aceitam a PRIMEIRA gravacao |
 | `lionchat_cep_lookup` | Busca rua, bairro, cidade e UF por CEP, para preencher o endereco sem digitar |
 | `lionchat_contacts_create_6` | Apaga chaves especificas dos campos personalizados de uma ficha |
@@ -62,7 +64,8 @@ Duas de risco, com regra propria:
 
 | Ferramenta | Cuidado |
 |---|---|
-| `lionchat_contacts_create_4` | **MESCLA duas fichas duplicadas. Irreversivel.** Nunca use sem o cliente escolher qual ficha fica |
+| `lionchat_contact_merge_preview` | **Previa** da juncao, sem executar: quem fica, quem e apagado, o que e descartado, quantas conversas vem. Sempre antes de juntar. Exige a permissao de excluir contato |
+| `lionchat_contacts_create_4` | **MESCLA duas fichas duplicadas. Irreversivel.** Nunca use sem o cliente escolher qual ficha fica, depois de ver a previa |
 | `lionchat_contacts_destroy` | **Apaga o contato PARA SEMPRE e apaga junto as conversas dele.** A skill nao usa esta ferramenta |
 
 ## 3. Etiquetas do contato
@@ -87,23 +90,34 @@ filtro mas nao aparece no painel.
 
 | Ferramenta | O que faz |
 |---|---|
-| `lionchat_custom_attributes_list` | Lista as definicoes. **Peca tambem os campos de sistema** quando quiser ver origem, UTM e rastreamento — sem isso eles somem da lista |
+| `lionchat_custom_attributes_list` | Lista as definicoes. **Peca tambem os campos de sistema** quando quiser ver origem, UTM e rastreamento — sem isso eles somem da lista. O filtro de modelo vai SEMPRE com o sufixo (`contact_attribute`, `conversation_attribute`, `company_attribute`, `account_attribute`): so `contact` devolve lista VAZIA, sem erro |
 | `lionchat_custom_attributes_show` | Le uma definicao |
-| `lionchat_custom_attributes_create` | Cria. **O padrao e campo de CONVERSA** — para campo de contato mande o modelo explicitamente |
+| `lionchat_custom_attributes_create` | Cria. **O padrao e campo de CONVERSA** — para campo de contato (ou de empresa, `company_attribute`) mande o modelo explicitamente |
 | `lionchat_custom_attributes_update` | Edita nome, descricao e opcoes. **Nao renomeie a chave de um campo com dado gravado**: o dado nao vem junto |
 | `lionchat_custom_attributes_destroy` | Exclui a definicao. A skill nao exclui nada |
 
 Todas exigem perfil de administrador. Campo marcado como de sistema nao pode ser renomeado nem
 excluido: a plataforma recusa.
 
+Pastas dos campos (categorias que abrem e fecham na tela): `lionchat_custom_attribute_categories_list`
+/ `_create` / `_update` / `_assign` (poe ou tira um campo da pasta) / `_reorder` / `_destroy` (apagar
+a pasta nunca apaga campo nem valor). Uma pasta pertence a UMA aba (`contact_attribute`,
+`conversation_attribute`, `company_attribute` ou `kanban_item_attribute`). Exigem administrador.
+
 ## 5. Etiquetas da conta, segmentos, empresas e origens
 
 | Ferramenta | O que faz |
 |---|---|
 | `lionchat_labels_list` / `_show` / `_create` / `_update` / `_destroy` | A lista de etiquetas da conta: titulo (sem espaco), cor, descricao e se aparece no menu lateral |
-| `lionchat_custom_filters_list` / `_show` / `_create` / `_update` / `_destroy` | Segmentos (filtros salvos). Use tipo `contact`. As condicoes vao **dentro de `query`, embrulhadas em `payload`** — ver `tipos-de-campo-e-filtros.md`, secao 8; embrulho errado cria um segmento que nao filtra nada, sem erro. **Cada pessoa so enxerga os proprios segmentos** |
-| `lionchat_companies_list` / `_show` / `_search` / `_create` / `_update` / `_destroy` | Empresas. Nao aceitam campo personalizado. O modulo nasce desligado na conta |
+| `lionchat_custom_filters_list` / `_show` / `_create` / `_update` / `_destroy` | Segmentos (filtros salvos). Use tipo `contact`. As condicoes vao **dentro de `query`, embrulhadas em `payload`** — ver `tipos-de-campo-e-filtros.md`, secao 8; embrulho errado ou regra vazia = 422. **O segmento e da CONTA**: todos veem; criar, editar e apagar exige administrador ou cargo com gerenciar contatos, campanhas ou automacoes. Teto de 1.000. Serve como publico de campanha |
+| `lionchat_companies_list` / `_show` / `_search` / `_create` / `_update` / `_destroy` | Empresas, com cadastro (razao social, CNPJ, telefone, e-mail, endereco) e campos personalizados (`custom_attributes`). O modulo nasce desligado na conta. Ver `campos-nativos-e-etiquetas.md`, secao 7 |
+| `lionchat_companies_contacts_list` / `_create` / `_destroy` | Quem esta em cada empresa; ligar um contato (se estava em outra, muda) e tirar. Teto de 100 contatos por empresa |
+| `lionchat_companies_bulk_create` / `lionchat_companies_import_status` | Ate 1000 empresas de uma vez (so no conector remoto) e o andamento dessa importacao |
+| `lionchat_companies_notes_*`, `_documents_list`, `_tasks_list`, `_conversations_list`, `_kanban_items_list` | As abas da pagina da empresa: anotacoes da propria empresa e o que e dos contatos dela |
+| `lionchat_contacts_relationships_list` / `_create` / `_destroy` | Vinculo entre duas fichas (mae e filho). No apagar, o `id` e o do VINCULO, nao o do contato |
 | `lionchat_lead_origins_list` / `_create` / `_update` / `_destroy` | Origens personalizadas. Excluir apenas desativa; criar com nome existente reativa |
+| `lionchat_lead_origins_unrecognized` / `_adopt_unrecognized` / `_dismiss_unrecognized` | Valores de origem que chegaram no link e o sistema nao reconheceu: ver, transformar em origem ou descartar |
+| `lionchat_lead_origins_custom_utms` / `_track_custom_utm` / `_untrack_custom_utm` | UTMs inventadas pelo cliente: ver e transformar em campo de conversa (ate 10) |
 | `lionchat_lead_origin_reports` | O relatorio de Origem dos Leads: de onde vieram, com taxa de conversao |
 | `lionchat_liontrack_journey_stages_*` | Regras que classificam paginas do site em fases da jornada. So funciona se o modulo estiver ligado na conta |
 | `lionchat_journey_funnel_reports` | O mapa de navegacao dos leads no site. Janela maxima de 30 dias |
@@ -170,9 +184,9 @@ contato ativo". Para achar contato, use a listagem, a busca ou o filtro.
 Nao ha ferramenta para nada disto — mande o cliente fazer na tela e registre no resumo final:
 
 - **Importar arquivo de planilha** (Contatos, botao de importar).
-- **Criar, ver e desfazer vinculo entre duas fichas** (aba Vinculos da ficha).
-- **Criar campo de CARD do Kanban** — a ferramenta de campos personalizados so faz contato e
-  conversa; campo de card mora na configuracao do Kanban.
+- **Criar campo de CARD do Kanban** por aqui — a ferramenta de campos personalizados faz contato,
+  conversa, empresa e variavel da conta; campo de card mora na configuracao do Kanban (skill do funil
+  de vendas).
 - **Marcar quais campos de conversa sao obrigatorios para encerrar um atendimento** — fica nas
   configuracoes da conta, e vale a pena avisar o efeito: com isso ligado, o atendente **nao consegue
   encerrar** a conversa sem preencher. E, na pratica, o motivo numero um para existir campo de

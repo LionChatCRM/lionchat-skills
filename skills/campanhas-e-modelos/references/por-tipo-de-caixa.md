@@ -167,8 +167,8 @@ Os 10 motivos de pulo que aparecem no relatorio, e o que dizer ao cliente:
 ## 5. SMS
 
 **So a etiqueta de CONVERSA funciona no publico.** Montar publico de SMS por etiqueta de contato,
-funil, atributo ou atendente resolve zero pessoas e nada avisa. A exclusao, essa sim, funciona
-normalmente.
+funil, atributo ou atendente resolve zero pessoas e nada avisa. Segmento de contatos, no publico ou
+na exclusao, e recusado na hora (422). A exclusao com os outros criterios funciona normalmente.
 
 O disparo de SMS nao cria mensagem no sistema, entao **nao existe placar de entrega nem reenvio de
 falhas** para ele. Tambem nao existem acoes pos-envio nem modo de combinacao.
@@ -246,14 +246,22 @@ Valem no texto livre do QR Code e do SMS, e nos valores das variaveis do modelo 
 | Variavel | O que traz |
 |---|---|
 | `{{contact.name}}` | Nome do contato |
-| `{{contact.first_name}}` | Primeiro nome |
-| `{{contact.phone_number}}` | Telefone |
+| `{{contact.first_name}}` / `{{contact.last_name}}` | Primeiro nome / sobrenome |
+| `{{contact.phone}}` | Telefone (a forma antiga `{{contact.phone_number}}` continua aceita) |
 | `{{contact.email}}` | E-mail |
+| `{{contact.cpf}}`, `{{contact.cnpj}}`, `{{contact.date_of_birth}}`, `{{contact.profession}}`, `{{contact.company_name}}`, `{{contact.job_title}}` | Dados de cadastro da ficha (tambem `rg`, `passport`, `gender`, `marital_status`) |
+| `{{contact.address.city}}`, `{{contact.address.state}}`, `{{contact.address.street}}` | Endereco da ficha (tambem `cep`, `number`, `complement`, `neighborhood`, `country`) |
+| `{{contact.company.legal_name}}`, `{{contact.company.cnpj}}` | Cadastro da EMPRESA do contato (tambem `phone`, `email`, `address.city`, `address.state`); so com o modulo Empresas ligado |
+| `{{contact.company.custom_attribute.chave}}` | Campo personalizado da empresa do contato |
 | `{{contact.custom_attribute.chave}}` | Atributo personalizado da ficha |
-| `{{agent.name}}` | Nome do atendente remetente, se houver |
+| `{{agent.name}}` | Nome do atendente remetente (`sender_id` da campanha); sem remetente sai vazio |
 | `{{inbox.name}}` | Nome da caixa |
 | `{{account.name}}` | Nome da empresa |
 | `{{account.custom_attribute.chave}}` | Variavel da conta |
+
+**Dado da CONVERSA (`{{conversation.*}}`) nao existe no texto da campanha**: a campanha escreve o
+texto antes de existir a conversa, entao sai vazio. No modelo oficial, aponte a variavel no modelo
+(origem `conversation`) e deixe a posicao vazia.
 
 **A variavel da conta exige a forma COMPLETA**: `{{account.custom_attribute.slogan}}`. Nao existe
 atalho `{{slogan}}` — sem o pedaco do meio a variavel sai VAZIA, sem erro. As chaves disponiveis vem

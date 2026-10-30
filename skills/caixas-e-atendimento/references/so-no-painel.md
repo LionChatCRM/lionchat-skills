@@ -30,6 +30,10 @@ Ao excluir, avise antes das consequencias: as conversas ficam em modo somente le
 da caixa sao removidas junto e, em caixa por QR Code, o WhatsApp e desconectado do celular. So
 administrador exclui e a confirmacao pede que ele digite o nome da caixa.
 
+Desde 18/09/2026 a caixa excluida SOME da lista na hora e a vaga do plano fica livre na hora - da
+para conectar outra (ate com o mesmo numero) logo em seguida. O resto do trabalho roda em segundo
+plano; se a exclusao nao terminar, a caixa volta a aparecer sozinha em ate 30 minutos.
+
 ---
 
 ## 2. Ler o QR Code do WhatsApp
@@ -41,9 +45,12 @@ entregar o texto do codigo, mas nao consegue escanear.
 
 Existe tambem um LINK de conexao: uma pagina publica que permite a quem esta com o celular ler o
 codigo sem ter login no painel - util quando o dono do numero nao e quem mexe no sistema. Ele dura 2
-horas, so um link fica valido por vez (gerar outro invalida o anterior) e pode ser revogado. **Esse
-link so pode ser gerado no painel** - nao ha ferramenta para isso. Vale para os tres casos: caixa por
-QR Code, conexao hibrida e a ligacao.
+horas, so um link fica valido por vez (gerar outro invalida o anterior) e pode ser revogado. Desde
+28/08/2026 ele TEM ferramenta (so administrador): `lionchat_inboxes_waha_connect_link_create` /
+`_revoke` (caixa por QR Code), `lionchat_inboxes_coex_backup_connect_link_create` / `_revoke`
+(conexao hibrida) e `lionchat_inboxes_lioncalls_connect_link_create` / `_revoke` (linha de ligacao -
+detalhe na skill `agente-de-ligacao`). Revogar derruba a sessao que o link abriu. Entregue o link
+so a quem vai ler o codigo e revogue ao terminar.
 
 ---
 
@@ -82,14 +89,16 @@ contar 24 horas por dia.
 
 ---
 
-## 6. Aviso de ausencia e conversa unica
+## 6. Conversa unica
 
 **Caminho:** dentro da caixa, aba Configuracoes.
 
-O campo "Mensagem de ausencia" fica logo abaixo da saudacao. O interruptor "Bloquear para conversa
-unica" fica na mesma tela.
+O interruptor "Bloquear para conversa unica" fica nessa tela e nao passa pela ferramenta. Voce
+propoe o valor; o cliente salva. Depois releia a caixa e confirme.
 
-Voce propoe o texto e o valor; o cliente cola e salva. Depois releia a caixa e confirme.
+O aviso de ausencia, que ficava aqui, deixou de ser item de painel: `lionchat_inboxes_update` grava
+o interruptor (`out_of_office_enabled`) e o texto (`out_of_office_message`). O horario da conta, do
+qual ele depende, continua no painel (item 5).
 
 ---
 
@@ -107,12 +116,13 @@ pesquisa.
 
 ## 8. Interruptores do WhatsApp por QR Code
 
-**Caminho:** dentro da caixa, aba Configuracao.
+**Caminho:** dentro da caixa, aba Configuracao. **Tambem por ferramenta:**
+`lionchat_inboxes_update` com `channel.additional_attributes` (ver `configurar-caixa.md`, secao 1).
 
-Aceitar Grupos, Aceitar Canais, Aceitar Lista de Transmissao, Recusar ligacoes (com texto de
-resposta) e Marcar como visto.
+Aceitar Grupos, Recusar ligacoes (com texto de resposta) e Marcar como visto. "Aceitar Canais" e
+"Aceitar Lista de Transmissao" sumiram da tela em 09/10/2026 e ficam sempre desligados.
 
-Avise que ligar ou desligar os tres primeiros reinicia a sessao do WhatsApp por alguns segundos.
+Avise que ligar ou desligar Aceitar Grupos reinicia a sessao do WhatsApp por alguns segundos.
 
 ---
 

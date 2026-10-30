@@ -13,9 +13,9 @@ Formato do mapeamento (vale para os checkouts, o Webhook Universal e o Meta Lead
 ```
 
 - `automation_id` e `flow_id` podem coexistir - os dois disparam.
-- Os dois numeros precisam ser da propria conta. Nos 7 checkouts e no Webhook Universal isso e
-  conferido na hora de gravar (o cadastro e recusado com `automation_id(s) invalidos` ou
-  `flow_id(s) invalidos`); nas demais o numero errado e aceito e simplesmente nunca dispara.
+- Os dois numeros precisam ser da propria conta. Nos 7 checkouts, no Webhook Universal e na
+  e-Clinica isso e conferido na hora de gravar (recusa com 422); nas demais o numero errado e aceito
+  e simplesmente nunca dispara.
 - O casamento nao diferencia maiuscula de minuscula.
 - **Chave inventada e aceita, volta na resposta da API e nunca e lida.** As unicas lidas sao
   `automation_id`, `flow_id` e `first_purchase_only`.
@@ -127,6 +127,9 @@ Monte sempre com estes nomes:
 Na Greenn o endereco tambem e cadastrado POR PRODUTO, nao uma vez so. E **"so a primeira compra" nao
 vale aqui**: a chave e aceita e ignorada.
 
+Desde 28/10/2026 a tela da Greenn mostra estes nomes. Integracao gravada ANTES disso pode estar com
+os numeros antigos: leia o mapeamento e, se achar numero, troque pelo nome (com confirmacao).
+
 ---
 
 ## Omie ERP (29 eventos em 7 categorias)
@@ -163,16 +166,36 @@ vale aqui.**
 
 Aqui nao ha webhook: o LionChat consulta a Conta Azul de 5 em 5 minutos.
 
-## e-Clinica (15 eventos)
+## e-Clinica (21 eventos)
 
-`cliente_novo`, `cliente_alteracao`, `agendamento_novo`, `agendamento_alterado`,
-`agendamento_transferido`, `agendamento_desmarcado`, `agendamento_atendido`,
-`agendamento_aguardando` (paciente chegou), `falta`, `pagamento`, `cliente_baixa_pagamento`,
-`cliente_inclusao_pagamento`, `controle_laboratorio_novo`, `controle_laboratorio_alterado`,
-`odontograma_aprovado`.
+| Evento | O que e |
+|---|---|
+| `cliente_novo` | Paciente cadastrado |
+| `cliente_alteracao` | Cadastro do paciente alterado |
+| `agendamento_novo` | Consulta marcada |
+| `agendamento_alterado` | Consulta alterada |
+| `agendamento_transferido` | Consulta transferida |
+| `agendamento_desmarcado` | Consulta desmarcada |
+| `agendamento_atendido` | Paciente atendido |
+| `agendamento_aguardando` | Paciente chegou (na sala de espera) |
+| `agendamento_confirmado_link` | Paciente CONFIRMOU pelo link do portal da e-Clinica |
+| `agendamento_cancelado_link` | Paciente CANCELOU pelo link do portal (tratado como desmarcado: cancela o lembrete pendente) |
+| `falta` | Paciente faltou |
+| `pagamento` | Pagamento |
+| `cliente_baixa_pagamento` | Baixa de pagamento |
+| `cliente_inclusao_pagamento` | Cobranca/carne criado, ainda nao pago |
+| `cliente_alteracao_pagamento` | Cobranca EDITADA - dispara a cada edicao; nao sirva para "nova cobranca" |
+| `controle_laboratorio_novo` | Controle de laboratorio criado |
+| `controle_laboratorio_alterado` | Controle de laboratorio alterado |
+| `odontograma_aprovado` | Plano de tratamento aprovado |
+| `odontograma_finalizado` | Plano de tratamento INTEIRO concluido |
+| `procedimento_finalizado` | UM procedimento do plano concluido - dispara uma vez POR procedimento; o fluxo precisa filtrar |
+| `inclusao_procedimento` | Procedimento ACRESCENTADO ao plano, ainda nao feito (serve para orcamento, nao para orientacao pos-procedimento) |
 
-**O mapeamento da e-Clinica e as reguas de lembrete sao tela** - o conector so le. Ver
-`so-no-painel.md`.
+Mapeamento plano, um alvo por evento: `{"agendamento_novo": {"automation_id": 12, "flow_id": null}}`.
+Evento fora da lista = 422; alvo de outra conta = 422. **Grava pelo conector desde 31/08/2026**
+(`lionchat_eclinica_integrations_update`) e SUBSTITUI o mapeamento inteiro: leia antes e devolva
+completo. Token e unidades continuam sendo tela. Lembretes: ver `ferramentas-mcp.md`, secao 6.
 
 ---
 

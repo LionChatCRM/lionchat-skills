@@ -1,6 +1,6 @@
 ---
 name: configurar-conta
-description: Entrevista o usuario sobre o negocio dele e configura a conta LionChat (funis, etapas, tags, respostas rapidas, campos personalizados, automacoes, times, SLA e horarios) via API. Use quando o usuario quer configurar uma conta LionChat nova, montar funil de vendas, estruturar processo de atendimento, "configurar conta", "montar funil", "setup inicial" ou frases similares. O fluxo e interativo e sempre confirma antes de criar qualquer coisa.
+description: Entrevista o usuario sobre o negocio dele e configura a conta LionChat (funis, etapas, tags, respostas rapidas, campos personalizados, automacoes, times, SLA e horarios) pelo conector do LionChat (as ferramentas `lionchat_*`). Use quando o usuario quer configurar uma conta LionChat nova, montar funil de vendas, estruturar processo de atendimento, "configurar conta", "montar funil", "setup inicial" ou frases similares. O fluxo e interativo e sempre confirma antes de criar qualquer coisa.
 ---
 
 # Configurar Conta LionChat
@@ -100,84 +100,86 @@ Pergunta no final: **"Confirma que posso criar tudo isso? (s/n ou me diga o que 
 
 Se o usuario pedir ajustes, refaca a proposta e pergunta de novo. NAO avance sem "sim" explicito (ou equivalente: "pode", "beleza", "confirmado", "manda ver").
 
-### Etapa 4 — Pedir credenciais
+### Etapa 4 — Conferir a conexao e a conta
 
-Apos confirmacao:
+Apos confirmacao, rode a rotina de pre-voo da skill `conectar-lionchat` (ela e a base de todas as skills):
 
-```
-Pra executar preciso de 2 coisas:
+1. **Provar a conexao.** Conector remoto: `lionchat_current_account`. Conector local: `lionchat_ping`.
+   Nenhuma ferramenta `lionchat_` na sua lista = o cliente ainda nao conectou: siga a `conectar-lionchat`
+   para ligar a conta antes de qualquer coisa.
+2. **Dizer em texto o NOME da conta** em que voce vai mexer e esperar o "sim". Conta errada: no remoto,
+   `lionchat_list_my_accounts` e `lionchat_switch_account`; no local, o campo `account_id` na chamada.
+3. **Ler o terreno:** `lionchat_account_show` (fuso, plano e `resource_limits` - quantos atendentes e
+   caixas cabem), `lionchat_inboxes_list`, `lionchat_agents_list`, `lionchat_teams_list`.
 
-1. Seu account_id — numero da conta. Aparece na URL:
-   app.lionchat.com.br/app/accounts/SEU_NUMERO_AQUI/dashboard
+Para criar tudo desta skill o usuario precisa ser **administrador** da conta (ou ter um cargo que libere
+cada area).
 
-2. Seu API token — Configuracoes > Perfil > API Access Token
-   (copiar o valor completo)
-
-Me passa os 2?
-```
-
-**Validacoes obrigatorias apos receber:**
-
-1. `account_id` deve ser um inteiro positivo. Se o usuario passar algo tipo `abc` ou `12.5`, avisa e pergunta de novo.
-2. `token` deve ter pelo menos 20 caracteres e nao conter espacos. Se o usuario colar algo muito curto, avisa.
-
-**Validar credenciais chamando a API antes de criar qualquer coisa:**
-
-```bash
-curl -s -o /tmp/lc_check.json -w "%{http_code}" \
-  --max-time 10 \
-  --url https://app.lionchat.com.br/api/v1/accounts/{account_id} \
-  --header 'api_access_token: {token}'
-```
-
-- `200` → ok, continua
-- `401` → "Token invalido. Vai em Configuracoes > Perfil e copia o API Access Token de novo."
-- `404` → "Nao consegui entrar na conta {account_id}. Ou o numero esta errado (confere na URL do painel),
-  ou seu usuario nao tem acesso a ela." **NAO afirme so uma das duas** — o sistema responde 404 nos dois
-  casos de proposito, pra nao revelar a existencia de contas de outros clientes.
-- Qualquer outro → "Erro {X} ao validar credenciais. Tenta de novo ou me passa outro token."
-
-**Nao espere 403 aqui** — esse endpoint nunca devolve 403.
-
-**IMPORTANTE sobre seguranca:**
-- NAO salvar token em arquivo por padrao.
-- NAO commitar token em git (avisa se ver o usuario tentando).
-- Token fica so na sessao atual do Claude Code.
-- NUNCA mostra o token completo em logs — mascara sempre: `api_access_token: lc_prod_***`
-- Se o usuario pedir pra salvar pra proxima vez, avisa: "vou salvar em `~/.lionchat/credentials` (fora do seu projeto, permissao 600, nunca vai pro GitHub)".
+**Sem conector (caminho antigo, so se o cliente nao puder conectar):** da para usar chamada direta com o
+Token de acesso, como em `references/api-endpoints.md` (secao 0). Nesse caminho o token NUNCA aparece inteiro
+em texto (mascare: `api_access_token: lc_prod_***`), nao e salvo em arquivo do projeto e nao vai para o git.
+Prefira sempre o conector: ele aplica as mesmas permissoes da tela, cuida do embrulho do corpo e registra a
+origem no historico de Auditoria.
 
 ### Etapa 5 — Executar
 
-Use `curl` via Bash. Sempre nessa ordem (dependencias):
+Use as ferramentas do conector. Sempre nessa ordem (dependencias). O corpo de cada uma (campos e
+exemplos) esta em `references/api-endpoints.md`, na secao indicada:
 
-1. **Configuracoes gerais da conta** (PATCH `/accounts/{id}`) — timezone, locale, nome
-2. **Atributos personalizados de contato e conversa** (POST `/custom_attribute_definitions`) — usa `attribute_model: 1` para contato, `0` para conversa
-3. **Motivos de ganho/perda + atributos de card + modelos de checklist** (PUT `/kanban_config`) — wrap `{"kanban_config": {...}}`. **Mecanismo diferente:** ficam em `global_custom_attributes` e `checklist_templates` (arrays jsonb). O GET **sempre responde 200** (cria a configuracao sozinho se nao existir) — nunca 404, e nao precisa de POST. Fazer GET pra ler os existentes, appendar os novos e mandar o array COMPLETO no PUT: o que voce nao mandar, some. **Guarde o `id` de cada modelo de checklist** — vai ser usado pelas automacoes de etapa.
-4. **Tags/Labels** (POST `/labels`) — lembrar de wrap `{"label": {...}}`
-5. **Respostas rapidas** (POST `/canned_responses`) — wrap `{"canned_response": {...}}`
-6. **Times** (POST `/teams`) — wrap `{"team": {...}}`
-7. **Funil** (POST `/funnels`) — wrap `{"funnel": {...}}` — PRECISA existir antes das automacoes. **Guarde o ID retornado.**
-8. **Automacoes de etapa** — **NAO tem endpoint proprio.** Vao DENTRO do funil, em `settings.automations`. O jeito limpo e mandar junto no POST do passo 7 (voce mesmo define as chaves das etapas, entao ja sabe como referencia-las). Em funil que ja existe: GET `/funnels/{id}`, junta ao `settings` atual e PATCH com o `settings` inteiro. **Nao use `/kanban/automations` — essa rota foi removida e responde 404.**
-9. **Regras de automacao globais** (POST `/automation_rules`) — **SEM wrap, payload PLANO.** Embrulhado, a criacao falha.
-10. **SLA** (POST `/sla_policies`) — wrap `{"sla_policy": {...}}`. **Pode falhar com 403 se o recurso SLA nao estiver liberado na conta** (ele nasce desligado) — se falhar, pula e avisa no final.
-11. **Macros** (POST `/macros`) — SEM wrap. `action_params` sempre array.
-12. **Variaveis da conta** (POST `/account_variables`) — wrap `{"variable": {...}}`. **Campos sao `attribute_display_name`, `attribute_key`, `attribute_description`, `attribute_display_type`, `value`.** No texto usa-se `{{account.custom_attribute.CHAVE}}` — com o `custom_attribute` no meio, senao sai em branco.
+1. **Configuracoes gerais da conta** - `lionchat_account_settings_update` (fuso, idioma, nome; secao 1).
+   **NAO use `lionchat_account_update`**: apesar do nome, ele grava o PERFIL do usuario logado. Fuso
+   invalido e descartado em silencio: releia com `lionchat_account_show`. Em conta que ja usa a integracao
+   e-Clinica, trocar o fuso RECALCULA os lembretes pendentes para sair no mesmo horario de relogio no fuso
+   novo - avise o cliente antes.
+2. **Atributos personalizados de contato, conversa e empresa** - `lionchat_custom_attributes_create`
+   (`attribute_model`: `0` conversa, `1` contato, `3` empresa; secao 2.1). Se o cliente quiser os campos em
+   pastas, `lionchat_custom_attribute_categories_create` e `lionchat_custom_attribute_categories_assign`
+   (secao 2.5).
+3. **Motivos de ganho/perda + atributos de card + modelos de checklist** - `lionchat_kanban_config_list`
+   para ler e `lionchat_kanban_config_update` com as listas COMPLETAS (secoes 2.2 a 2.4). A leitura sempre
+   responde (cria a configuracao sozinha se nao existir). O que voce nao mandar, some. **Guarde o `id` de
+   cada modelo de checklist** - vai ser usado pelas automacoes de etapa.
+4. **Tags/Labels** - `lionchat_labels_create` (secao 3).
+5. **Respostas rapidas** - `lionchat_canned_responses_create` (secao 4).
+6. **Times** - `lionchat_teams_create` (secao 5).
+7. **Funil** - `lionchat_funnels_create` (secao 6). PRECISA existir antes das automacoes. **Guarde o ID e as
+   chaves das etapas.**
+8. **Automacoes de etapa** - **NAO tem ferramenta propria.** Vao DENTRO do funil, em `settings.automations`
+   (secao 7). O jeito limpo e mandar junto na criacao do passo 7. Em funil que ja existe:
+   `lionchat_funnels_show`, junte ao `settings` atual e `lionchat_funnels_update` com o `settings` inteiro.
+9. **Regras de automacao globais** - `lionchat_automation_rules_create` (secao 8). Leia a regra do conector
+   para automacao: a ULTIMA condicao precisa ter o conector de ligacao (`query_operator`) nulo.
+10. **SLA** - `lionchat_sla_create` (secao 9). **Pode ser recusado se o recurso SLA nao estiver liberado na
+    conta** (ele nasce desligado) - se falhar, pula e avisa no final.
+11. **Macros** - `lionchat_macros_create` (secao 10). `action_params` sempre array.
+12. **Variaveis da conta** - `lionchat_account_variables_create` (secao 12). No texto usa-se
+    `{{account.custom_attribute.CHAVE}}` - com o `custom_attribute` no meio, senao sai em branco.
+13. **Convidar atendentes**, se o cliente pediu e passou os e-mails - `lionchat_agents_create` (um, com nome,
+    papel, times e caixas) ou `lionchat_agents_bulk_create` (varios so por e-mail). Cada pessoa recebe um
+    convite por e-mail. Confira antes em `resource_limits` se o plano comporta: estourar o limite e recusado.
 
 **Antes de criar cada item, listar pra evitar duplicata:**
-- Tags: `GET /labels` e comparar por `title`
-- Respostas: `GET /canned_responses` e comparar por `short_code`
-- Funis: `GET /funnels` e comparar por `name`
+- Tags: `lionchat_labels_list` e comparar por `title`
+- Respostas: `lionchat_canned_responses_list` e comparar por `short_code`
+- Funis: `lionchat_funnels_list` e comparar por `name`
+- Atributos: `lionchat_custom_attributes_list` e comparar por `attribute_key`
+- Atendentes: `lionchat_agents_list` e comparar por e-mail
 
 Para cada chamada:
 - Mostra 1 linha do que esta criando: `Criando tag "fonte-instagram"... OK`
-- Se der `422` com `param is missing or the value is empty: X` → falha de wrap key (faltando ou sobrando). Corrige o formato do payload.
+- Se der `422` com `param is missing or the value is empty: X` → campo com nome errado (com o conector, o
+  campo desconhecido some e o corpo fica vazio). Confere os nomes na ficha da ferramenta.
 - Se der `422` normal → mostra mensagem do backend e pergunta se pula ou corrige.
-- Se der `401` → para tudo. Token ficou invalido no meio.
+- Se der `401` com mensagem de token ("Invalid Access Token") → para tudo: a conexao perdeu a validade.
+- Se der `401` com "You are not authorized to do this action" → **nao e token**: o usuario nao tem
+  permissao para AQUELA area. Pula o item e reporta no final (precisa de administrador).
 - Se der `403` em SLA → pula (recurso nao liberado na conta) e reporta no final.
-- Se der `404` → o endpoint nao existe. Confere contra `references/api-endpoints.md` antes de insistir.
+- Se der `404` → o item ou a rota nao existe. Confere contra `references/api-endpoints.md` antes de insistir.
 - Se der `500` → tenta 1 vez de novo. Se falhar de novo, pula e reporta.
+- Se a ferramenta recusar pedindo `confirm:true` → nao e erro: descreve o efeito, espera o "sim" e reenvia a
+  MESMA chamada com `confirm:true`.
 
-**Endpoints e exemplos curl**: ver `references/api-endpoints.md`.
+**Campos e exemplos de corpo**: ver `references/api-endpoints.md`.
 
 ### Etapa 6 — Resumo final
 
@@ -195,14 +197,16 @@ Criado na sua conta:
   [X] regras globais
   [X] macros
   [X] variaveis da conta
+  [X] atendentes convidados (o convite chega por e-mail)
 
 NAO CRIADOS (problemas):
   - SLA: o recurso nao esta liberado nessa conta (se aplicavel) — fale com o suporte
   - [outros erros que aconteceram]
 
-PROXIMOS PASSOS MANUAIS (API nao faz):
-  1. Conectar seu WhatsApp em Inboxes (precisa QR Code)
-  2. Convidar agentes em Configuracoes > Agentes
+PROXIMOS PASSOS MANUAIS (o conector nao faz):
+  1. Conectar seu WhatsApp: quem le o QR Code e voce, com o celular
+     (eu posso gerar um link de conexao para quem esta com o celular)
+  2. Os atendentes convidados precisam aceitar o convite do e-mail
   3. Se usar Hotmart/Guru/Kiwify, configurar webhook em Integracoes
   4. Se voce quer follow-up automatico com atraso (ex: cobrar em 48h),
      isso se monta em Fluxos — nao e automacao
@@ -215,16 +219,17 @@ as automacoes disparando.
 ## Regras que nao podem ser violadas
 
 1. **NUNCA cria algo sem confirmacao explicita** — "sim", "pode", "confirmado", "beleza", "manda ver". Se o usuario nao foi claro, pergunta de novo.
-2. **NUNCA inventa endpoints** — se nao estiver em `references/api-endpoints.md`, pergunta antes.
-3. **NUNCA expoe o token nos logs** — se precisar mostrar curl, mascara: `api_access_token: lc_prod_***`.
+2. **NUNCA inventa ferramenta nem endpoint** — se nao estiver na sua lista de ferramentas nem em `references/api-endpoints.md`, pesquise pelo padrao `lionchat_<area>_<acao>` e, se nao achar, pergunte.
+3. **NUNCA expoe o token** — no caminho sem conector, se precisar mostrar uma chamada, mascara: `api_access_token: lc_prod_***`.
 4. **NUNCA deleta nada** — skill e so pra CRIAR. Se o usuario quer deletar algo, avisa que precisa fazer manualmente no painel.
-5. **NUNCA usa wrap errado.** COM wrap: `labels`, `canned_responses`, `teams`, `funnels`, `sla_policies`, `kanban_config`, `account_variables`. SEM wrap (payload plano): `accounts`, `custom_attribute_definitions`, `automation_rules`, `macros`, `inboxes`. **`automation_rules` embrulhado FALHA** — e o erro mais caro da lista.
-6. **SEMPRE valida credenciais antes de executar** — GET `/accounts/{id}` antes de qualquer POST.
+5. **Embrulho do corpo:** com o conector, mande os campos como a ficha da ferramenta mostra - ele embrulha sozinho onde precisa. So no caminho sem conector o embrulho e seu: COM wrap `labels`, `canned_responses`, `teams`, `funnels`, `sla_policies`, `kanban_config`, `account_variables`; SEM wrap `accounts`, `custom_attribute_definitions`, `automation_rules`, `macros`, `inboxes`. **`automation_rules` embrulhado FALHA.**
+6. **SEMPRE prova a conexao e diz o nome da conta antes de executar** — `lionchat_current_account` (remoto) ou `lionchat_ping` (local) antes de qualquer criacao.
 7. **SEMPRE em portugues brasileiro** — mensagens, etapas, tags, respostas. Nomes de variaveis (snake_case) ficam em ingles.
-8. **SEMPRE usa `curl -s --max-time 10`** — silent e com timeout, nunca sem.
+8. **SEMPRE releia o que criou** (`_list` ou `_show` da area) — campo que a ferramenta nao conhece some sem erro e a resposta diz sucesso.
 9. **NAO usa emojis** em nada que vai pra conta (nomes de etapa, tags, respostas) — o cliente pode nao querer.
 10. **NAO inventa nicho** — se o cliente for muito vago, pergunta mais. Nao chuta "dentista" se ele so disse "consultorio".
-11. **NUNCA promete que automacao de etapa manda mensagem** — ela nao manda. As 8 acoes dela estao na secao 7 do `references/api-endpoints.md`. Mensagem para o cliente sai por automacao GLOBAL (imediata) ou por Fluxo (com atraso).
+11. **NUNCA promete que automacao de etapa manda mensagem** — ela nao manda. As 9 acoes dela estao na secao 7 do `references/api-endpoints.md`. Mensagem para o cliente sai por automacao GLOBAL (imediata) ou por Fluxo (com atraso).
+13. **NUNCA monta automacao de etapa com `notify_team`** (hoje so grava um registro interno, ninguem e avisado) **nem com `assign_agent` no gatilho ganho/perdido** (card fechado nao aceita responsavel novo: nao faz nada). Para avisar o time, use automacao GLOBAL (`send_email_to_team` ou `add_private_note`) ou uma nota no card (`create_note`).
 12. **NUNCA promete espera longa em automacao global** — o "Aguardar" dela tem teto de 5 minutos e corta o resto em silencio. Espera de horas/dias e Fluxo.
 
 ## Se o usuario perguntar o que voce pode fazer
@@ -233,9 +238,10 @@ Responde:
 
 > Eu configuro sua conta LionChat baseado no seu negocio:
 > funis de venda, etapas personalizadas, tags de segmentacao,
-> respostas rapidas, campos personalizados, modelos de checklist,
-> automacoes de etapa do funil, regras de automacao globais, times,
-> SLA (se o recurso estiver liberado) e horario de atendimento.
+> respostas rapidas, campos personalizados (e as pastas deles),
+> modelos de checklist, automacoes de etapa do funil, regras de
+> automacao globais, times, SLA (se o recurso estiver liberado),
+> horario de atendimento e o convite dos seus atendentes.
 >
 > Eu NAO desenho fluxos nem configuro o agente de IA — se o que voce
 > precisa e mensagem automatica com atraso, isso se monta em Fluxos.

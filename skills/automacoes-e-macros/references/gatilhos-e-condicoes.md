@@ -64,6 +64,11 @@ conversa, ou o idioma detectado.
 Condicoes que a tela oferece: as mesmas de Conversa Criada, **menos** "qualquer conversa" e
 "conteudo".
 
+**Formulario tambem acorda este gatilho** (desde 20/10/2026): formulario de captacao preenchido
+(pelo link publico ou pela equipe, de dentro da conversa) grava os atributos da conversa pelo mesmo
+caminho da edicao manual, entao dispara "Acao na conversa" com o recorte "Atributo personalizado
+alterado". Avise o cliente se ja existir regra assim.
+
 **Armadilha:** pela tela e obrigatorio escolher o recorte (secao 3). Pelas ferramentas esse campo
 nao existe — a regra nasce **sem recorte**, disparando em qualquer mudanca, inclusive em campos que
 nem tem recorte proprio (carimbo de primeira resposta, adiamento, "aguardando desde"). Uma regra que
@@ -109,7 +114,7 @@ existem as variaveis de agendamento no texto.
   automacao. Se voce gravar condicao por fora, ela e ignorada.
 
 ### Card Kanban Criado / Card Kanban Movido
-Quem executa e um motor **diferente**, que so conhece 10 acoes e 3 condicoes. Ver secao 8 aqui e a
+Quem executa e um motor **diferente**, que so conhece 11 acoes e 3 condicoes. Ver secao 8 aqui e a
 lista de acoes em `acoes.md`.
 
 - Card Kanban Criado: unica condicao que a tela oferece e o funil (com a etapa embutida), e so com
@@ -145,7 +150,8 @@ Cada condicao tem estas partes:
 
 - `attribute_key` — que campo olhar (catalogo na secao 6)
 - `filter_operator` — como comparar. Cada campo aceita so um subconjunto; operador fora do
-  subconjunto **invalida a regra inteira** e, na segunda falha, o sistema a desliga sozinho.
+  subconjunto **invalida a regra inteira**: ela para de rodar e fica marcada com o problema (bolinha
+  vermelha no menu e aviso na linha da regra). Desde 22/09/2026 ela NAO e desligada.
 - `values` — o valor, **sempre uma lista**, mesmo com um item so. So "preenchido" e "vazio"
   dispensam. Em "contem", cada item da lista e procurado separadamente e basta um bater — mas o
   texto **nao** e quebrado por virgula: `preco, orcamento` num item so vira uma frase unica. E se o
@@ -153,8 +159,8 @@ Cada condicao tem estas partes:
   virgulas; por isso, para varias palavras, prefira **uma condicao por palavra ligadas por OU**.
   Em etiqueta, so o primeiro valor da lista e usado.
 - `query_operator` — o conector com a condicao SEGUINTE (secao 5)
-- `custom_attribute_type` — so quando o campo e atributo personalizado: `conversation_attribute` ou
-  `contact_attribute`
+- `custom_attribute_type` — so quando o campo e atributo personalizado: `conversation_attribute`,
+  `contact_attribute` ou `company_attribute` (secao 7)
 
 Para "sempre, sem filtro", use uma unica condicao com `any_conversation` (na tela: "Qualquer
 conversa"). Lista de condicoes vazia nunca e o certo.
@@ -215,6 +221,12 @@ Operadores em portugues: `equal_to` = igual a, `not_equal_to` = diferente de, `c
 | Etiquetas | `labels` | igual a, diferente de, preenchido, vazio |
 | Link de origem | `referer` | igual a, diferente de, contem, nao contem |
 | Assunto do e-mail | `mail_subject` | igual a, diferente de, contem, nao contem |
+| Veio de anuncio pago? (25/10/2026) | `origin_paid` | igual a, diferente de. Valores: `paid`, `not_paid`, `unknown`, `unclassified` |
+
+**"Veio de anuncio pago?"** junta clique no anuncio E formulario do anuncio (Meta). Para "so lead de
+anuncio" use esta, com `values: ["paid"]` - nao o tipo de origem `paid_ad`, que esquece o lead do
+formulario (caso real: um cliente ficou 16 dias com a IA desligada para esses leads). E calculada na
+hora a partir da origem gravada; vale nos gatilhos de conversa e de mensagem.
 
 ### Campos da mensagem (so nos gatilhos que tem mensagem)
 
@@ -230,7 +242,9 @@ Operadores em portugues: `equal_to` = igual a, `not_equal_to` = diferente de, `c
 | E-mail | `email` | igual a, diferente de, contem, nao contem |
 | Nome | `name` | igual a, diferente de, contem, nao contem |
 | Identificador | `identifier` | igual a, diferente de, contem, nao contem |
-| Empresa | `company` | igual a, diferente de, contem, nao contem |
+| Empresa (texto da ficha) | `company_name` | igual a, diferente de, contem, nao contem |
+| Cargo | `job_title` | igual a, diferente de, contem, nao contem |
+| (antigo) Empresa | `company` | igual a, diferente de, contem, nao contem — **nao use**: le um campo que nada grava (0 contatos medidos), nunca casa. Regra antiga com ela fica como esta; em regra nova use `company_name` |
 | Pais | `country_code` | igual a, diferente de |
 | Telefone | `phone_number` | igual a, diferente de, contem, nao contem, comeca com |
 
@@ -253,8 +267,15 @@ O `attribute_key` e a chave do atributo. Ele precisa **existir na conta antes** 
 `lionchat_custom_attributes_list`. Se nao existir, a regra e recusada com uma mensagem dizendo que a
 condicao nao e suportada.
 
-E preciso informar tambem se o atributo e da conversa (`conversation_attribute`) ou do contato
-(`contact_attribute`).
+E preciso informar tambem se o atributo e da conversa (`conversation_attribute`), do contato
+(`contact_attribute`) ou da EMPRESA do contato (`company_attribute`, 16/10/2026).
+
+**Atributo da empresa:** a chave e a de um campo personalizado de empresa
+(`lionchat_custom_attributes_list`, `attribute_model` `company_attribute`) e pode ser igual a de um
+campo de contato - quem decide e o `custom_attribute_type`. Operadores por tipo: todos aceitam igual
+a, diferente de, preenchido e vazio; texto tambem contem/nao contem; numero, data e hora tambem
+maior/menor que. As negativas incluem contato SEM empresa. Com o modulo Empresas desligado na conta
+a condicao nunca casa (nem a negativa).
 
 Operadores por tipo de atributo:
 
@@ -264,9 +285,10 @@ Operadores por tipo de atributo:
 | Numero, Moeda, Porcentagem, Data, Data e Hora, Hora | igual a, diferente de, preenchido, vazio, maior que, menor que |
 | Lista, Sim/Nao | igual a, diferente de, preenchido, vazio |
 
-**Perigo real:** se o atributo existia e foi apagado depois, a regra passa a falhar na validacao e,
-na **segunda** falha, o sistema **desliga a regra sozinho** e manda e-mail aos administradores. O
-cliente ve a chave desligada e nao entende por que. Editar as condicoes zera esse contador.
+**Perigo real:** se o atributo existia e foi apagado depois, a regra passa a falhar na validacao e
+**para de rodar**. Desde 22/09/2026 ela continua LIGADA e nao manda e-mail: fica marcada com o
+problema (bolinha vermelha no menu de Automacoes e aviso na linha da regra, dizendo qual condicao).
+Corrigir e salvar as condicoes (ou as acoes) limpa a marca; a primeira execucao boa tambem limpa.
 
 Vale o mesmo para chaves que a regra aceita gravar mas o motor nao sabe traduzir: **funil e etapa do
 funil num gatilho de CONVERSA**, e a politica de SLA como condicao. Nao use nenhuma das tres.

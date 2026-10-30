@@ -6,7 +6,7 @@ Indice:
 3. Convite ainda nao aceito: os vinculos ficam pendentes
 4. Trocar um atendente por outro
 5. Times
-6. Cargos personalizados: os 20 poderes
+6. Cargos personalizados: os 25 poderes e os menus ocultos
 7. Como as permissoes de conversa se somam
 8. Cargos prontos
 9. Grade de disponibilidade do agente
@@ -30,7 +30,8 @@ Duas listas na mesma operacao:
 **Use sempre `lionchat_inbox_members_update`.** A ferramenta de criar (`lionchat_inbox_members_create`)
 tem descricao enganosa: apesar do texto dizer que substitui a lista e citar supervisores, na pratica
 ela apenas ACRESCENTA quem falta e ignora a lista de supervisores - todo mundo entra como agente
-normal. Quem substitui de verdade e entende supervisor e a de atualizar.
+normal (conferido no codigo em 30/10/2026). Quem substitui de verdade e entende supervisor e a de
+atualizar.
 
 `lionchat_inbox_members_update` recebe a lista COMPLETA: quem nao estiver em `user_ids` nem em
 `supervisor_ids` e REMOVIDO da caixa. Mandar "so o novo" tira todo mundo que ja estava.
@@ -58,13 +59,17 @@ Para ler o que esta valendo: `lionchat_inbox_members_show`.
 | `custom_role_id` | cargo personalizado; use junto com `role: agent` |
 | `team_ids` | lista COMPLETA dos times |
 | `inboxes` | lista COMPLETA das caixas, cada uma com o cargo: `[{inbox_id, supervisor}]` |
+| `email` (so no update) | troca o e-mail de login. O link de confirmacao vai para o e-mail NOVO e o antigo continua valendo ate a pessoa confirmar; agente que ainda nao confirmou o convite troca direto |
 
 `lionchat_agents_update` altera. Cuidados:
 
 - **`team_ids` e `inboxes` reconciliam**: o agente SAI de todo time e de toda caixa que nao estiver na
   lista enviada. Se voce so quer acrescentar, leia o que ele ja tem e reenvie tudo.
-- **Se voce enviar `custom_role_id` vazio numa alteracao parcial, o cargo personalizado e APAGADO.**
-  Omita o campo quando nao for para mexer nele.
+- **Se voce enviar `custom_role_id` vazio (null) numa alteracao parcial, o cargo personalizado e
+  APAGADO.** Omita o campo quando nao for para mexer nele.
+- Ninguem muda o PROPRIO cargo: alterar o cargo do usuario logado devolve 422. Times e caixas dele
+  podem ser alterados.
+- `auto_offline: false` ("permanecer disponivel") so administrador concede.
 - Omitir `team_ids` e `inboxes` por completo nao mexe em nada - e o comportamento seguro.
 
 Outras ferramentas uteis: `lionchat_agents_list` (quem existe), `lionchat_agents_assignments` (a
@@ -119,7 +124,7 @@ Marcar supervisor de time nao e possivel pelas ferramentas: e no painel.
 
 ---
 
-## 6. Cargos personalizados: os 20 poderes
+## 6. Cargos personalizados: os 25 poderes e os menus ocultos
 
 Dao poderes extras a um agente sem promove-lo a administrador. Na tela ficam em Configuracoes >
 Funcoes Personalizadas. Dependem de um recurso de plano; se nao estiver liberado, a criacao e
@@ -134,6 +139,7 @@ faz a criacao ser recusada. A lista fechada e:
 | `conversation_unassigned_manage` | Ver as proprias mais as que estao sem responsavel |
 | `conversation_participating_manage` | Ver as proprias mais aquelas em que foi incluido |
 | `conversation_team_manage` | Ver as proprias, aquelas em que participa e as do time dele |
+| `conversation_assigned_manage` | Ver as conversas dos colegas que JA TEM responsavel (nas caixas de que e membro) - nunca a fila sem dono (02/10/2026) |
 | `conversation_delete` | Apagar conversa |
 | `contact_manage` | Gerenciar contatos |
 | `contact_export_import` | Exportar e importar contatos |
@@ -144,26 +150,46 @@ faz a criacao ser recusada. A lista fechada e:
 | `kanban_delete` | Apagar cards do Kanban |
 | `kanban_export_import` | Exportar e importar cards |
 | `funnel_manage` | Gerenciar funis |
+| `kanban_ai_analyze` | O botao "Analisar com IA" do Kanban. Tambem depende de recurso de plano (28/10/2026) |
 | `offer_manage` | Gerenciar ofertas |
-| `campaign_manage` | Gerenciar campanhas |
-| `automation_manage` | Gerenciar automacoes e fluxos |
-| `marketing_integrations_manage` | Gerenciar integracoes de marketing |
+| `campaign_manage` | Gerenciar campanhas (inclui disparos da TopSend) |
+| `automation_manage` | Gerenciar automacoes. NAO cobre fluxos (21/09/2026) |
+| `marketing_integrations_manage` | Gerenciar integracoes de marketing (Pixel da Meta, Google Ads, Analytics) |
 | `captain_manage` | Gerenciar o agente de IA |
-| `flowbuilder_manage` | Liberar as pecas sensiveis do fluxo (ferramenta de IA e registro de execucao). O editor visual de fluxo ja e aberto ao atendente |
+| `flowbuilder_manage` | Gerenciar FLUXOS: criar, editar, duplicar, apagar, ligar e abrir o editor, mais ferramenta de IA e registro de execucao. Desde 21/09/2026 e o UNICO jeito de quem nao e administrador mudar um fluxo; ver a lista continua aberta |
+| `lead_form_manage` | Menu Formularios (formularios publicos de captacao). Sem ele o menu some |
+| `signature_manage` | Menu Assinaturas e a aba Contratos da ficha. Cancelar contrato enviado e apagar modelo continuam so de administrador |
+| `agenda_manage` | A agenda de TODO mundo: marcar, remarcar, cancelar e excluir compromisso de qualquer pessoa e mexer no link de agendamento dos colegas. Nao cria agenda nova (unidade) |
 
 O cargo personalizado e sempre aplicado junto com o papel de agente, e so limita DENTRO das caixas
 das quais a pessoa ja e membro. Ele nao da acesso a caixa nenhuma.
+
+Nomes que a tela marca juntos (mande a lista ja completa): `conversation_manage` inclui as outras
+quatro de conversa; `conversation_team_manage` inclui `conversation_participating_manage`;
+`kanban_manage` inclui `kanban_view`. Agente SEM cargo nao tem `lead_form_manage` nem
+`signature_manage`.
+
+**Menus ocultos (`hidden_menus`, 02/10/2026).** Lista dos menus que o administrador DESMARCOU em
+"Acessar menu X": `contacts`, `companies`, `kanban`, `flows` (Fluxos e Automacao juntos), `macros`,
+`ai_agent`, `help_center`, `agenda`, `internal_chat`. Substitui a lista inteira (`[]` mostra tudo);
+campo ausente nao mexe. Recusado com 422: menu desconhecido e menu oculto JUNTO do "Gerenciar" da
+mesma area (ex.: `kanban` oculto com `kanban_manage`; `flows` oculto com `flowbuilder_manage` ou
+`automation_manage`; `agenda` oculto com `agenda_manage`). Menu oculto some da barra e a tela fecha
+no servidor, mas o que a pessoa usa DENTRO da conversa continua (executar macro, ligar a IA, agendar).
+Nunca esconde nada de administrador.
 
 ---
 
 ## 7. Como as permissoes de conversa se somam
 
-As quatro permissoes de conversa **SOMAM**, nao restringem uma a outra. Marcar "nao atribuidas" e "do
-meu time" ao mesmo tempo entrega os dois conjuntos, nao a intersecao.
+As cinco permissoes de ver conversa (`conversation_manage`, `_unassigned_manage`,
+`_participating_manage`, `_team_manage`, `_assigned_manage`) **SOMAM**, nao restringem uma a outra.
+Marcar "nao atribuidas" e "do meu time" ao mesmo tempo entrega os dois conjuntos, nao a intersecao.
 
-Nao marcar nenhuma das quatro deixa a pessoa praticamente cega: so enxerga as conversas em que ela
-foi colocada como participante, as que estao num card do Kanban dela e as de caixa ja excluida. E a
-regra do produto e simples: quem VE a conversa PODE responder.
+Nao marcar nenhuma deixa a pessoa praticamente cega: so enxerga as conversas em que ela foi colocada
+como participante, as que estao num card do Kanban dela e as de caixa ja excluida. E a regra do
+produto e simples: quem VE a conversa PODE responder. Os avisos ao vivo seguem a mesma regra: quem
+nao pode abrir a conversa nao recebe o aviso dela (nem no aplicativo de celular).
 
 ---
 

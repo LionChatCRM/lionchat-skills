@@ -87,7 +87,7 @@ Existem DUAS coisas diferentes com o mesmo apelido. Escolher a errada e o erro m
 | Age sobre | o card | a conversa (e o card, quando o evento e de card) |
 | Manda mensagem? | **NAO** | **SIM**, na hora |
 | Tem atraso? | nao | so ate 5 minutos |
-| Serve pra | organizar o card: checklist, atendente, nota, mover, avisar time, webhook | falar com o cliente, etiquetar, atribuir, mexer no card |
+| Serve pra | organizar o card: checklist, atendente, nota, mover, tarefa na agenda, webhook | falar com o cliente, avisar o time, etiquetar, atribuir, mexer no card |
 
 **Regra de ouro: mensagem com ATRASO nao e automacao — e Fluxo.** "Cobrar em 48h quem nao respondeu"
 NAO se monta aqui. A automacao de etapa nao manda mensagem nenhuma, e a espera da automacao global
@@ -96,14 +96,20 @@ estrutura e **avise o cliente que a cobranca automatica se monta em Fluxos**, qu
 e dias. Nao prometa o que a automacao nao faz.
 
 **Nao existe gatilho de tempo parado.** "Ao ficar 7 dias na mesma etapa" nao e um gatilho do sistema —
-nem na automacao de etapa (que so tem card criado, card chegou na etapa, card ganho/perdido) nem na
-global. Quem faz espera e o Fluxo.
+nem na automacao de etapa (que so tem card criado, card chegou na etapa, card ganho/perdido/adiado) nem
+na global. Quem faz espera e o Fluxo.
 
 **O que a automacao de ETAPA resolve bem:**
 - Ao criar o card → aplicar o checklist daquela fase (`apply_checklist_template`)
-- Ao chegar numa etapa → atribuir o atendente responsavel (`assign_agent`)
-- Ao marcar ganho/perdido → escrever nota interna (`create_note`) ou avisar o time (`notify_team`)
+- Ao chegar numa etapa → atribuir o atendente responsavel (`assign_agent`) - so com o card ABERTO: no gatilho
+  ganho/perdido o card ja esta fechado e a atribuicao nao acontece
+- Ao marcar ganho/perdido → escrever nota interna (`create_note`)
+- Ao chegar numa etapa → criar uma tarefa na Agenda presa ao card, com prazo e responsavel (`create_task`)
 - Ao chegar numa etapa → disparar webhook pra um sistema de fora (`send_webhook`)
+
+**NAO use `notify_team`** para "avisar o time": hoje ela so grava um registro interno e ninguem e avisado.
+Para avisar de verdade, use automacao GLOBAL (`send_email_to_team` manda e-mail para o time;
+`add_private_note` deixa recado interno na conversa) ou a nota no card (`create_note`).
 
 **O que a automacao GLOBAL resolve bem:**
 - Conversa nova numa caixa → atribuir ao time certo (`assign_team`)
@@ -111,9 +117,10 @@ global. Quem faz espera e o Fluxo.
 - Card foi para "Perdido" → aplicar etiqueta na conversa (`add_label`)
 - Conversa resolvida → etiquetar, mudar prioridade
 
-**Atencao com evento de card na automacao global:** ali so valem dez acoes (`send_message`,
+**Atencao com evento de card na automacao global:** ali so valem onze acoes (`send_message`,
 `add_label`, `change_priority`, `assign_agent_to_kanban_item`, `add_note_to_kanban_item`,
-`move_kanban_item_to_stage`, `set_kanban_item_status`, os dois de cronometro e `send_webhook_event`).
+`move_kanban_item_to_stage`, `set_kanban_item_status`, `snooze_kanban_item`, os dois de cronometro e
+`send_webhook_event`).
 Escolher outra — `assign_team`, por exemplo — cria a regra, mostra ela ativa e **nao faz nada**.
 
 **NAO criar automacao de mensagem spam:**
@@ -138,12 +145,13 @@ Exemplo: cliente diz "preciso saber o plano de saude do paciente"
 | E-commerce | ticket_medio (currency), produto_interesse (list), forma_pagamento (list) |
 | SaaS B2B | cargo (text), tamanho_empresa (list), integracao_necessaria (list) |
 
-**Os 3 tipos de atributo personalizado:**
+**Os tipos de atributo personalizado:**
 
 | Tipo | Quando usar | Exemplo | Onde fica |
 |------|-------------|---------|-----------|
 | **Contato** (`attribute_model=1`) | Dado do cliente que nao muda (ou muda pouco). Fica com ele pra sempre, independe da conversa atual. | CPF, plano de saude, cargo, cidade, aniversario | `custom_attribute_definitions` (endpoint 2.1) |
 | **Conversa** (`attribute_model=0`) | Dado de uma negociacao especifica. Muda por conversa. | valor_orcamento, data_visita, status_documentos, canal_origem | `custom_attribute_definitions` (endpoint 2.1) |
+| **Empresa** (`attribute_model=3`) | Dado da EMPRESA a que o contato pertence (so com o modulo Empresas ligado na conta). | segmento, numero de funcionarios, contrato ativo | `custom_attribute_definitions` (endpoint 2.1) |
 | **Card Kanban** (`kanban_item_attribute`) | Dado que e **do card do Kanban** — ou seja, pertence ao negocio/oportunidade representada pelo card. Visivel no detalhe do card. | proposta_enviada_em, tipo_contrato, comissao, concorrente_principal | `kanban_config.global_custom_attributes` (endpoint 2.2) |
 
 **Como decidir qual usar:**
@@ -151,6 +159,8 @@ Exemplo: cliente diz "preciso saber o plano de saude do paciente"
 - "Esse dado fica com o cliente sempre?" → **Contato**
 - "Esse dado e da negociacao atual (vai mudar se for outra negociacao)?" → **Conversa**
 - "Esse dado e do card no pipeline (ex: proposta, comissao, motivo de perda)?" → **Card**
+- "Esse dado e da empresa do cliente, igual para todos os contatos dela?" → **Empresa** (B2B com o modulo
+  Empresas)
 
 **Exemplo pratico (odontologia):**
 - **Contato**: plano_saude, cpf, data_nascimento (caracteristicas do paciente)

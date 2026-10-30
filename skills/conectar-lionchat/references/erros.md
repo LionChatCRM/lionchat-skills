@@ -15,7 +15,8 @@ Indice:
 
 | O que aconteceu | O que significa | Repetir adianta? | O que dizer ao cliente |
 |---|---|---|---|
-| **Acesso negado / nao autorizado** | o token ou o login perdeu validade | nao | "Sua conexao com o LionChat perdeu a validade. Refaca a conexao (ou gere o Token de acesso de novo em Configuracoes do Perfil)." |
+| **Acesso negado / nao autorizado (401), mensagem de token ou login** ("Invalid Access Token", sessao expirada) | o token ou o login perdeu validade | nao | "Sua conexao com o LionChat perdeu a validade. Refaca a conexao (ou gere o Token de acesso de novo em Configuracoes do Perfil)." |
+| **Nao autorizado (401) com "You are not authorized to do this action" ou "...to access this account"** | **NAO e token vencido.** O usuario esta logado, mas o papel dele nao permite AQUELA acao (falta administrador ou o cargo personalizado nao tem a permissao), ou ele nao e membro daquela conta | nao | "Seu usuario nao tem permissao para isso nessa conta. Um administrador precisa fazer, ou liberar no seu cargo." **Nao mande renovar o token** — nao resolve. Pule o item e reporte |
 | **Acesso proibido, mensagem de MCP nao habilitado** | portao de liberacao: a conta nao tem o recurso ou o usuario nao e administrador | nao | ver secao 2 |
 | **Acesso proibido, sem mensagem de MCP** | o usuario nao tem permissao para AQUELA acao, ou o recurso especifico esta desligado na conta (por exemplo SLA, que nasce desligado) | nao | "Essa parte nao esta liberada na sua conta. Pule ou fale com o suporte." Pule o item e reporte no resumo final |
 | **Pagamento necessario** | bateu no limite do plano (atendentes, caixas) | nao | ver secao 3 |
@@ -23,6 +24,7 @@ Indice:
 | **Dado invalido** | algum campo esta em formato errado | nao, corrija primeiro | leia a mensagem, corrija o campo, tente uma vez |
 | **Muitas chamadas** | freio de frequencia do conector remoto (120 por minuto) | so depois de 1 minuto | "Vou continuar em um minuto, o sistema pediu uma pausa." Continue de onde parou |
 | **Erro do servidor** | falha temporaria da plataforma | uma vez so | tente uma vez; se falhar de novo, pule e reporte |
+| **"Server not initialized"** (conector remoto) | defeito antigo do conector remoto: depois de um reinicio do servidor, a sessao guardada se perdia e o programa do cliente desistia de vez. **Corrigido na versao 1.27.0 (01/10)** | nao | Se aparecer, o cliente reconecta o conector uma vez (em Conectores). Se voltar a acontecer, nao e esta causa: procure token vencido, endereco errado do conector ou o corte do canal de avisos |
 | **Recusa pedindo `confirm:true`** | **nao e erro.** E o sistema exigindo o OK do cliente | sim, depois do "sim" dele | descreva o efeito, espere o sim, reenvie a MESMA chamada com `confirm:true` |
 | **Ferramenta desconhecida** | o nome que voce usou nao existe | nao | pesquise pelo padrao `lionchat_<area>_<acao>`. Ver `armadilhas.md`, secao 3 |
 
@@ -92,7 +94,7 @@ e.
 Antes de dizer ao cliente que a plataforma nao faz alguma coisa, percorra nesta ordem:
 
 1. **Pesquise o catalogo** pelo padrao `lionchat_<area>_<acao>`. Alguns clientes de IA nao carregam
-   as 850 ferramentas de uma vez, e ja aconteceu de uma sessao negar uma funcao que existia.
+   as 969 ferramentas de uma vez, e ja aconteceu de uma sessao negar uma funcao que existia.
 2. **Confira a lista de nomes errados** em `armadilhas.md`, secao 3 — ha 4 nomes que circulam por ai
    e nao existem.
 3. **Confira `nao-tem-caminho.md`.** Se estiver la, a resposta certa nao e "nao existe": e "isso

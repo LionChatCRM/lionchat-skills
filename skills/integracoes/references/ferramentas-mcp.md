@@ -151,14 +151,45 @@ eventos por categoria. **"So a primeira compra" nao funciona aqui.**
 
 ## 6. e-Clinica
 
-**Pelo conector e SO LEITURA.** Token, unidades, mapeamento de evento e as reguas de lembrete sao
-tela (ver `so-no-painel.md`).
+Token e unidades sao TELA (ver `so-no-painel.md`). O mapeamento evento -> alvo e os lembretes
+automaticos o conector GRAVA desde 31/08/2026. Tudo so administrador.
 
 | Ferramenta | Caminho |
 |---|---|
-| `lionchat_eclinica_integrations_list` / `_show` | a integracao da conta, com situacao, mapeamento, lembretes, `webhook_url` e as UNIDADES (cada uma com endereco proprio) |
-| `lionchat_eclinica_integrations_events` / `_retry_event` | historico (este pagina) e reprocessamento |
-| `lionchat_eclinica_reminder_history_list` / `_reprocess` | historico dos lembretes disparados e reenvio de um deles |
+| `lionchat_eclinica_integrations_list` / `_show` | a integracao da conta (uma por conta), com situacao, mapeamento, lembretes, `webhook_url` e as UNIDADES (cada uma com endereco proprio) |
+| `lionchat_eclinica_integrations_update` | PATCH - `event_mapping` e `reminder_config` (e `name`). **SUBSTITUI o conteudo inteiro dos dois**: leia com `_show`, altere so o necessario e devolva COMPLETO, senao apaga o resto do cliente |
+| `lionchat_eclinica_integrations_events` / `_retry_event` | historico (50 por pagina, janela de 7 dias, filtro `event_type`) e reprocessamento (so `failed` ou `skipped`) |
+| `lionchat_eclinica_reminder_history_list` / `_reprocess` | historico dos lembretes disparados e reenvio de UM lembrete `failed` |
+
+**Cada linha de `reminder_config`** (ate 20): `days_before` (inteiro >= 0), `event_type`
+(`agendamento` padrao | `controle_laboratorio_novo` | `cliente_inclusao_pagamento`), `flow_id` e/ou
+`automation_id` (pelo menos um; com os dois a AUTOMACAO vence; alvo de outra conta = 422), `label`,
+`dispatch_time` (OBRIGATORIA: `HH:MM` fixo ou formula com variavel) e, opcional,
+`filter_field` (comeca com `eclinica_`) / `filter_operator` (`contains`, `equal`, `not_equal`) /
+`filter_value`. Duas linhas com a MESMA regua (dias, tipo e filtro iguais) = 422.
+
+Regras que mudam o que o paciente recebe - avise antes de gravar:
+
+- **Lembrete por automacao roda as ACOES sem avaliar as CONDICOES** da automacao.
+- **Um aviso POR CONSULTA** (desde 17/09/2026), nos dois caminhos: duas consultas no dia, ou dois
+  pacientes no mesmo celular, recebem um aviso para cada, alguns minutos um do outro. Quem quer so um
+  por dia monta isso no FLUXO (condicao com `{{data_consulta}}`); na automacao nao da.
+- **Variaveis na automacao alvo de lembrete**: `{{eclinica_lembrete.<campo>}}` (`data_consulta`,
+  `hora_consulta`, `profissional`, `compromisso`, `paciente_nome`, `unidade`, `link_confirmacao`,
+  `idagenda`, `cliente_id`, `agendatipo`, `cor`; laboratorio: `data_prevista`, `data_entrega`,
+  `data_referencia`; cobranca: `vencimento`, `valor`, `descricao`) - a consulta DAQUELE lembrete,
+  data em DD/MM/AAAA. NUNCA a ficha `{{contact.custom_attribute.eclinica_*}}`: ela guarda so a
+  ULTIMA consulta avisada e manda a data de outra. O nome antigo `{{agendamento.*}}` ainda funciona.
+  No FLUXO nada muda (`{{data_consulta}}` etc.).
+- **Caixa de envio por QR Code:** os lembretes que vencem juntos saem um de cada vez, com 20 a 40
+  segundos entre eles, para proteger o numero.
+- **Fuso da conta:** trocar o fuso faz os lembretes ja programados sairem no mesmo horario do fuso
+  novo (07/10/2026).
+- **Telefone trocado na clinica:** se o numero novo ja e de outro contato aqui, os avisos (campos
+  `eclinica_*` e lembretes pendentes) passam para o contato do numero novo; nenhum telefone e trocado
+  e as duas conversas ganham uma pilula explicando. As fichas nao sao juntadas sozinhas.
+- **Dois avisos no mesmo instante** ("paciente novo" + "agendamento novo") nao criam mais duas
+  conversas (07/10/2026).
 
 ---
 
@@ -174,7 +205,8 @@ tela (ver `so-no-painel.md`).
 | `lionchat_google_ads_integrations_list` / `_show` / `_update` / `_destroy` | `/google_ads_integrations` | **Nao tem criar** - a conexao e autorizacao no navegador |
 | `lionchat_google_ads_integrations_list_customers` | GET | As contas de anuncio disponiveis |
 | `lionchat_google_ads_integrations_list_conversion_actions` | GET | As acoes de conversao para montar o de-para |
-| `lionchat_funnels_meta_events_config` | PATCH `/funnels/{id}/meta_events_config` | Qual evento sai em cada ETAPA. **Junta com o que ja existe** - mande so o que muda |
+| `lionchat_funnels_meta_events_config` | PATCH `/funnels/{id}/meta_events_config` | Qual evento sai em cada ETAPA, inclusive `messaging_name` (anuncio de WhatsApp). **Junta com o que ja existe** - mande so o que muda |
+| `lionchat_inboxes_capi_dataset_link` | POST `/inboxes/{id}/capi_dataset` | Vincula a caixa Oficial ao conjunto de dados da WABA. Automatico hoje; isto e o plano B. Escrita, so administrador, 10 por hora |
 | `lionchat_funnels_meta_capi_events_list` / `_show` / `_retry` | historico do Pixel, por funil |
 | `lionchat_funnels_ga4_events_list` / `_show` / `_retry` | historico do Analytics |
 | `lionchat_funnels_google_ads_conversions_list` / `_show` / `_retry` | historico do Google Ads |
@@ -194,10 +226,14 @@ tela (ver `so-no-painel.md`).
 | `lionchat_google_calendar_create_2` | POST `/google_calendar/sync_now` |
 | `lionchat_google_calendar_list_4` / `_update` | agendas compartilhadas: listar e gravar a escolha |
 | `lionchat_google_calendar_reactivate` / `_destroy` | reativar e desconectar |
+| `lionchat_google_calendar_agendas` | GET `/google_calendar/agendas` - uma linha por AGENDA (unidade) com o estado do Google dela |
 | `lionchat_google_contacts_status` / `_connect` / `_toggle_sync` / `_backfill` / `_disconnect` | `/google_contacts/...` |
 
-Uma conexao por conta, so administrador. Desconectar apaga as escolhas de agendas compartilhadas e
-elas nao voltam ao reconectar.
+Google Calendar: so administrador conecta, e desde 13/09/2026 a conexao e UMA POR AGENDA (unidade),
+nao uma por conta - conta com varias agendas pode ligar uma conta Google em cada (informe a agenda
+ao pedir o link). Agenda que ja tem a conexao de outro administrador recusa a nova com 409:
+desconecte a atual antes. Desconectar apaga as escolhas de agendas compartilhadas e elas nao voltam
+ao reconectar. Google Contatos continua uma conexao por conta.
 
 ---
 
@@ -237,3 +273,24 @@ sai agora). **A chave da TopSend e cadastrada na tela**, nao pelo conector.
 | `lionchat_flows_executions_list` | GET `/flows/{id}/executions` | Historico de sessoes do fluxo, com filtro por situacao e data |
 | `lionchat_contacts_form_entries_list` / `_show` | GET `/contacts/{contact_id}/form_entries` | Por pessoa: tudo que ela preencheu ou que entrou por ela - formulario da conta, formulario de anuncio do Meta, Webhook Universal e webhook embutido de fluxo |
 | `lionchat_integrations_waha_check_phone` | GET `/integrations/waha/check_phone` | Confere se um numero tem WhatsApp, usando a caixa de QR Code da conta |
+
+---
+
+## 11. PABX VTCall
+
+Ligacao pelo PABX VTCall da empresa (nao e o WhatsApp). Tudo de configuracao e so administrador;
+`_settings_show` qualquer agente le (diz se o botao de ligar esta disponivel para ele).
+
+| Ferramenta | Caminho | Observacao |
+|---|---|---|
+| `lionchat_vtcall_settings_show` | GET `/voip/vtcall_settings` | Situacao (`configured`, `active`), servidor, gravacao, transcricao, se o atendente logado tem ramal e, para administrador, o `webhook_url` |
+| `lionchat_vtcall_settings_update` | PATCH | `vtcall_server`, `vtcall_token`, `gravar_audio`, `auto_transcribe`, `transcription_provider`, `transcription_api_key`, `transcription_language`, `ai_summary_source`. `active` e calculado: liga quando servidor E token estao preenchidos. Servidor fora da lista permitida = 422 |
+| `lionchat_vtcall_settings_test_connection` | POST `.../test_connection` | Confere a conexao com o servidor |
+| `lionchat_vtcall_ramals_list` / `_create` / `_destroy` | `/voip/vtcall_ramals` | Um ramal por atendente; `_create` e "grava ou troca" pelo `user_id` |
+| `lionchat_vtcall_settings_destroy` | DELETE | Desconexao TOTAL: apaga configuracao e TODOS os ramais (o historico de ligacoes e as gravacoes ficam). Voce nao usa - skill nao apaga |
+
+Ordem: servidor e token -> testar -> ramal de cada atendente -> entregar o `webhook_url` para colar no
+painel do VTCall (sem ele nao chega ligacao nenhuma). Ligacao discada direto no aparelho/aplicativo
+do VTCall tambem e registrada (desde 11/09/2026), mas SO para ramal cadastrado aqui; numero que nao e
+contato fica so no historico, sem criar contato. "Atendida" mede coisas diferentes: pelo botao Ligar
+a central marca quando o atendente atende o proprio ramal; pelo aparelho, quando o cliente atende.

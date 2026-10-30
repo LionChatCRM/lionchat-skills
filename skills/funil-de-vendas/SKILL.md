@@ -1,6 +1,6 @@
 ---
 name: funil-de-vendas
-description: Monta, revisa e conserta o funil de vendas (Kanban) da conta LionChat - etapas, campos do card, modelos de checklist, motivos de ganho e perda, ofertas e automacoes de etapa - entrevistando o dono do negocio antes e so criando depois de confirmacao explicita. Use quando a pessoa disser "monta meu funil", "cria um kanban", "organiza meu funil de vendas", "quero acompanhar minhas vendas", "meus leads somem", "quanto eu vendi no mes", "automatiza quando o card mudar de etapa", "como marco ganho e perdido", "quero um checklist padrao por negocio", ou pedir relatorio de conversao entre etapas, ranking de vendedor e motivo de perda - mesmo que ela nao use a palavra funil.
+description: Monta, revisa e conserta o funil de vendas (Kanban) da conta LionChat - etapas, campos do card, modelos de checklist, motivos de ganho e perda, ofertas e automacoes de etapa - entrevistando o dono do negocio antes e so criando depois de confirmacao explicita. Use quando a pessoa disser "monta meu funil", "cria um kanban", "organiza meu funil de vendas", "quero acompanhar minhas vendas", "meus leads somem", "quanto eu vendi no mes", "automatiza quando o card mudar de etapa", "como marco ganho e perdido", "quero um checklist padrao por negocio", "me avisa quando o lead ficar parado", "adia esse negocio para o mes que vem", "o vendedor esqueceu de marcar as vendas", "tenho a planilha do financeiro", "a venda foi do mes passado", "o SDR tambem participou da venda", "a IA pode revisar meus cards", ou pedir relatorio de conversao entre etapas, ranking de vendedor e motivo de perda - mesmo que ela nao use a palavra funil.
 ---
 
 # Funil de vendas (Kanban) no LionChat
@@ -20,6 +20,7 @@ Os nomes de ferramenta neste manual sao os do conector do LionChat (por exemplo 
 - `lionchat_account_show` - a resposta traz a lista de recursos liberados. Se `kanban_board` NAO estiver la, o item Kanban nem aparece no menu lateral do cliente: pare e avise que o recurso precisa ser liberado antes (as ferramentas continuam criando funil, mas ele ficaria invisivel na tela).
 - `lionchat_funnels_list` - funis e etapas que ja existem, com a quantidade de cards por etapa. Traz as chaves reais das etapas, que voce vai precisar depois.
 - `lionchat_kanban_config_list` - motivos de ganho e de perda, modelos de checklist, campos do card e preferencias (isso e por conta, vale para todos os funis).
+- Os mesmos recursos dizem se a conta tem `unified_agenda` (a Agenda, que a acao "Criar tarefa" do funil exige) e `kanban_ai_analysis` (o "Analisar com IA"). Sem eles, nao proponha essas duas coisas.
 - `lionchat_offers_list` - o catalogo de produtos e servicos com preco.
 - `lionchat_labels_list` e `lionchat_custom_attributes_list` - o que ja existe como etiqueta e como campo de contato ou de conversa.
 
@@ -33,10 +34,12 @@ Diga em uma frase o que ja existe e pergunte se e para aproveitar ou comecar do 
 4. Quem sao os vendedores? Todos podem ver todos os negocios, ou cada um so ve os seus?
 5. Quando um negocio se perde, quais sao os motivos mais comuns? E quando se ganha?
 6. Existe alguma rotina que se repete em todo negocio (documentos, passos de abertura)?
-7. O que precisa acontecer sozinho? (criar o cartao quando o lead chega, abrir cartao no pos-venda quando ganhar, aplicar uma lista de tarefas ao entrar numa etapa)
+7. O que precisa acontecer sozinho? (criar o cartao quando o lead chega, abrir cartao no pos-venda quando ganhar, aplicar uma lista de tarefas ao entrar numa etapa, criar uma tarefa na agenda do vendedor, avisar quando o lead ficar parado)
 8. Precisa MANDAR MENSAGEM para o cliente em alguma etapa? Isso nao e automacao de etapa - avise e trate a parte.
 9. Que informacao extra voces anotam de cada negocio? Ela e da PESSOA, daquele ATENDIMENTO ou daquele NEGOCIO?
 10. Tem base antiga para importar? A planilha tem telefone com o codigo do pais (55)?
+11. Alguem alem do vendedor participa da venda (um SDR que traz o lead)? Isso vira o co-participante do ganho.
+12. O financeiro tem uma planilha das vendas que de fato aconteceram? Ela entra pelo "Importar vendas" e acerta o mes de cada venda.
 
 ### Etapa 2 - DECIDIR
 
@@ -80,6 +83,11 @@ AUTOMACOES DE ETAPA (X) - mexem no proprio cartao, NAO mandam mensagem
   Ao criar o cartao        -> aplicar o checklist "[nome]"
   Ao entrar em "[etapa]"   -> [acao]
   Ao marcar Ganho          -> duplicar para o funil "[nome]"
+  Ao adiar o cartao        -> [acao]
+  Ao entrar em "[etapa]"   -> criar tarefa "[titulo]" para [quem], prazo [quando]
+
+AVISO DE CARTAO PARADO (X) - e um FLUXO, nao automacao de etapa
+  [etapa] ha mais de [tempo] -> [o que o fluxo faz]
 
 MENSAGEM PARA O CLIENTE (X) - isso NAO e automacao de etapa
   [descreva] - sai por automacao da conta, fluxo, macro ou agente de IA
@@ -107,7 +115,8 @@ Ordem obrigatoria (cada passo depende do anterior). Antes de criar qualquer item
 
 Em cada chamada, mostre uma linha do que esta fazendo: `Criando a etapa "Proposta"... ok`. Se der erro:
 
-- **Recusa dizendo que a etapa ainda tem cartoes**: mova os cartoes antes com `lionchat_funnels_create_2` (transferir cartoes entre etapas) e so entao apague a etapa.
+- **Recusa 422 `STAGE_HAS_ITEMS`** (gravou as etapas sem uma que tem cartoes): a etapa NAO foi apagada. Excluir etapa com cartoes e `lionchat_funnels_remove_stage`, que move os cartoes em silencio para a etapa que voce disser e so entao apaga a etapa - so com pedido explicito do dono e o numero de cartoes dito antes. **Nunca use `lionchat_funnels_create_2` para "esvaziar antes de apagar"**: ele move DISPARANDO tudo que esta ligado a etapa de destino (automacoes, regras, fluxos, avisos externos, conversoes de anuncio) para cada cartao, e nao apaga a etapa. Detalhe em `references/ferramentas-mcp.md`.
+- **Recusa 409 `FUNNEL_BUSY`**: o funil esta sendo alterado agora por outra pessoa ou por uma exclusao de etapa. Espere alguns instantes e repita.
 - **Recusa ao apagar o funil**: funil com cartao nao e apagado. Use `lionchat_funnels_archive` para tira-lo das abas sem perder nada.
 - **Recusa por permissao**: pare e diga qual permissao falta, sem tentar outro caminho.
 - **Qualquer erro nao previsto**: pare, mostre o erro e pergunte se pula ou corrige. Nunca invente outra ferramenta.
@@ -141,17 +150,19 @@ SO DA PARA FAZER NA MAO, NO PAINEL
 ## Regras que nao podem ser violadas
 
 1. **NUNCA cria ou altera nada sem confirmacao explicita** - "sim", "pode", "confirmado", "beleza", "manda ver". Se a resposta foi ambigua, pergunte de novo.
-2. **NUNCA apaga nada** - nem funil, nem etapa, nem cartao, nem oferta, nem motivo. Se a pessoa quer apagar, explique onde ela faz isso no painel. Arquivar funil e a unica saida que voce oferece, e mesmo assim so com autorizacao.
+2. **NUNCA apaga nada** - nem funil, nem etapa, nem cartao, nem oferta, nem motivo. Se a pessoa quer apagar, explique onde ela faz isso no painel. Arquivar funil (`active: false`) e a unica saida que voce oferece, e mesmo assim so com autorizacao. A unica excecao e EXCLUIR ETAPA COM CARTOES quando o dono pede com todas as letras: ai o caminho e `lionchat_funnels_remove_stage` (os cartoes mudam de etapa, nenhum e apagado), depois de dizer quantos cartoes vao para onde.
 3. **NUNCA inventa nome de ferramenta, de gatilho ou de acao.** Gatilho e acao fora da lista sao gravados sem erro e nunca rodam. A lista fechada esta em `references/automacoes-do-funil.md`.
 4. **SEMPRE leia antes de gravar, e sempre reenvie a lista completa** nas configuracoes do funil e nas listas da configuracao do Kanban. O que voce nao repetir e apagado em silencio.
 5. **SEMPRE use a CHAVE da etapa, nunca o nome visivel**, em automacao, filtro e relatorio. Com o nome, a automacao e salva e nunca dispara, e o filtro volta vazio.
-6. **NUNCA prometa que automacao de etapa manda mensagem para o cliente.** Ela nao manda. Das oito acoes dela, "avisar o time" apenas escreve uma linha de registro interno - nao chega a ninguem.
-7. **NUNCA prometa aviso de cartao parado nem notificacao no sininho quando um cartao cair para alguem.** Nao existe. O que existe e a medicao "cartoes parados" no relatorio e o aviso para sistema externo.
+6. **NUNCA prometa que automacao de etapa manda mensagem para o cliente.** Ela nao manda. Das nove acoes dela, "avisar o time" apenas escreve uma linha de registro interno - nao chega a ninguem, e a tela nem oferece mais essa acao.
+7. **NUNCA prometa notificacao no sininho quando um cartao cair para alguem.** Nao existe. Aviso de cartao PARADO existe desde 28/10/2026, mas e um FLUXO com o gatilho "Card aberto na etapa" ou "Card aberto no funil" - nao automacao de etapa. Ver `references/automacoes-do-funil.md`.
 8. **NUNCA dispare um fluxo no cartao (`lionchat_kanban_items_start_flow`) sem autorizacao para aquele disparo especifico** - o fluxo FALA com o cliente de verdade.
 9. **NUNCA rode importacao de planilha com as automacoes ligadas.** Cada linha importada conta como cartao novo e dispara tudo.
 10. **SEMPRE em portugues do Brasil, sem emoji**, nos nomes de etapa, oferta, motivo e checklist - eles aparecem para o cliente final.
 11. **NUNCA invente o negocio da pessoa.** Se a resposta foi vaga, pergunte mais em vez de chutar um processo generico.
 12. **NUNCA toque em cobranca, plano, fatura, cartao de credito ou saldo da conta**, nem que a pessoa peca.
+13. **NUNCA aplique as sugestoes do "Analisar com IA" sem confirmacao.** Aplicar NAO TEM COMO DESFAZER: fica como se uma pessoa tivesse mexido a mao e as automacoes, os fluxos e as conversoes de anuncio disparam. Mostre o custo antes de analisar e a lista de mudancas antes de aplicar. Ver `references/analisar-com-ia.md`.
+14. **NUNCA aplique uma planilha de vendas sem passar pela conferencia.** `lionchat_kanban_sales_reconciliation_preview` primeiro, resumo para o dono, e so depois `lionchat_kanban_sales_reconciliation_apply`. Ver `references/registrar-vendas.md`.
 
 ## Armadilhas (o que falha em silencio)
 
@@ -162,22 +173,27 @@ Detalhe e como sair de cada uma em `references/armadilhas.md`. As que mais custa
 - **Se voce usar o nome visivel da etapa onde o sistema espera a chave**, a automacao e salva e nunca roda, e o filtro devolve vazio. Sem mensagem de erro.
 - **Se voce criar cartao apontando para uma etapa que nao existe mais**, ele e redirecionado sem aviso para outra coluna. Sempre confira na resposta onde o cartao caiu.
 - **Se voce escrever o campo personalizado do cartao no lugar errado**, o dado e gravado, nao da erro, e nunca aparece na aba Dados Adicionais nem casa no filtro. Ver `references/onde-guardar-o-dado.md`.
-- **Se voce gravar uma automacao de etapa desligada "para ativar depois", ou sem preencher o destino**, ela e descartada no proximo salvamento do funil pela tela.
+- **Se voce gravar uma automacao de etapa sem preencher o destino** (mover sem etapa, dar dono sem pessoa, criar tarefa sem titulo), ela e descartada no proximo salvamento do funil pela tela. Desligada ela fica guardada, mas nao roda.
 - **Se voce escrever o valor do cartao a mao num cartao que tem oferta**, o valor e substituido pela soma das ofertas antes de salvar. Parece que o campo nao salva.
 - **Se voce ler o campo de checklist da resposta procurando as tarefas**, na maioria das leituras vem so a contagem, sem nenhum texto - e voce conclui que um cartao com 12 tarefas nao tem checklist. Para ler de verdade, use `lionchat_kanban_items_kanban_checklist_list`.
-- **Se voce importar a planilha com as automacoes ligadas**, cada linha dispara a automacao de cartao criado e o evento de etapa: milhares de avisos, atribuicoes e copias de uma vez. Importe antes de ligar, ou desligue durante a carga.
+- **Se voce importar a planilha com as automacoes ligadas**, cada linha dispara a automacao de cartao criado e o evento de etapa: milhares de avisos, atribuicoes e copias de uma vez. Importe antes de ligar, ou desligue durante a carga. (A unica que se protege sozinha e "Criar tarefa": cartao importado nao cria tarefa.)
 - **Se a planilha vier com telefone sem o codigo do pais**, o cartao e criado sem contato e sem conversa, em silencio - ele nunca fala com ninguem.
 - **Se voce comparar dois relatorios de datas diferentes**, os numeros divergem de proposito: o relatorio do funil inteiro e o relatorio de uma etapa usam reguas de data diferentes por padrao. Ver `references/relatorios-e-reguas-de-data.md`.
-- **Se voce reabrir um cartao Ganho para "aberto"**, a data do ganho, quem marcou e a quem foi creditado sao apagados: aquele ganho some dos relatorios.
+- **Se voce pedir o relatorio de UMA etapa sem ligar ganhos, perdidos e adiados**, ele conta so os abertos e as outras linhas voltam zeradas - a etapa parece menor do que e.
+- **Se um cartao "sumiu" da coluna**, confira se ele foi ADIADO: cartao adiado sai do quadro e so aparece com o botao Adiados ligado. Ele volta sozinho na data.
+- **Se voce reabrir um cartao Ganho para "aberto"**, a data do ganho, quem marcou, a quem foi creditado e o co-participante sao apagados: aquele ganho some dos relatorios.
+- **Se voce marcar Ganho hoje uma venda que aconteceu no mes passado**, ela conta no mes de hoje. Use o lancamento retroativo (`retroativo_em`) ou o "Importar vendas". Ver `references/registrar-vendas.md`.
 
 ## O que eu faco e o que eu nao faco
 
 > Eu desenho e monto o seu funil de vendas: as etapas na ordem do seu processo,
 > o catalogo de ofertas com preco, os campos extras do cartao, os modelos de
 > checklist, os motivos de ganho e de perda, quem enxerga o quadro e as
-> automacoes que mexem no proprio cartao. Tambem leio os numeros do funil,
-> acho os cartoes por filtro e explico onde cada informacao deve morar
-> (etiqueta, campo do contato, campo da conversa ou campo do cartao).
+> automacoes que mexem no proprio cartao (inclusive criar tarefa na agenda).
+> Tambem leio os numeros do funil, acho os cartoes por filtro, registro as
+> vendas da planilha do financeiro no mes certo, marco o SDR como
+> co-participante e, se voce quiser, peco para a IA revisar os cartoes e
+> sugerir o que mudar - voce aprova antes de qualquer mudanca.
 >
 > Eu NAO apago nada e nao mexo em cobranca. Automacao de etapa nao manda
 > mensagem para o seu cliente: mensagem sai por regra da conta, por fluxo,
@@ -185,9 +201,9 @@ Detalhe e como sair de cada uma em `references/armadilhas.md`. As que mais custa
 > com o cliente depois que voce autorizar aquele disparo.
 >
 > Estas coisas so dao para fazer na mao, no painel: subir a planilha de
-> importacao, anexar arquivo no cartao ou na anotacao, subir a foto da
-> oferta, escrever os modelos de mensagem por etapa, apagar cartoes em
-> massa e duplicar um funil inteiro.
+> importacao de cartoes, anexar arquivo no cartao ou na anotacao, subir a
+> foto da oferta, escrever os modelos de mensagem por etapa, apagar cartoes
+> em massa (a tela tem selecao em lote) e duplicar um funil inteiro.
 >
 > Me conte por quais momentos um negocio passa ate voce fechar a venda, o
 > que voce vende e quem sao seus vendedores. A partir disso eu proponho a
@@ -198,8 +214,10 @@ Detalhe e como sair de cada uma em `references/armadilhas.md`. As que mais custa
 Leia cada arquivo quando o momento chegar, nao antes:
 
 - `references/onde-guardar-o-dado.md` - etiqueta, campo do contato, campo da conversa e campo do cartao: qual escolher, e o que ja e nativo. **Leia antes de propor qualquer campo novo.**
-- `references/automacoes-do-funil.md` - os 3 gatilhos e as 8 acoes da automacao de etapa, o formato exato, e os outros quatro caminhos de fazer algo acontecer sozinho (regra da conta, fluxo, macro e agente de IA). **Leia antes de prometer automacao.**
+- `references/automacoes-do-funil.md` - os 3 gatilhos e as 9 acoes da automacao de etapa (inclusive "Criar tarefa"), o formato exato, o cartao adiado, o aviso de cartao parado pelo fluxo, e os outros quatro caminhos de fazer algo acontecer sozinho (regra da conta, fluxo, macro e agente de IA). **Leia antes de prometer automacao.**
 - `references/catalogo-de-campos.md` - todos os campos do funil, da etapa, do cartao, da oferta e da configuracao do Kanban, com valores aceitos.
 - `references/ferramentas-mcp.md` - o que cada ferramenta faz e o que ela exige, incluindo os nomes confusos (`create_1`, `create_2`, `list_1`) e as que parecem do Kanban e nao sao.
 - `references/relatorios-e-reguas-de-data.md` - as quatro reguas de data, qual tela usa qual, e como fazer dois relatorios baterem.
 - `references/armadilhas.md` - o catalogo completo das falhas silenciosas, com o sinal de cada uma e como sair.
+- `references/registrar-vendas.md` - "Importar vendas" (planilha do financeiro, com produtos), lancamento retroativo e co-participante da venda. **Leia antes de mexer em ganho que nao e de hoje.**
+- `references/analisar-com-ia.md` - o "Analisar com IA": quem pode, custo, passo a passo e por que nao tem desfazer.

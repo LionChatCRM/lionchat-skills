@@ -1,6 +1,6 @@
 ---
 name: campanhas-e-modelos
-description: Monta, dispara e conserta campanhas (envio em massa) e modelos de mensagem aprovados do WhatsApp na conta LionChat, pelo conector do LionChat - descobre o tipo pela caixa de entrada, monta o publico, estima quantas pessoas recebem, define o ritmo do disparo e acompanha entrega e falhas. Use quando o cliente disser "quero mandar mensagem para todo mundo", "avisar minha lista", "campanha de Black Friday", "reativar cliente parado", "disparo em massa no WhatsApp", "criar modelo aprovado", "meu modelo foi recusado pela Meta", "por que a campanha nao chegou", "para o disparo", "adia a campanha" ou "tira essa pessoa do disparo" - mesmo que ele nao use a palavra campanha. Sempre estima o publico, mostra a proposta por escrito e so dispara depois de confirmacao explicita.
+description: Monta, dispara e conserta campanhas (envio em massa) e modelos de mensagem aprovados do WhatsApp na conta LionChat, pelo conector do LionChat - descobre o tipo pela caixa de entrada, monta o publico, estima quantas pessoas recebem, define o ritmo do disparo e acompanha entrega e falhas. Use quando o cliente disser "quero mandar mensagem para todo mundo", "avisar minha lista", "campanha de Black Friday", "reativar cliente parado", "disparo em massa no WhatsApp", "criar modelo aprovado", "meu modelo foi recusado pela Meta", "por que a campanha nao chegou", "para o disparo", "adia a campanha", "manda para o segmento X" ou "tira essa pessoa do disparo" - mesmo que ele nao use a palavra campanha. Sempre estima o publico, mostra a proposta por escrito e so dispara depois de confirmacao explicita.
 ---
 
 # Campanhas e Modelos de Mensagem do WhatsApp
@@ -45,7 +45,8 @@ repergunte.
 1. **Por qual numero vai sair?** Se ele nao souber, liste as caixas e diga quais sao oficiais e
    quais sao por QR Code, com as consequencias de cada uma.
 2. **Para quem vai?** Peca em palavras ("todo mundo com a etiqueta cliente-antigo", "quem esta na
-   etapa Proposta do funil de vendas"). Voce traduz para criterios depois.
+   etapa Proposta do funil de vendas", "o segmento Premium sem compra"). Voce traduz para criterios
+   depois. Se a conta ja tem um segmento de contatos pronto para isso, ele serve como publico.
 3. **Tem alguem que NAO pode receber?** Quem ja recebeu o disparo anterior, quem pediu para sair.
 4. **O que a mensagem vai dizer?** Em caixa oficial: qual modelo aprovado e o que preenche cada
    variavel dele. Em QR Code: o texto, e se quer variacoes do mesmo texto.
@@ -68,6 +69,13 @@ repergunte.
   "Ativo" nao casa com "ativo". Leia `references/publico-e-exclusao.md`.
 - **Repetir um disparo anterior**: campanha ja disparada nao aceita edicao. O caminho e o menu de
   tres pontinhos do card, opcao "Reusar configuracoes", que abre uma campanha nova ja preenchida.
+- **O recorte ja existe como segmento de contatos?** Use o segmento (`{"type": "Segment", "id": N}`)
+  em vez de remontar as condicoes: a regra dele e lida na HORA do disparo, entao quem entrou ou saiu
+  ate la e respeitado. Vale no publico e na exclusao, no WhatsApp oficial, no QR Code e na Campanha
+  de Fluxo. Em SMS nao.
+- **O cliente quer que a pessoa preencha um formulario dentro do WhatsApp** (o botao do modelo que
+  abre um formulario da Meta): isso e o Formulario do WhatsApp. O formulario e montado e publicado
+  pela skill `formulario-whatsapp`; aqui voce so usa o modelo que ja tem o botao.
 
 Sempre que a conversa envolver modelo do WhatsApp — escolher, criar, apontar variavel, entender
 uma recusa da Meta ou explicar a janela de 24 horas — leia `references/modelos-whatsapp.md` ANTES
@@ -127,19 +135,24 @@ Nesta ordem. Antes de criar qualquer coisa, liste o que ja existe para nao dupli
    `with_campaign_trigger: true` e o `inbox_id`. Se a lista voltar vazia, o fluxo nao tem o gatilho
    Campanha ligado no bloco Inicio — isso se resolve no desenho do fluxo, nao aqui.
 5. **Montar o publico.** Os identificadores vem de `lionchat_labels_list`, `lionchat_funnels_list`,
-   `lionchat_custom_attributes_list`, `lionchat_agents_list` e `lionchat_teams_list`. Formato e
-   armadilhas em `references/publico-e-exclusao.md`.
+   `lionchat_custom_attributes_list`, `lionchat_agents_list`, `lionchat_teams_list` e, para
+   segmento, `lionchat_custom_filters_list` (os do tipo contato). O publico e sempre uma LISTA de
+   criterios - texto solto e recusado com 422. Formato e armadilhas em
+   `references/publico-e-exclusao.md`.
 6. **Estimar SEMPRE**, com `lionchat_campaigns_estimate_audience`, passando o MESMO publico, o MESMO
    modo de combinacao, a MESMA exclusao e o `inbox_id`. Sem o `inbox_id` o teto da Meta volta vazio
-   e o silencio parece "nao ha limite".
+   e o silencio parece "nao ha limite". Se a resposta trouxer `segment_unavailable` (com
+   `estimated_count` nulo), um segmento usado sumiu ou esta com a regra quebrada: avise e NAO crie a
+   campanha assim - ela nao mandaria para ninguem.
 7. **Propor e esperar o sim** (Etapa 3).
 8. **Criar** com `lionchat_campaigns_create`. Os campos exatos de cada tipo estao em
    `references/ferramentas-mcp.md`.
 9. **Reler** com `lionchat_campaigns_show` e conferir que publico, exclusao e ritmo ficaram como
    voce propos.
 
-Se der erro: 422 costuma ser criterio invalido, fluxo que nao atende as regras da Campanha de Fluxo
-ou tipo de caixa que nao aceita aquela acao — leia a mensagem, corrija e mostre ao cliente o que
+Se der erro: 422 costuma ser criterio invalido, publico mandado como texto em vez de lista, segmento
+em campanha de SMS, fluxo que nao atende as regras da Campanha de Fluxo ou tipo de caixa que nao
+aceita aquela acao — leia a mensagem, corrija e mostre ao cliente o que
 mudou. 403 significa que o usuario nao e administrador nem tem a permissao de gerenciar campanhas.
 
 ### Etapa 5 — Conferir e resumir
@@ -215,8 +228,11 @@ Todas estas falham **em silencio**: a campanha e criada, parece certa na tela e 
   silencio e o publico muda.
 - **Se voce usar vocabulario do filtro de conversa no operador do publico** (por exemplo
   "igual a" ou "esta preenchido" com os nomes de la), ele cai em comparacao exata sem erro nenhum.
-- **Se voce deixar uma variavel do modelo sem valor**, a mensagem NAO falha: sai um ponto no lugar
-  da variavel para todo mundo. Ja aconteceu com 65 pessoas de uma vez.
+- **Se uma variavel do modelo ficar sem valor e o modelo nao tiver de onde tirar**, a mensagem NAO
+  falha: sai um ponto no lugar da variavel. Desde 07/10/2026 a campanha oficial completa sozinha a
+  posicao que chegou vazia usando o apontamento salvo no modelo; o ponto ainda sai quando a posicao
+  nao tem apontamento, quando o contato nao tem aquele dado ou quando o campo pede um dado diferente
+  do apontamento. Ja aconteceu com 65 pessoas de uma vez - aponte as variaveis do modelo antes.
 - **Se voce mandar o mapa de variaveis pela metade**, o que voce nao mandou e REMOVIDO — o mapa
   substitui tudo.
 - **Se voce esperar que o liga e desliga da campanha pause um disparo**, nao pausa: ele so vale para
@@ -227,7 +243,12 @@ Todas estas falham **em silencio**: a campanha e criada, parece certa na tela e 
   aquela campanha e ela fica ativa para sempre. Agendar longe no futuro nao e o problema: o que
   mata e a campanha ficar mais de 3 dias com a hora vencida sem sair.
 - **Se voce montar publico de SMS por etiqueta de contato, funil, atributo ou atendente**, resolve
-  zero pessoas e nada avisa: em SMS so a etiqueta de CONVERSA funciona.
+  zero pessoas e nada avisa: em SMS so a etiqueta de CONVERSA funciona. (Segmento em SMS pelo menos
+  e recusado na hora.)
+- **Se o segmento usado no publico ou na exclusao for apagado ou ficar com a regra quebrada** antes
+  do disparo, a campanha NAO manda nada - de proposito, para nunca mandar para quem devia ficar de
+  fora - e o motivo aparece no card da campanha. Enquanto a campanha estiver programada, o proprio
+  segmento nao pode ser apagado (422 dizendo qual campanha usa).
 - **Se voce prometer mandar um anexo no disparo**, o produto nao faz. Em QR Code e SMS so sai texto;
   no oficial, a unica imagem possivel e o cabecalho do modelo.
 - **Se voce tentar disparar numa conversa cujo historico foi importado do celular**, a janela de 24

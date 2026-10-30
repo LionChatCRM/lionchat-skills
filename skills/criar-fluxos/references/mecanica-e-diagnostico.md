@@ -68,9 +68,10 @@ Inicio agora tambem resolve como `{{trigger.<bloco>.<campo>}}`. Os que a tela of
 
 | Gatilho | Variaveis |
 |---|---|
-| Card criado, movido, ganho, perdido, atributo do card | `{{trigger.kanban.title}}`, `{{trigger.kanban.funnel_name}}`, `{{trigger.kanban.stage_name}}`, `{{trigger.kanban.stage}}` (codigo da etapa) |
+| Card criado, movido, ganho, perdido, adiado, aberto, prazo ("Card aberto na etapa / no funil"), atributo do card | `{{trigger.kanban.title}}`, `{{trigger.kanban.funnel_name}}`, `{{trigger.kanban.stage_name}}`, `{{trigger.kanban.stage}}` (codigo da etapa) |
 | Card movido | `{{trigger.kanban.previous_stage_name}}`, `{{trigger.kanban.previous_stage}}` |
-| Card ganho / perdido | `{{trigger.kanban.status}}` (`won` / `lost`) |
+| Card ganho / perdido / aberto / adiado | `{{trigger.kanban.status}}` (`won` / `lost` / `open` / `snoozed`) |
+| Card aberto | `{{trigger.kanban.previous_status}}` (`snoozed` = voltou do adiamento; `won`/`lost` = reabriram) |
 | Etiqueta posta / tirada | `{{trigger.label.name}}` |
 | Responsavel / equipe mudou | `{{trigger.assignee.name}}`, `{{trigger.team.name}}` (vazio = removido) |
 | SLA estourou | `{{trigger.sla.policy_name}}`, `{{trigger.sla.type}}` |
@@ -84,7 +85,12 @@ Execucoes anteriores a 22/08/2026 nao tem os fatos gravados: ali saem vazios. Na
 Outras familias por gatilho: `{{booking.*}}` (agendamento: data, hora, tipo, atendente, links de
 cancelar e remarcar), `{{programa.*}}` (programa de sessoes: sessoes, usadas, restantes, proxima,
 dias de atraso) e `{{contrato.*}}` (assinatura: titulo, situacao, prazo, quem assinou). Cada familia
-so existe no fluxo disparado pelo gatilho dela.
+so existe no fluxo disparado pelo gatilho dela - com uma excecao: depois de um bloco Acoes com "Enviar
+documento para assinatura", `{{contrato.*}}` e `{{contrato.link}}` (endereco de assinatura do
+titular) passam a existir no resto daquele caminho.
+
+Empresa do contato (so com o modulo Empresas ligado): `{{contact.company.name}}` e os demais campos
+do cadastro da empresa, mais `{{contact.company.custom_attribute.CHAVE}}`. Contato sem empresa = vazio.
 
 Quando o fluxo e disparado por webhook, o pacote inteiro recebido vira variavel:
 `{{webhook.cliente.nome}}`, `{{webhook.itens.0.titulo}}`. Pacote acima de 256 KB nao vira variavel,
@@ -266,8 +272,10 @@ movido) quando os funis e etapas se sobrepoem; mensagem recebida com mensagem re
 palavra-chave em comum (**lista vazia significa "pega tudo" e colide com tudo**); etiqueta por
 etiqueta em comum; conversa encerrada sempre colide.
 
-Isentos (podem coexistir de proposito): webhook, inicio manual e campanha. Fluxo desligado nao gera
-conflito. **O Fluxo de Acoes fica fora da trava inteira**: pode ter o mesmo gatilho de um fluxo de
+Isentos (podem coexistir de proposito): webhook, inicio manual, campanha e os gatilhos de prazo do
+card ("Card aberto na etapa / no funil" - os dois fluxos disparam). Fluxo desligado nao gera
+conflito. Card ganho, perdido, aberto e adiado colidem quando os funis se cruzam; Formulario do
+WhatsApp respondido colide no mesmo formulario (ou "qualquer" de um lado). **O Fluxo de Acoes fica fora da trava inteira**: pode ter o mesmo gatilho de um fluxo de
 mensagem ou de outro Fluxo de Acoes, sem aviso nenhum - ele nao disputa a conversa, so age.
 
 Os tres gatilhos de formulario publico e os quatro de agendamento tem uma regua PROPRIA: colidem
@@ -305,8 +313,10 @@ fluxo). `lionchat_flows_create_4` mostra como uma formula vai renderizar.
 ## 8. Historico de execucoes: como ler
 
 `lionchat_flows_executions_list` lista quem entrou; `lionchat_flow_sessions_show` abre uma execucao
-passo a passo. **So administrador enxerga** - ou quem tem a permissao de gerenciar fluxos no
-cargo personalizado (o fluxo em si qualquer atendente ve).
+passo a passo. **So administrador enxerga** - ou quem tem a permissao "Gerenciar FlowBuilder"
+(`flowbuilder_manage`) no cargo personalizado. A lista de fluxos e o desenho qualquer membro da conta
+LE; criar, editar, duplicar, excluir e ligar/desligar tambem exigem administrador ou essa permissao
+(desde 21/09/2026 - antes qualquer atendente mexia por fora da tela).
 
 Filtros da lista: `status` (use exatamente `active`, `waiting_input`, `paused`, `completed` ou
 `error` - **valor fora dessa lista e ignorado em silencio e a lista volta sem filtro**), `from` e
@@ -356,16 +366,25 @@ isso. A tela oferece janela de ate 90 dias, mas nao ha nada la atras para achar.
 6. E fluxo de grupo tentando disparar em conversa individual, ou o contrario?
 7. E um Fluxo de Acoes com gatilho "Webhook recebido" ou de formulario? Esses nunca disparam nele
    (ele nao tem caixa onde a integracao crie a conversa). Monte em fluxo de mensagem.
+8. E gatilho de prazo do card ("Card aberto na etapa / no funil")? So dispara quem CRUZA o prazo com
+   o fluxo ligado; card sem conversa nunca dispara; card ganho ou perdido nao conta.
 
 **"O Iniciar outro flow deu erro"**
 Leia o motivo no passo. Quase sempre o fluxo-alvo e de MENSAGEM e nao esta ligado na caixa da
 conversa (desde 17/09/2026 isso e recusado em vez de rodar no lugar errado). Ligue a caixa no
 fluxo-alvo, troque o alvo por um Fluxo de Acoes, ou use uma Condicao de caixa antes. Os outros
-motivos: fluxo apagado, desligado, sem Inicio ou o proprio fluxo.
+motivos: fluxo apagado, desligado, sem Inicio ou o proprio fluxo (apontar para si mesmo e ERRO
+visivel, nunca ignorado).
 
 **"O atendente nao acha o Fluxo de Acoes na lateral da conversa"**
-Hoje a lista da lateral so mostra fluxos ligados aquela caixa, e o Fluxo de Acoes nao tem caixa.
-Para o atendente disparar, monte uma macro com "Disparar flow (de acoes)".
+Desde 08/10/2026 o "Iniciar flow" da lateral mostra todo Fluxo de Acoes ATIVO, em qualquer caixa.
+Se nao aparece, o fluxo esta desligado (ou a tela do atendente esta desatualizada - recarregar). A
+macro com "Disparar flow (de acoes)" continua valendo como botao proprio.
+
+**"O Ligar com IA deu erro / a IA ligou e ficou muda"**
+Leia o motivo no passo `error` da execucao. Erro ao salvar com "call agent that does not exist" e o
+id de agente de TEXTO no lugar do de LIGACAO. O diagnostico completo da ligacao mora na skill
+`agente-de-ligacao`.
 
 **"O fluxo para no meio, sem erro nenhum"**
 Quase sempre e saida sem fio. Abra a execucao (`lionchat_flow_sessions_show`), veja qual foi o
@@ -474,9 +493,10 @@ devolve um dado para a IA compor a resposta.
   quando chamar, a peca mais importante do desenho.**
 - **Nao pode ter caixa de entrada vinculada.** A validacao recusa.
 - Blocos permitidos: Inicio, Fim, Requisicao, Condicao, Definir variavel, IA, Nota adesiva,
-  Randomizador, Acoes e Enviar mensagem. **Nao existem** Aguardar resposta, Espera e Gestao de
-  Grupos. No bloco Acoes a aba Sistema some inteira (enviar webhook, iniciar outro fluxo e enviar
-  conversao). Uma ferramenta da IA tambem nunca pode ser alvo do "Iniciar outro flow".
+  Randomizador, Acoes e Enviar mensagem. **Nao existem** Aguardar resposta, Espera, Gestao de
+  Grupos e Ligar com IA (o salvar recusa). No bloco Acoes a aba Sistema some inteira (enviar
+  webhook, iniciar outro fluxo e enviar conversao) e a acao "Criar tarefa" nao roda (o passo fica
+  com erro). Uma ferramenta da IA tambem nunca pode ser alvo do "Iniciar outro flow".
 - O bloco Fim e o que define o retorno. Sem nenhum Fim alcancado, a ferramenta devolve VAZIO para
   a IA - e ela responde ao cliente sem o dado que foi buscar. Se o proprio fluxo ja mandou a
   resposta final ao cliente, use o Fim no modo `silent` ("Sem resposta"): sem ele a IA fala de novo
@@ -568,6 +588,11 @@ nasce desativada e SEM caixa nenhuma, de proposito).
 
 **Disparar de outro lugar**
 `lionchat_kanban_items_start_flow` (a partir de um card do funil).
+
+**Pecas que o bloco usa e que outra skill monta**
+Agente de ligacao (`lionchat_captain_call_agents_*`) -> skill `agente-de-ligacao`. Modelo de contrato
+(`lionchat_signature_documents_*`) -> skill `assinatura-eletronica`. Formulario do WhatsApp
+(`lionchat_whatsapp_forms_*`) -> skill `formulario-whatsapp`.
 
 ---
 

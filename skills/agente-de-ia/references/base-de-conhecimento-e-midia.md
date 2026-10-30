@@ -167,7 +167,8 @@ Mesma armadilha, outros dois campos do agente:
   nem carrega. Liste com `lionchat_offers_list`.
 - `config.booking_event_type_ids` - quais agendas ele pode oferecer. Liste com
   `lionchat_booking_event_types_list`. Preenchendo esse campo, ele passa a agendar SOMENTE por essas
-  agendas. Detalhe que confunde: a ferramenta de "quem esta livre agora" recusa responder em QUALQUER
+  agendas. Agenda liberada nao basta sozinha: pelo menos uma das quatro ferramentas de agenda tem que estar
+  ligada no agente (ver `references/catalogo-ferramentas.md`). Detalhe que confunde: a ferramenta de "quem esta livre agora" recusa responder em QUALQUER
   agente que possa agendar por agenda - basta a conta ter uma agenda, mesmo sem esse campo preenchido.
   Isso e proposital: a agenda manda acima do expediente geral.
 
@@ -183,5 +184,5 @@ Antes de dizer que a base esta pronta:
 - [ ] As perguntas frequentes estao escritas do jeito que o cliente pergunta.
 - [ ] Todo arquivo cadastrado na biblioteca tem uma descricao dizendo QUANDO enviar.
 - [ ] Todo arquivo que a IA deve poder enviar esta liberado em `config.media_asset_ids`.
-- [ ] Se o agente vai agendar, existe agenda e ela esta liberada.
+- [ ] Se o agente vai agendar, existe agenda, ela esta liberada e as ferramentas de agenda estao ligadas.
 - [ ] Se o agente vai falar de produto, existe oferta e ela esta liberada.

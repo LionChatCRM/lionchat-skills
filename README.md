@@ -61,7 +61,7 @@ Peça em português o que você quer. O Claude escolhe a skill certa sozinho:
 Ou chame uma direto, pelo nome: `/lionchat-skills:agente-de-ia`
 
 Em qualquer caso o Claude **entrevista você antes**, mostra a proposta inteira e **só cria depois que
-você confirma**. Nenhuma skill apaga nada.
+você confirma**.
 
 ## Skills disponíveis
 
@@ -75,15 +75,15 @@ Monta o atendente virtual de ponta a ponta: instruções, cenários, base de con
 
 ### `criar-fluxos` — Fluxos
 
-Desenha fluxos que funcionam, nos três tipos — mensagem, ferramenta da IA e o Fluxo de Ações, que não fica preso a caixa nenhuma e só executa ações: todos os blocos e gatilhos, variáveis, espera, o que fazer com quem não responde, e como achar onde travou.
+Desenha fluxos que funcionam, nos três tipos — mensagem, ferramenta da IA e o Fluxo de Ações, que não fica preso a caixa nenhuma e só executa ações: todos os blocos e gatilhos (inclusive o aviso de card parado e o "Ligar com IA"), variáveis, espera, o que fazer com quem não responde, e como achar onde travou.
 
 ### `automacoes-e-macros` — Automações e macros
 
-O que o sistema faz sozinho e o que o atendente dispara com um clique. Os gatilhos, as condições e as ações de cada um — inclusive as 41 ações da macro, que hoje grava atributo, divide entre atendentes em rodízio, manda conversão para os anúncios e dispara um Fluxo de Ações.
+O que o sistema faz sozinho e o que o atendente dispara com um clique. Os gatilhos, as condições e as ações de cada um — inclusive as 42 ações da macro, que hoje grava atributo, divide entre atendentes em rodízio, manda conversão para os anúncios e dispara um Fluxo de Ações.
 
 ### `funil-de-vendas` — Funil de vendas (CRM)
 
-Monta o funil pelo seu negócio: etapas, campos do card, checklists, automações de etapa, ganho e perdido.
+Monta o funil pelo seu negócio: etapas, campos do card, checklists, automações de etapa, ganho e perdido, card adiado, tarefa automática, importar vendas, venda dividida com outro vendedor e o "Analisar com IA".
 
 ### `caixas-e-atendimento` — Caixas e atendimento
 
@@ -99,11 +99,23 @@ Disparo em massa sem queimar o número, montagem do público, e tudo sobre model
 
 ### `agenda-e-relatorios` — Agenda e relatórios
 
-Agendamento online com lembretes, e o que cada número do relatório significa para o dono do negócio.
+Agendamento online com lembretes, várias agendas (unidades), programas em sessões, presença (compareceu/faltou), e o que cada número do relatório significa para o dono do negócio.
 
 ### `integracoes` — Integrações
 
 Liga o LionChat a sistemas de fora: anúncios, plataformas de pagamento, sistemas de gestão e conversões.
+
+### `agente-de-ligacao` — Ligação com IA
+
+A IA liga para o contato pelo WhatsApp e conversa: o agente de ligação (roteiro, primeira frase, voz, tempo máximo), o agente de texto que executa o que o cliente pede na ligação, a ligação de teste e o bloco "Ligar com IA" no fluxo. Com modelos prontos de triagem de lead, confirmação de consulta e pesquisa de satisfação.
+
+### `assinatura-eletronica` — Contratos e assinatura
+
+Modelos de contrato, quem assina, documentos pedidos, envio pelo WhatsApp ou e-mail, acompanhamento e envio pelo fluxo. Nunca envia um contrato sem a sua autorização.
+
+### `formulario-whatsapp` — Formulário do WhatsApp
+
+O formulário nativo que abre dentro do WhatsApp por um botão de modelo: telas e perguntas, publicação na Meta, o botão no modelo e o que fazer com as respostas.
 
 ### `configurar-conta` — Configuração inicial
 
@@ -111,16 +123,15 @@ Monta o esqueleto da conta do zero numa conversa só: funil, etiquetas, campos, 
 
 **O que nenhuma delas faz** (precisa de gente no painel):
 
-- Conectar WhatsApp (alguém precisa ler o QR Code no celular)
+- Ler o QR Code do WhatsApp no celular (o Claude pode gerar o link de conexão para você mandar a quem tem o celular)
 - Conectar Instagram e Facebook (autorização pelo navegador)
 - Pegar o token da plataforma de pagamento (Guru, Hotmart, Kiwify) — esse está do lado de lá
-- Convidar atendentes novos (o convite vai por e-mail)
 
 ## Segurança
 
 - Suas credenciais ficam no conector do LionChat, na sua máquina — não neste repositório
 - Nada é enviado para nenhum servidor além do seu próprio LionChat
-- Nenhuma skill apaga nada: elas criam e ajustam, e sempre pedem sua confirmação antes
+- Elas criam e ajustam, e sempre pedem sua confirmação antes. O que não tem volta (excluir uma etapa, aplicar a revisão da IA no funil, enviar contrato) pede uma confirmação própria
 - Se algum dia o Claude precisar de um token, ele nunca mostra o valor completo na tela
 
 ## Suporte

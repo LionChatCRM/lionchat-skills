@@ -37,8 +37,12 @@ em TODAS as conversas dela, sem perder nada da configuracao. Fica registrado que
 
 ## 2. Escolher o modelo
 
-`config.model`. **O servidor nao valida este campo**: qualquer texto e aceito e gravado, e o erro so
-aparece em producao, com a IA muda. Use somente um dos 16 abaixo.
+`config.model`. **Desde 08/09 o servidor confere este campo**: trocar para um nome que nao esta na lista
+volta 422 e nada e gravado. Sao 22 modelos aceitos, os da tabela abaixo. (Agente antigo que ja tinha gravado
+um modelo fora da lista continua salvando os outros campos; so a TROCA para um nome invalido e recusada.)
+
+Custo, inteligencia e velocidade sao aproximados. O preco real por milhao de tokens (entrada /
+saida, em dolar) esta entre parenteses quando o sistema registra.
 
 | Modelo | Custo | Inteligencia | Velocidade | Aceita criatividade |
 |---|---|---|---|---|
@@ -58,10 +62,18 @@ aparece em producao, com a IA muda. Use somente um dos 16 abaixo.
 | `gpt-5.5` | alto | alta | media | NAO |
 | `o1` | alto | alta | baixa | NAO |
 | `o3` | alto | alta | baixa | NAO |
+| `gpt-6-luna` | baixo (0,10 / 0,50) | media | alta | NAO |
+| `gpt-5.6-luna` | baixo (0,20 / 1,20) | media | alta | NAO |
+| `gpt-5.6-terra` | medio (2,00 / 12,00) | alta | media | NAO |
+| `gpt-6-sol` | medio (2,00 / 10,00) | alta | media | NAO |
+| `gpt-5.6-sol` | alto (4,00 / 20,00) | alta | media | NAO |
+| `gpt-5.1` | - | - | - | sim. **Legado**: aceito para nao travar agente antigo, mas nao aparece em tela nenhuma. Nao escolha para agente novo |
 
-**PROIBIDO: a familia `gpt-5.6` (luna, terra, sol).** Ela recusa ferramentas, e como a IA usa ferramenta em
-praticamente toda resposta, 100% das chamadas falham e ela fica MUDA, em silencio. Foi tirada da tela por
-causa disso.
+**As familias `gpt-5.6` e `gpt-6` estao liberadas e funcionam com ferramentas.** Elas ficaram fora da tela
+de 29/07 ao inicio de setembro porque recusavam ferramenta pelo caminho antigo da OpenAI; hoje o sistema fala
+com elas por um caminho proprio, sem nada a configurar. Se voce leu em algum lugar "nunca use gpt-5.6, a IA
+fica muda", isso e de antes do conserto e nao vale mais. O que continua valendo: nenhuma delas aceita o ajuste
+de criatividade (secao 3).
 
 ### Tabela de decisao
 
@@ -72,10 +84,16 @@ causa disso.
 | Venda conversacional, contorno de objecao | `gpt-4.1` ou `gpt-5.4` | precisa entender nuance e sustentar conversa |
 | Suporte tecnico com base grande | `gpt-4.1` | precisa ler bem o material antes de responder |
 | Caso com muita regra de negocio junta | `gpt-5.2` | ganha em raciocinio, custa mais |
-| Volume enorme e pergunta simples | `gpt-4.1-nano` ou `gpt-5.4-nano` | so use com base de conhecimento boa |
+| Volume enorme e pergunta simples | `gpt-4.1-nano`, `gpt-5.4-nano` ou `gpt-6-luna` | so use com base de conhecimento boa |
+| Custo baixo com mais raciocinio | `gpt-6-luna` | e o padrao de conta nova (ver abaixo). Nao aceita criatividade: o tom vai pelas diretrizes |
 
 Se o agente nascer sem modelo escolhido, ele herda o modelo padrao cadastrado na integracao da OpenAI da
-conta - e, se nao houver, cai no padrao do sistema.
+conta - e, se nao houver, cai no padrao do sistema (`gpt-4.1`).
+
+**Padrao de conta nova (desde 22/10): `gpt-6-luna`.** E o modelo que a integracao da OpenAI ja traz marcado
+quando alguem conecta a chave pela primeira vez. Conta ja conectada mantem o modelo que escolheu. A lista da
+integracao da conta tem os mesmos modelos do agente, menos o `gpt-5.1`, e um a mais (`gpt-5.5-pro`) que vale
+so como padrao da conta: no agente ele e recusado.
 
 ### Detalhe importante sobre a conta
 
@@ -98,8 +116,8 @@ Nada disso se configura pelo conector: e no painel, em Integracoes.
 | Atendimento geral | 0.5 |
 | Venda conversacional | 0.7 |
 
-**Nos modelos de raciocinio** (`o1`, `o3`, `o3-mini`, `o4-mini`, `gpt-5`, `gpt-5-mini`, `gpt-5.5`) este
-campo **nao faz nada**: eles so aceitam o valor padrao, entao o sistema simplesmente nao manda o ajuste.
+**Nos modelos de raciocinio** (`o1`, `o3`, `o3-mini`, `o4-mini`, `gpt-5`, `gpt-5-mini`, `gpt-5.5`) e nas
+familias `gpt-5.6` (luna, terra, sol) e `gpt-6` (luna, sol) este campo **nao faz nada**: eles so aceitam o valor padrao, entao o sistema simplesmente nao manda o ajuste.
 O valor grava e a tela do painel nem mostra o controle. Nao ha erro - o efeito e que voce nao controla o
 tom por ai. Se o cliente precisa desse controle, escolha um modelo da coluna "sim".
 
@@ -134,7 +152,14 @@ Cobrar quem sumiu depois da IA responder.
 
 - `config.feature_follow_up`: liga.
 - `config.follow_up_steps`: ate 3 etapas, cada uma `{after_minutes, prompt}`. O tempo conta a partir da
-  mensagem ANTERIOR. Cada etapa precisa de pelo menos 5 minutos.
+  mensagem ANTERIOR. Cada etapa precisa de pelo menos 5 minutos. O `prompt` de cada etapa tem teto de 2000
+  letras: o que passar disso e CORTADO ao salvar, sem erro.
+- **Desde 24/10 cada etapa pode USAR ferramenta**, nao so mandar mensagem. Marque a ferramenta no texto da
+  etapa com a mesma sintaxe do cenario, `[Rotulo](tool://identificador)` (ex.: "se ainda nao respondeu, ponha
+  a etiqueta [Etiquetar](tool://add_label_to_conversation) `sem-resposta` e avise que vamos encerrar"). So
+  vale ferramenta que este agente tem de verdade (ligada e com o recurso da conta); marcada fora disso, a
+  etapa roda como antes, so com mensagem, e a tela avisa. `schedule_self_callback` e `list_assistants` nunca
+  entram no acompanhamento. Etapa sem nenhuma ferramenta marcada segue o caminho antigo (so mensagem).
 - **A SOMA das etapas nao pode passar de 1380 minutos (23 horas).** Acima disso o salvamento e recusado, e
   isso nao e defeito: a janela de 24 horas do WhatsApp conta da mensagem DO CLIENTE, e a cobranca so comeca
   a contar depois da resposta da IA. Ja foi medido em producao: soma de 1430 disparou 24h01m depois do

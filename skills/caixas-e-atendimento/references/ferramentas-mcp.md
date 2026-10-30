@@ -33,6 +33,10 @@ pergunte ao cliente em vez de tentar um nome parecido.
 
 **NAO faz:** gravar o horario de atendimento da conta nem a pausa de almoco.
 
+Trocar o fuso da conta faz os lembretes da e-Clinica ja programados passarem a sair no mesmo horario
+do fuso NOVO (07/10/2026). Os demais agendamentos (mensagem agendada, campanha) ficam no instante em
+que foram marcados. Avise antes de mudar o fuso de conta que usa e-Clinica.
+
 ---
 
 ## 2. Ler a caixa
@@ -49,14 +53,19 @@ pergunte ao cliente em vez de tentar um nome parecido.
 
 | Ferramenta | Para que |
 |---|---|
-| `lionchat_inboxes_update` | Nome, saudacao (ligar e texto), ligar/desligar a distribuicao automatica e o bloco de distribuicao |
+| `lionchat_inboxes_update` | Nome, saudacao (ligar e texto), aviso de ausencia (`out_of_office_enabled` + `out_of_office_message`), ligar/desligar a distribuicao automatica, o bloco de distribuicao e os interruptores do canal em `channel.additional_attributes` (aceitar grupos, recusar ligacoes e texto, marcar como visto) |
 
-**NAO faz:** aviso de ausencia, conversa unica, pesquisa de satisfacao, central de ajuda vinculada,
-fuso da caixa, assinatura do remetente, interruptores de grupo/canal/transmissao. Todos esses sao
-descartados em silencio - a resposta volta com sucesso e nada muda. Ver `configurar-caixa.md`.
+**NAO faz:** conversa unica, pesquisa de satisfacao, central de ajuda vinculada, fuso da caixa,
+assinatura do remetente. Esses campos nao sao declarados: nada garante que sejam gravados e a
+resposta volta com sucesso do mesmo jeito. Faca no painel e confira relendo. Ver `configurar-caixa.md`.
 
 Outras ferramentas de caixa que existem e podem ser uteis: `lionchat_inboxes_register_webhook`
-(reassinar o webhook do canal).
+(reassinar o webhook do canal) e `lionchat_inboxes_bubble_icon_destroy` (volta o balao do Chat do
+Site ao icone padrao; so caixa de site).
+
+`lionchat_inboxes_conference_create` / `_destroy` sao da caixa de VOZ Twilio (recurso de plano
+especifico), NAO do LionCalls - e o `_destroy` derruba a ligacao para todo mundo. Nao use em
+configuracao de atendimento.
 
 ---
 
@@ -186,11 +195,15 @@ hoje a pesquisa e mensagem comum e nao usa modelo. Nao gaste tempo com elas.
 | `lionchat_inboxes_waha_status` | Estado da sessao. WORKING conectado, SCAN_QR_CODE precisa ler, STOPPED e FAILED sao problema |
 | `lionchat_inboxes_waha_qrcode` | Devolve o TEXTO do QR (nao uma imagem). So funciona no estado SCAN_QR_CODE. Expira em segundos |
 | `lionchat_inboxes_waha_connect` | Inicia a sessao |
+| `lionchat_inboxes_waha_connect_link_create` / `_revoke` | Link publico de conexao (2 horas) para quem esta com o celular e nao tem login. So administrador. Revogar derruba a sessao aberta por ele |
 | `lionchat_inboxes_waha_import_history` | Traz o historico do aparelho, de 1 a 90 dias. Uma rodada por vez |
 | `lionchat_inboxes_waha_import_status` | Andamento da importacao |
 | `lionchat_inboxes_waha_groups_list` / `_show` / `_list_1` / `_list_2` | Grupos, participantes e convite |
 | `lionchat_inboxes_waha_groups_create` e irmas | Colocar e tirar participante, promover e rebaixar administrador, revogar convite, sair do grupo |
-| `lionchat_inboxes_waha_groups_update` e irmas | Renomear, descricao, ajustes e foto do grupo |
+| `lionchat_inboxes_waha_groups_update` e irmas | Renomear, descricao, ajustes e foto do grupo (`_update_2` grava as permissoes, inclusive "aprovar novos participantes"); `_destroy` remove a foto |
+| `lionchat_inboxes_waha_groups_list_3` / `_create_6` | Ver qual grupo e um codigo de convite (so leitura) / ENTRAR no grupo por convite. Sempre o primeiro antes do segundo |
+| `lionchat_inboxes_waha_groups_list_4` | Le as permissoes extras (so admins adicionam, aprovar novos participantes) |
+| `lionchat_inboxes_waha_groups_list_5` / `_create_7` / `_create_8` | Pedidos para entrar: listar, aprovar, recusar. Tentativa unica |
 | `lionchat_integrations_waha_check_phone` | Confere se um numero tem WhatsApp |
 | `lionchat_inboxes_inbox_migration_list` | Previa da migracao de conversas |
 | `lionchat_inboxes_inbox_migration_execute` | Executa a migracao. Destrutivo: previa primeiro, confirmacao depois |
@@ -204,17 +217,20 @@ hoje a pesquisa e mensagem comum e nao usa modelo. Nao gaste tempo com elas.
 
 | Ferramenta | Para que |
 |---|---|
-| `lionchat_inboxes_health` | Painel de Saude da conta na Meta |
+| `lionchat_inboxes_health` | Painel de Saude da conta na Meta, com falhas das ultimas 24 horas e mensagens cobradas x gratis dos ultimos 30 dias (`charges_30d`) |
+| `lionchat_inboxes_capi_dataset_link` | Vincula a caixa ao conjunto de dados da Meta para conversao de anuncio de WhatsApp. Hoje e automatico; isto e o plano B. Escrita, so administrador |
 | `lionchat_inboxes_sync_templates` | Sincroniza os modelos aprovados |
 | `lionchat_inboxes_whatsapp_templates_list` e irmas | Listar, criar e alterar modelos |
 | `lionchat_inboxes_whatsapp_history_start` / `_status` / `_cancel` | Importar historico |
 | `lionchat_inboxes_coex_backup_connect` / `_status` / `_disconnect` | Conexao hibrida |
+| `lionchat_inboxes_coex_backup_connect_link_create` / `_revoke` | Link publico de conexao da hibrida |
 | `lionchat_inboxes_enable_whatsapp_calling` / `_disable_whatsapp_calling` | Ligacao pelo WhatsApp Oficial |
 | `lionchat_inboxes_failed_messages_summary` | Falhas de envio agrupadas por motivo |
 | `lionchat_inboxes_failed_messages_bulk_retry` / `_bulk_cancel` | Reenviar ou cancelar em lote. Reenviar entrega ao cliente final: confirme antes |
 
 **NAO faz:** conectar o numero pelo botao da Meta (Cadastro Incorporado). Isso e no painel, com
-login na Meta.
+login na Meta. Linha de ligacao LionCalls (`lionchat_inboxes_lioncalls_connect_link_*`) e Ligacao
+com IA ficam na skill `agente-de-ligacao`.
 
 ---
 
@@ -244,13 +260,14 @@ Use depois de montar, para mostrar ao cliente se a distribuicao ficou equilibrad
 Nao invente nome parecido. Estas operacoes NAO tem ferramenta:
 
 - **Criar caixa de entrada.** Nem excluir.
-- **Gerar o link publico de conexao por QR** (a pagina que deixa quem esta com o celular ler o
-  codigo sem ter login no painel). Existe no produto, dura 2 horas, so um link fica vivo por vez e
-  pode ser revogado - mas so pelo painel.
 - **Gravar o horario de atendimento**, nem o da conta nem o da caixa, nem a pausa de almoco.
+  (`lionchat_account_update` NAO serve para isso: ela grava o PERFIL do usuario (`/profile`),
+  apesar de listar campos de horario comercial - eles nao sao gravados na conta.)
 - **Marcar supervisor de TIME.**
 - **Ligar a pesquisa de satisfacao ou escrever os textos dela.**
-- **Gravar aviso de ausencia, conversa unica e os interruptores de grupo/canal/transmissao.**
+- **Gravar a conversa unica.**
+- **Ligar "Aceitar Canais", "Aceitar Lista de Transmissao" ou status.** Ficam sempre desligados.
+- **Enviar imagem nova para o balao do Chat do Site** (upload de arquivo). Remover tem ferramenta.
 - **Construtor do Widget e formulario pre-chat do Chat do Site.**
 - **CRIAR um grupo de WhatsApp.** Da para mexer em grupo que ja existe, nao para criar um. Criar e
   feito por um bloco de Fluxo.

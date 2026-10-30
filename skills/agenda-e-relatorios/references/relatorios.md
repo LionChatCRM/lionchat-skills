@@ -22,11 +22,13 @@ Este arquivo e o detalhe da metade RELATORIOS. Leia antes de montar ou explicar 
 
 ## 1. Antes de comecar: fuso, permissao e recursos
 
-**O fuso da conta e obrigatorio em todo calculo.** Leia em `lionchat_account_show`, campo `timezone`, e converta para horas: America/Sao_Paulo e -3, Mato Grosso do Sul e -4, e existe cliente fora do Brasil. Sem mandar o fuso, o dia e cortado em horario universal e o numero nao bate com o que o cliente ve na tela. Em janela de UM dia (hoje ou ontem) isso e decisivo: tres horas jogam tudo o que aconteceu de madrugada para o dia errado. **Nunca chute -3.**
+**Todo calculo e cortado no fuso da conta.** Hoje as ferramentas de relatorio (inclusive o bloco do relatorio personalizado) usam o fuso DA CONTA quando `timezone_offset` nao vem - e o certo para quase todos os casos. So mande o fuso para olhar de OUTRO fuso, e entao leia em `lionchat_account_show`, campo `timezone`, e converta para horas: America/Sao_Paulo e -3, Mato Grosso do Sul e -4, e existe cliente fora do Brasil. Em janela de UM dia (hoje ou ontem) um fuso errado e decisivo: tres horas jogam tudo o que aconteceu de madrugada para o dia errado. **Nunca chute -3.**
 
 **Relatorio e area de administrador.** As abas e o relatorio personalizado aceitam tambem um perfil personalizado com a permissao de relatorios; **o aviso diario e SO de administrador de verdade, sem excecao**. Se a chamada for recusada por permissao, diga isso e pare - nao mande o cliente reconectar o conector.
 
-**Abas que dependem de recurso liberado no plano** (confira a lista de recursos em `lionchat_account_show`): Kanban precisa de `kanban_board`; Origem dos Leads e Jornada do Lead precisam de `liontrack`; Formularios precisa de `lead_forms`; SLA precisa de `sla`; a aba CSAT so aparece com `csat_review_notes` ligado. Bloco de relatorio que depende de recurso nao liberado devolve um erro dizendo isso - nunca um grafico vazio.
+**Abas que dependem de recurso liberado no plano** (confira a lista de recursos em `lionchat_account_show`): Kanban precisa de `kanban_board`; Origem dos Leads e Jornada do Lead precisam de `liontrack`; Formularios precisa de `lead_forms`; SLA precisa de `sla`; a aba CSAT so aparece com `csat_review_notes` ligado; os blocos da agenda da e-Clinica precisam de `eclinica_integration` (liga sozinho quando a conta cadastra a e-Clinica). Bloco de relatorio que depende de recurso nao liberado devolve um erro dizendo isso - nunca um grafico vazio.
+
+**Periodo que ja terminou (19/10/2026):** cada quadro mostra o que aconteceu DENTRO do periodo, nao como as coisas estao hoje. O funil (abas e bloco de etapas) mostra onde cada card estava no ULTIMO dia do periodo; ganho conta no funil onde a venda aconteceu; "Etapa desconhecida" sao cards que mudaram depois e de quem nao ha historico daquela epoca (o historico de etapas comecou em julho de 2026). Periodo que vai ate hoje mostra o estado atual. Assim o relatorio de um mes fechado nao muda quando a equipe mexe nos cards depois.
 
 **A aba CSAT vazia e a aba CSAT ausente sao problemas diferentes.** Ausente = recurso desligado. Vazia = a pesquisa de satisfacao nao esta ligada na CAIXA, ou nenhuma conversa foi RESOLVIDA (a pesquisa so dispara na resolucao). Ligar a pesquisa e escrever o texto dela e na configuracao da caixa.
 
@@ -40,7 +42,7 @@ Antes de montar relatorio novo, pergunte se uma destas ja responde.
 |---|---|---|
 | Visao geral | Panorama de operacao em 8 numeros | Ver secao 3 |
 | Conversas | Detalhe das conversas com filtro de caixa, atendente, equipe e etiqueta | Conta pela data de CRIACAO da conversa; mostra MEDIA de tempo |
-| Agentes / Equipes / Caixa de Entrada / Etiquetas | Comparar desempenho por pessoa, time, canal ou assunto | Conta pelo atendente ATUAL: transferir a conversa move o numero inteiro |
+| Agentes / Equipes / Caixa de Entrada / Etiquetas | Comparar desempenho por pessoa, time, canal ou assunto | Na coluna de conversas por ATENDENTE vale o registro DATADO de atribuicao (28/09/2026): quem ficou com a conversa naquele periodo. Quem saiu da conta e trabalhou no periodo continua com linha propria. Por equipe e por caixa a conta segue pela conversa criada no periodo |
 | CSAT | Satisfacao depois da conversa resolvida | Total, distribuicao por nota, comentarios |
 | SLA | Cumprimento de prazo | So com o recurso liberado |
 | Robos | Quanto a IA resolve sozinha e quanto passa para humano | |
@@ -77,11 +79,11 @@ Ha ainda os numeros em tempo real (carga do momento, que ignoram o seletor de pe
 
 1. **Media e mediana nao sao o mesmo numero, e as telas usam as duas.** A Visao geral mostra a MEDIANA nos dois cartoes de tempo; o relatorio de Conversas mostra a MEDIA. Uma conversa antiga respondida hoje entra na media com toda a espera acumulada. Medido numa conta real: media de 164,6 HORAS contra mediana de 1,1 HORA no mesmo periodo. Ao responder "quanto tempo levamos para responder", use a mediana e diga que e a mediana.
 2. **Resolucoes conta acoes, nao conversas.** Nunca compare com "conversas novas" para tirar percentual.
-3. **O total de uma tabela nao e a soma das linhas.** E contagem propria por metrica. E as linhas sao os membros ATUAIS: quem saiu da equipe some da linha e continua no total.
+3. **O total de uma tabela nao e a soma das linhas.** E contagem propria por metrica. Quem saiu da conta mas trabalhou no periodo ganha linha propria (desde 26/09/2026), com o nome guardado - antes ele sumia das linhas e ficava so no total.
 4. **Cem por cento de cumprimento de prazo pode ser ausencia de dado.** Conta sem nenhum prazo aplicado devolve 100. Olhe o campo de total antes de anunciar. Vale igual para satisfacao: o total separa "ninguem respondeu" de "zero legitimo".
 5. **"Quantos estao na etapa agora" e "quantos entraram na etapa no periodo" sao perguntas diferentes.** Cartao que entrou e depois saiu SOME da primeira. Medido: 25 por cento de diferenca. Para "quantos aconteceram", use o bloco de entradas na etapa - com o limite de que esse historico so existe desde julho de 2026 e guarda 365 dias.
 6. **Ligar a contagem so em horario de atendimento pode zerar tudo.** Se nenhuma caixa tem horario de atendimento configurado, os tempos voltam vazios. E evento gravado antes de julho de 2026 guarda um zero que puxa a media para baixo: periodo que atravessa essa data mistura os dois e nao e confiavel.
-7. **Data tem formato, e ele muda por ferramenta.** As ferramentas de conversas e de satisfacao esperam a data como numero (segundos), nao como texto. Nas de CONVERSAS isso hoje e RECUSADO com uma mensagem dizendo o formato certo - foi consertado depois de uma conta com 4.396 conversas no periodo receber ZERO como resposta, com cara de sucesso. Na de SATISFACAO essa recusa NAO existe: data por extenso ali continua devolvendo numero errado em silencio. As ferramentas de Agendamentos e de Origem dos Leads aceitam data normal.
+7. **Data tem formato.** As ferramentas de conversas, de satisfacao e de prazo aceitam hoje: numero em segundos (o mais seguro), em milissegundos, ISO 8601 (sem fuso vale a hora da conta) e data pura AAAA-MM-DD (o dia INTEIRO no fuso da conta). Texto ilegivel e RECUSADO com 400 e a explicacao do formato - nunca mais devolve zero com cara de sucesso. As ferramentas de Agendamentos e de Origem dos Leads aceitam data normal. Na duvida, mande segundos.
 
 ---
 
@@ -90,11 +92,13 @@ Ha ainda os numeros em tempo real (carga do momento, que ignoram o seletor de pe
 Ferramenta: `lionchat_booking_reports`. Unidade = o agendamento.
 
 - **Periodo padrao: 30 dias para TRAS e 30 para FRENTE** - agenda tem futuro.
-- Devolve: total, pendentes, concluidos, cancelados, adiados e a taxa de comparecimento; a linha do tempo; e as quebras por servico, por profissional e por origem.
-- **A situacao vem do compromisso na Agenda**, nao do registro da reserva. Isso ja esta resolvido dentro da ferramenta - por isso ela e o caminho certo para contar concluidos e cancelados.
-- **A taxa de comparecimento e concluidos dividido por concluidos mais cancelados.** Os pendentes ficam FORA do denominador de proposito: incluir quem ainda nem aconteceu afundaria a taxa de quem tem muita agenda marcada para a frente. **Nao recalcule com o total** - voce inventaria um numero pior que o real.
+- Devolve: total, pendentes, concluidos, cancelados, adiados, compareceu (`attended`), faltou (`no_show`) e a taxa de comparecimento; a linha do tempo; as quebras por servico, por profissional e por origem; e o bloco `treatments` dos programas de sessoes.
+- **A situacao vem do compromisso na Agenda**, nao do registro da reserva. Isso ja esta resolvido dentro da ferramenta - por isso ela e o caminho certo para contar concluidos e cancelados. A consulta aparece no dia em que esta na Agenda: arrastou para outro dia, muda de dia no relatorio.
+- **A taxa de comparecimento (desde 15/09/2026) e compareceu dividido por compareceu mais faltou**, pelas marcas de presenca. Periodo SEM nenhuma marca cai na regra antiga: concluidos dividido por concluidos mais cancelados. O campo `attendance_basis` diz qual valeu (`attendance` ou `status`) - diga isso ao dono. Os pendentes ficam FORA do denominador de proposito. **Nao recalcule com o total** - voce inventaria um numero pior que o real. A taxa nao muda quando se escolhe uma situacao no filtro.
 - **Adiado aparece separado**, e nao somado aos pendentes: adiar e uma acao deliberada da equipe e some do radar se for misturada.
 - A **origem do agendamento** vem do rastreamento da pagina publica. Agendamento marcado pela equipe ou pela IA nao tem origem - e por isso que parte deles aparece sem essa informacao.
+- **Programas (`treatments`):** em andamento e atrasados (medidos no fim do periodo), comecaram, concluidos, encerrados, sessoes previstas, marcadas, aconteceram, faltaram e nao marcadas (previsao), com quebra por tipo. O filtro de servico vale; o de profissional e o de situacao nao.
+- **Conta que nao usa Booking** (14/10/2026): `source=agenda` troca a fonte para os compromissos marcados a mao na Agenda (ligacao, reuniao, videochamada e tipos da conta; tarefa comum e evento do Google ficam fora). Nesse modo o tipo vai em `task_type`, a origem vem vazia e os programas vem nulos.
 
 ---
 
@@ -106,8 +110,8 @@ Tetos: **12 blocos por relatorio** e **50 relatorios por conta**.
 
 O caminho seguro, em ordem:
 
-1. Leia o fuso da conta.
-2. **Teste cada bloco antes de salvar** com `lionchat_custom_dashboards_preview_widget`, mandando `timezone_offset`. Essa ferramenta calcula sem salvar nada e e a que responde pergunta de relatorio que nenhuma outra cobre.
+1. Leia o fuso da conta (para conferir o corte do dia).
+2. **Teste cada bloco antes de salvar** com `lionchat_custom_dashboards_preview_widget` (o fuso da conta vale sozinho; so mande `timezone_offset` para olhar outro fuso). Essa ferramenta calcula sem salvar nada e e a que responde pergunta de relatorio que nenhuma outra cobre.
 3. Mostre o numero ao dono e confirme que e a pergunta dele.
 4. Salve com `lionchat_custom_dashboards_create`, com `confirm: true` e um `title` em TODO bloco.
 5. Para alterar: leia com `lionchat_custom_dashboards_list`, altere a lista e devolva-a COMPLETA. **A lista enviada SUBSTITUI a anterior** e nao ha historico. Essa listagem nao tem paginacao e pode vir CORTADA numa conta com muitos relatorios cheios; se vier o aviso de corte, NAO use - leia aquele relatorio sozinho com `lionchat_custom_dashboards_show`, que e o caminho seguro.
@@ -133,7 +137,9 @@ Na tela existe ainda um assistente que monta o bloco a partir de uma frase em po
 | `stage_conversion` | Percentual de conversao entre etapas, calculado pelo servidor | `funnel_id`, a lista de etapas do numerador e a do denominador | cartao | `kanban_board` |
 | `lead_origin` | De qual plataforma vieram os leads | so o periodo | barra ou pizza | `liontrack` |
 | `agent_report` | Tabela de produtividade | `dimension` (agent, team, inbox), `columns` com as metricas, `scope_type` mais `scope_id` | tabela | - |
-| `calls_report` | Tabela de ligacoes | `dimension` (agent, inbox), `scope_type` inbox com `scope_id` | tabela | - |
+| `calls_report` | Tabela de ligacoes | `dimension` (agent, inbox), `scope_type` inbox OU team com `scope_id`, `direction_split` | tabela | - |
+| `eclinica_no_show` | Faltas da agenda da e-Clinica | `dimension` (unit, operator, date), chavinhas `no_show_over_scheduled` e `only_first_visit` | tabela | `eclinica_integration` |
+| `eclinica_conversion` | De quem foi atendido, quantos viraram tratamento | `dimension` (unit, operator), chavinha `count_retorno_as_consulta` | tabela | `eclinica_integration` |
 
 Notas por tipo:
 
@@ -142,8 +148,10 @@ Notas por tipo:
 - **`measure` com quantidade E valor juntos so vale em tabela** - em grafico de barra e recusado, porque sao dois numeros por etapa.
 - Combinacoes uteis do `funnel_stages`: `date_basis` fechado mais `status` ganho responde "quantos foram GANHOS no periodo".
 - **`stage_conversion` e o unico percentual confiavel** para o aviso diario, porque quem calcula e o servidor. Cartao que passou por duas etapas do denominador conta UMA vez.
-- **`agent_report`**: as colunas saem de uma lista fechada - leads, atendidos, resolvidas, abertas, pendentes, adiadas, contagem por etiqueta e conversao. A contagem por etiqueta exige dizer qual etiqueta; a conversao exige um denominador e uma lista de etiquetas como numerador. Aqui `scope_type` tem sentido diferente: agente e equipe recortam QUEM aparece nas linhas; caixa recorta o que aquelas pessoas fizeram NAQUELA caixa. Caixa junto com dimensao equipe e recusado.
-- **`calls_report`**: colunas padrao sao ligacoes, atendidas, nao atendidas, nao concluidas, tempo falado e media. Ligacao sem atendente ganha uma linha propria. O recorte por caixa depende de a origem da ligacao gravar a caixa - em algumas plataformas de telefonia isso nao acontece e o bloco esvazia.
+- **`agent_report`**: as colunas saem de uma lista fechada - leads, atendidos, resolvidas, abertas, pendentes, adiadas, contagem por etiqueta e conversao, e (so com dimensao `agent`) primeira resposta, tempo de resposta, ligacoes feitas, taxa de ligacao (sobre leads ou atendidos), ligacoes recebidas e tempo falado. A contagem por etiqueta exige dizer qual etiqueta; a conversao exige um denominador e uma lista de etiquetas como numerador. Leads por atendente = conversas ATRIBUIDAS a ele no periodo; quem saiu da conta e trabalhou no periodo continua com linha. "Resolvidas", "Abertas", "Pendentes" e "Adiadas" mostram como as conversas atendidas no periodo estao HOJE. Aqui `scope_type` tem sentido diferente: agente e equipe recortam QUEM aparece nas linhas; caixa recorta o que aquelas pessoas fizeram NAQUELA caixa. Caixa junto com dimensao equipe e recusado.
+- **`calls_report`**: colunas padrao sao ligacoes, atendidas, nao atendidas, nao concluidas, tempo falado e media por ligacao (os tempos saem por extenso, tipo `1h07`). Ligacao sem atendente ganha uma linha propria. `direction_split: true` troca as colunas por Feitas x Recebidas (opt-in; a feita pelo aparelho do VTCall conta desde 11/09/2026, so com ramal cadastrado). `scope_type: team` (so com dimensao `agent`) mostra so as linhas de quem e da equipe; a linha "Sem responsavel" continua. O recorte por caixa depende de a origem da ligacao gravar a caixa - em algumas plataformas de telefonia isso nao acontece e o bloco esvazia.
+- **`eclinica_no_show`** e **`eclinica_conversion`** leem a agenda da e-Clinica (por unidade, por operador ou por dia). As chavinhas sao regra de negocio do CLIENTE - pergunte: `no_show_over_scheduled` (falta sobre todos os agendados, em vez de sobre quem teve desfecho; nasce desligada), `only_first_visit` (so consulta inicial; nasce desligada) e `count_retorno_as_consulta` (retorno conta como consulta na base; nasce ligada). Consulta remarcada aparece no dia novo; falta ou atendimento de antes da remarcacao continua no dia em que aconteceu.
+- **`funnel_stages` em periodo que ja terminou** mostra onde os cards estavam no ultimo dia do periodo (19/10/2026), nao a etapa de hoje.
 - **`entity_ranking` nao tem recorte**: a dimensao ja e a comparacao.
 
 ---
@@ -153,10 +161,11 @@ Notas por tipo:
 | Campo | O que faz | Valores |
 |---|---|---|
 | `title` | O nome do bloco no cabecalho. E o que distingue quatro blocos de funil no mesmo relatorio | Texto ate 80 caracteres. **De um titulo a TODO bloco** |
-| `time_range` | O periodo | hoje, ontem, ultimos 7 dias, ultimos 30 dias, este mes, mes passado, ou periodo escolhido com data de inicio e fim |
+| `time_range` | O periodo | hoje, ontem, ultimos 7 dias, ultimos 30 dias, este mes, mes passado, ou periodo escolhido com data de inicio e fim (todo tipo de bloco aceita, desde 19/08/2026) |
 | Periodo escolhido | Janela sob medida | Exige as duas datas; **a janela nao pode passar de 92 dias** |
 | `chart_type` | Como o bloco e desenhado | conforme o tipo; omitido usa o padrao |
-| `timezone_offset` | O fuso em que o dia e cortado | horas, lido da conta. **Sempre mande** |
+| `timezone_offset` | O fuso em que o dia e cortado | horas. Opcional: ausente usa o fuso DA CONTA. So mande para olhar de outro fuso |
+| Chavinhas por tipo | `direction_split` (ligacoes), `no_show_over_scheduled`, `only_first_visit`, `count_retorno_as_consulta` (e-Clinica) | true ou false; o tipo errado ignora |
 | Largura e altura | O tamanho na grade | 1 a 4 colunas; altura normal ou alta |
 | Seguir o periodo do relatorio | Se o bloco obedece o calendario do topo ou fica no periodo proprio | ligado por padrao |
 
@@ -174,7 +183,7 @@ Regras do sistema:
 - **A caixa PRECISA ser WhatsApp por QR Code.** A oficial e recusada (fora da janela de 24 horas ela so manda modelo aprovado).
 - **A conversa de destino precisa ser da MESMA caixa.**
 - **Teto de 10 avisos por conta.** So administrador.
-- **A janela dos numeros e sempre ONTEM**, no fuso da conta.
+- **A janela dos numeros e ONTEM**, no fuso da conta. Com "so dias uteis", o aviso de segunda-feira traz sexta, sabado e domingo.
 - Hora de envio de 0 a 23, no fuso da CONTA. Todo dia ou so dias uteis.
 - Tolerancia de 3 horas: se o disparo perder o horario, sai atrasado; passou disso, fica marcado como perdido e tenta amanha.
 - **A mensagem entra na conversa como mensagem de SISTEMA.** Automacoes e fluxos ativos NAQUELA conversa reagem a ela. Ela nao conta como resposta de atendente e nao mexe em prazo. Avise o cliente antes de escolher um grupo que tenha automacao rodando.
@@ -224,6 +233,7 @@ Confira tambem em `lionchat_report_alerts_show` a hora prevista do proximo envio
 | `lionchat_reports_summary` | Resumo geral: contagens e tempos em media E mediana, com comparacao automatica com o periodo anterior. Tempos em SEGUNDOS, datas em numero. |
 | `lionchat_reports_list` a `_list_4` | Resumo por atendente, equipe, caixa, etiqueta e tipo de canal. |
 | `lionchat_reports_list_5` | Serie no tempo de UMA metrica, com agrupamento e fuso. |
+| `lionchat_reports_drilldown` | As CONVERSAS que formam UM ponto da serie (o mesmo que clicar na barra). Repita `metric`, `group_by`, `type`, `id`, `timezone_offset` e `business_hours` da serie e passe o `timestamp` do ponto em `bucket_timestamp`. `meta.hidden_count` = conversas que a pessoa nao pode abrir: diga isso, nao conclua que faltam. 25 por pagina. |
 | `lionchat_reports_list_6` / `_list_14` | Resumo e detalhe do robo. |
 | `lionchat_reports_list_7` a `_list_10`, `_list_12` | Exportar planilha de atendentes, caixas, etiquetas, equipes e resumo de conversas. |
 | `lionchat_reports_list_11` | A lista de conversas do relatorio. |
@@ -236,7 +246,8 @@ Confira tambem em `lionchat_report_alerts_show` a hora prevista do proximo envio
 | `lionchat_booking_reports` | O relatorio de Agendamentos. |
 | `lionchat_lead_origin_reports` | Origem dos leads, com abertura por plataforma, tipo, campanha, conjunto e criativo. |
 | `lionchat_journey_funnel_reports` | Jornada no site. Janela maxima de 30 dias. |
-| `lionchat_funnels_stage_report` | Numeros de UMA etapa do funil, com regua de data escolhida. |
+| `lionchat_funnels_stage_report` | Numeros de UMA etapa do funil, com regua de data escolhida (em periodo passado, a situacao no fim do periodo). |
+| `lionchat_kanban_items_shared_sales` | A lista "Vendas compartilhadas" do relatorio do Kanban: cards GANHOS no periodo com co-participante diferente do vendedor gravado, com `date_basis`, filtros de pessoa/time/etiqueta/motivo e paginacao por `nextCursor`. Quem nao enxerga parte do Kanban recebe essas vendas so como `hiddenCount`. |
 | `lionchat_funnels_open_counts` / `lionchat_kanban_items_counts` | Contagens rapidas de cartoes. |
 | `lionchat_campaigns_statistics` / `lionchat_campaigns_flow_report` | Resultado de campanhas. |
 | `lionchat_lead_forms_stats` | Numeros de um formulario publico. |
@@ -261,12 +272,12 @@ Confira tambem em `lionchat_report_alerts_show` a hora prevista do proximo envio
 **Acontece:** todos os outros somem. Nao ha historico.
 **Como sair:** leia a lista inteira, altere e devolva completa, preservando o numero de cada bloco que ja existia. Se a leitura veio cortada, nao grave.
 
-### Calcular sem o fuso
+### Chutar o fuso
 
-**Voce faz:** omite o fuso, ou assume -3.
-**Acontece:** o dia e cortado em horario universal e o numero nao bate com a tela.
+**Voce faz:** manda `timezone_offset: -3` sem conferir a conta.
+**Acontece:** numa conta em outro fuso o dia e cortado errado e o numero nao bate com a tela.
 **Sinal:** cliente diz "aqui na tela da outro numero".
-**Como sair:** leia o fuso da conta e mande sempre.
+**Como sair:** omita o fuso (as ferramentas usam o da conta) ou leia o fuso da conta antes de mandar.
 
 ### Campo com nome errado
 
@@ -282,7 +293,7 @@ Confira tambem em `lionchat_report_alerts_show` a hora prevista do proximo envio
 
 ### Somar as linhas de uma tabela
 
-**Acontece:** nao fecha com o total, e nao e erro: o total e contagem propria por metrica, e as linhas sao os membros atuais.
+**Acontece:** nao fecha com o total, e nao e erro: o total e contagem propria por metrica.
 
 ### Anunciar 100 por cento de prazo cumprido
 
@@ -309,10 +320,15 @@ Confira tambem em `lionchat_report_alerts_show` a hora prevista do proximo envio
 **Acontece:** uma mostra mediana e a outra media. A diferenca chega a ser de 164 horas contra 1,1 hora.
 **Como sair:** diga sempre qual das duas voce esta mostrando.
 
-### Mandar data como texto nas ferramentas de conversa e satisfacao
+### Mandar data em formato ilegivel nas ferramentas de conversa, satisfacao e prazo
 
-**Acontece:** nas de conversas, a chamada e RECUSADA com uma mensagem dizendo o formato certo. Na de satisfacao nao ha essa recusa: a janela sai errada em silencio e a resposta vem zerada.
-**Como sair:** data em numero (segundos) nessas ferramentas; as de Agendamentos e Origem dos Leads aceitam data normal.
+**Acontece:** a chamada e RECUSADA com 400 e a explicacao do formato. Data pura AAAA-MM-DD vale o dia inteiro no fuso da conta.
+**Como sair:** segundos (o mais seguro), ISO 8601 ou AAAA-MM-DD.
+
+### Ler a taxa de comparecimento sem olhar a base
+
+**Acontece:** a taxa pode vir das marcas de presenca ou, sem nenhuma marca no periodo, de concluidos x cancelados.
+**Como sair:** leia `attendance_basis` e diga ao dono qual regra valeu.
 
 ---
 

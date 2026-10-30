@@ -96,6 +96,18 @@ Nunca passe dado de um paciente para outro.
 Nunca confirme um agendamento sem ter usado a ferramenta de agendar.
 ```
 
+A tela Protecoes oferece cinco exemplos prontos para adicionar. O quinto (desde 22/09) e o que mais vale
+sugerir ao cliente, porque cobre o que lista de assuntos nao cobre:
+
+```
+Nunca afirmar que a empresa faz, tem ou consegue algo que nao esteja nas instrucoes ou na base de
+conhecimento. Pedido fora disso: anotar, verificar com a equipe e retornar, sem prometer.
+```
+
+Caso real que originou: a IA disse "Conseguimos sim" sobre uma carta que ninguem nunca lhe ensinou a fazer;
+as protecoes daquela conta tinham cinco "nunca prometer X", todas por assunto. A regra geral ja esta no
+comportamento de fabrica da IA - esta protecao e o reforco escrito, se o cliente quiser.
+
 **Protecao nao e trava de verdade.** Ja houve um caso em que a regra "endereco nunca se inventa" estava
 escrita nove vezes no texto e a IA passou um endereco inexistente mesmo assim. Protecao ajuda; o que segura
 e a estrutura (base organizada, cenario com passo a passo, ferramenta de verdade para executar).
@@ -189,6 +201,20 @@ conector:
 
 O vinculo so cola se a ferramenta estiver CITADA na instrucao; senao e descartado no salvamento.
 
+**Cenario que aponta uma ferramenta de fluxo com dados obrigatorios: o sistema pode acionar sozinho.** Quando
+o cenario em uso cita um fluxo que exige dados, a IA grava NESTA resposta um dado que o fluxo pede, todos os
+dados ficam completos e ela mesmo assim nao aciona o fluxo, o sistema aciona no lugar dela e entrega o
+resultado (fica uma pilula "Sistema acionou o fluxo X conforme o cenario Y"). Isso existe para o caso "salvou o
+ultimo dado e esqueceu de gerar o contrato". Duas consequencias para quem escreve o cenario:
+
+- **Se o fluxo so pode rodar depois de algo** (o "sim" do cliente, o comprovante do Pix, a quantidade, a
+  aprovacao da equipe), escreva isso no passo a passo. Desde 19/10 o sistema respeita a espera que a propria
+  IA declarou no plano do turno ("aguardando o comprovante", "aguardar orientacao da equipe") e nao aciona.
+  Espera sem pre-requisito conhecido ("aguardar a proxima mensagem") nao segura.
+- O sistema tambem nao aciona quando a resposta da IA termina em pergunta ou ja traz o link do resultado. Se
+  o cliente quer o fluxo rodando direto depois do ultimo dado, diga isso no cenario ("apos salvar X, acione
+  [Gerar contrato](tool://flow_<id do fluxo>) na mesma resposta, sem perguntar").
+
 **Fixar a AGENDA por cenario nao funciona hoje** - nem pelo conector, nem pela tela: o campo aparece no
 formulario, mas o servidor descarta esse vinculo ao salvar. O jeito que funciona e restringir as agendas
 do agente inteiro em `config.booking_event_type_ids`.
@@ -250,6 +276,11 @@ API e ficam em branco na instrucao.
 Atributo personalizado entra como `{{ contact.custom_attribute.<chave> }}` (tambem `conversation.` e
 `account.`) e so funciona se a chave estiver cadastrada em Atributos personalizados - a revisao de
 qualidade acusa quando nao esta.
+
+**Empresa do contato (desde 16/10):** quando o contato pertence a uma empresa cadastrada, a IA recebe os dados
+dela (nome, razao social, CNPJ, telefone, e-mail, cidade/estado e os atributos personalizados de empresa) como
+contexto, SOMENTE LEITURA. Nao existe ferramenta para gravar dado da empresa: nao escreva cenario mandando a IA
+atualizar a empresa.
 
 Cuidado: o seletor de variaveis de OUTRAS telas do produto (caixa de resposta, campanha, modelo do
 WhatsApp) oferece mais coisa do que a IA preenche. Nao copie de la.

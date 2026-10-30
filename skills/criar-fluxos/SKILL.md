@@ -1,6 +1,6 @@
 ---
 name: criar-fluxos
-description: Monta, corrige e testa fluxos do FlowBuilder (menu Workflows, Flows) na conta LionChat com as ferramentas do conector LionChat — os tres tipos (mensagem, ferramenta da IA e Fluxo de Acoes, que roda em qualquer caixa e so executa acoes). Use quando o cliente disser "quero um robo que atenda no WhatsApp", "monta um menu de atendimento", "cria um fluxo que qualifica lead", "manda lembrete de consulta", "quero que isso aconteca em todas as caixas", "meu fluxo parou no meio" ou "o fluxo nao dispara". Entrevista o cliente, desenha o caminho por escrito e so cria depois de confirmacao explicita.
+description: Monta, corrige e testa fluxos do FlowBuilder (menu Workflows, Flows) na conta LionChat com as ferramentas do conector LionChat — os tres tipos (mensagem, ferramenta da IA e Fluxo de Acoes, que roda em qualquer caixa e so executa acoes). Use quando o cliente disser "quero um robo que atenda no WhatsApp", "monta um menu de atendimento", "cria um fluxo que qualifica lead", "manda lembrete de consulta", "quero que isso aconteca em todas as caixas", "avisa quando o lead fica parado no funil", "a IA tem que ligar para o lead", "meu fluxo parou no meio" ou "o fluxo nao dispara". Entrevista o cliente, desenha o caminho por escrito e so cria depois de confirmacao explicita.
 ---
 
 # Criar Fluxos no LionChat
@@ -33,8 +33,8 @@ A escolha e feita na criacao e **nao muda depois**.
 | Tipo | Caixa | O que tem de diferente |
 |---|---|---|
 | **Mensagem** (um a um ou grupo) | uma ou mais, do mesmo canal | O tipo completo. Nao tem o bloco Fim |
-| **Ferramenta da IA** | nenhuma | O AI Agente chama. Sem Aguardar resposta, Espera, Gestao de Grupos nem a aba Sistema do bloco Acoes |
-| **Acoes** (17/09/2026) | **nenhuma - roda em todas** | Mesmos gatilhos do de mensagem, em qualquer caixa. **Sem Enviar mensagem, Aguardar resposta, Gestao de Grupos e Fim.** O bloco Acoes tem todas as abas |
+| **Ferramenta da IA** | nenhuma | O AI Agente chama. Sem Aguardar resposta, Espera, Gestao de Grupos, Ligar com IA, a aba Sistema do bloco Acoes nem a acao Criar tarefa |
+| **Acoes** (17/09/2026) | **nenhuma - roda em todas** | Mesmos gatilhos do de mensagem, em qualquer caixa. **Sem Enviar mensagem, Aguardar resposta, Gestao de Grupos, Ligar com IA e Fim.** O bloco Acoes tem todas as abas |
 
 O Fluxo de Acoes existe para o que antes obrigava a repetir o mesmo fluxo em cada caixa ("toda
 conversa encerrada ganha a etiqueta X", "card ganho grava a data no contato"). Detalhes em
@@ -57,8 +57,9 @@ perguntas, nao de nove. Se o cliente ja respondeu, nao repergunte.
 
 1. Em uma frase: o que esse fluxo resolve?
 2. O que faz ele COMECAR? (chegou mensagem com certa palavra, abriu conversa nova, puseram
-   etiqueta, o card mudou de etapa, chegou uma venda de fora, uma data na ficha do contato,
-   disparo em massa por campanha)
+   etiqueta, o card mudou de etapa, o card ficou parado X horas na etapa, o card foi adiado ou
+   voltou do adiamento, chegou uma venda de fora, uma data na ficha do contato, o contrato foi
+   assinado, o cliente respondeu o formulario do WhatsApp, disparo em massa por campanha)
 3. Em qual caixa de entrada ele roda? E WhatsApp Oficial ou WhatsApp por QR Code? Isso muda tudo.
    (Se a resposta for "em todas" e o fluxo nao precisa falar com o cliente, e Fluxo de Acoes.)
 4. E conversa um a um, conversa de GRUPO de WhatsApp, uma ferramenta para o AI Agente usar, ou um
@@ -104,7 +105,17 @@ Leia `references/blocos-e-gatilhos.md` antes de escolher blocos e gatilhos, e
   de mensagem pelo "Iniciar outro flow", mas so se a caixa da conversa estiver ligada naquele
   fluxo - senao o passo da erro e o outro fluxo nao comeca.
 - O atendente quer disparar com um clique: macro com a acao **"Disparar flow (de acoes)"**. A macro
-  so aceita Fluxo de Acoes (ela roda em qualquer conversa e nao filtra caixa).
+  so aceita Fluxo de Acoes (ela roda em qualquer conversa e nao filtra caixa). Desde 08/10/2026 o
+  Fluxo de Acoes ativo tambem aparece no "Iniciar flow" da lateral da conversa, em qualquer caixa.
+- "Avisa quando o lead fica parado X horas na etapa" = gatilho de PRAZO do card ("Card aberto na
+  etapa" / "Card aberto no funil", 28/10/2026). Nao monte isso com Espera depois de "Card movido".
+- "A IA tem que ligar para o lead": bloco **Ligar com IA** (`ai_call`, so em fluxo de mensagem um a
+  um). O agente de ligacao (roteiro, voz) e montado antes, pela skill `agente-de-ligacao`; aqui so
+  entra o bloco (`references/blocos-e-gatilhos.md`, secao 18).
+- "Manda o contrato para assinar": acao "Enviar documento para assinatura" do bloco Acoes. O modelo de
+  contrato e os gatilhos de assinatura sao assunto da skill `assinatura-eletronica`.
+- "Quando o cliente responder o formulario do WhatsApp": gatilho "Formulario do WhatsApp respondido".
+  O formulario em si e montado pela skill `formulario-whatsapp`.
 
 ### Etapa 3 - Propor
 
@@ -144,6 +155,11 @@ ajuste, refaca a proposta inteira e pergunte de novo.
 
 Confirme em qual conta vai mexer com `lionchat_account_show` e diga em voz alta.
 
+**Quem pode mexer em fluxo** (desde 21/09/2026): criar, editar, duplicar, excluir e ligar/desligar e
+de administrador ou de quem tem um cargo personalizado com a caixinha "Gerenciar FlowBuilder"
+(`flowbuilder_manage`). Os demais LEEM a lista e o desenho, mas a gravacao volta recusada (401). Se o
+usuario conectado nao pode, diga isso antes de montar a proposta.
+
 **Primeiro liste o que ja existe.** Apontar para algo que nao existe e o erro numero um, e ele
 falha em silencio:
 
@@ -159,6 +175,9 @@ falha em silencio:
 | Modelos aprovados do WhatsApp | `lionchat_inboxes_whatsapp_templates_list` |
 | Politicas de SLA, ofertas, modelos de checklist | `lionchat_sla_list`, `lionchat_offers_list`, `lionchat_kanban_config_list` |
 | Variaveis da conta (tokens de integracao) | `lionchat_account_variables_list` |
+| Agentes de LIGACAO e as caixas com linha (bloco Ligar com IA) | `lionchat_captain_call_agents_list` (ids em `meta.dial_inboxes`) |
+| Modelos de contrato (acao de assinatura) | `lionchat_signature_documents_list` |
+| Formularios do WhatsApp (gatilho de resposta) | `lionchat_whatsapp_forms_list` |
 
 **Depois monte, nesta ordem:**
 
@@ -179,9 +198,14 @@ falha em silencio:
 
 **Erros:** 422 falando em conflito de gatilho = outro fluxo ativo ja ocupa aquele gatilho naquela
 caixa (Fluxo de Acoes nunca recebe esse erro). 422 falando em tipo de bloco nao permitido = voce
-usou o bloco Fim num fluxo de conversa, um bloco proibido em ferramenta da IA, ou Enviar mensagem /
-Aguardar resposta / Gestao de Grupos / Fim num Fluxo de Acoes. 422 dizendo que o fluxo nao pode ter
-caixa = voce mandou `inbox_ids` num Fluxo de Acoes. Se o desenho passar de 2 MB, quebre em dois
+usou o bloco Fim num fluxo de conversa, um bloco proibido em ferramenta da IA (inclusive Ligar com
+IA), ou Enviar mensagem / Aguardar resposta / Gestao de Grupos / Ligar com IA / Fim num Fluxo de
+Acoes. 422 dizendo que o fluxo nao pode ter caixa = voce mandou `inbox_ids` num Fluxo de Acoes. 422
+falando de `ai_call` ("not allowed in group flows", "call agent that does not exist in this account",
+"inbox without a calling line in this account") = Ligar com IA em fluxo de grupo, ou o agente/caixa
+escolhidos nao existem nesta conta - quase sempre e o id de um agente de TEXTO no lugar do agente de
+LIGACAO; liste de novo com `lionchat_captain_call_agents_list`. 422 de prazo do card = o prazo dos
+gatilhos "Card aberto" fica entre 15 minutos e 365 dias. Se o desenho passar de 2 MB, quebre em dois
 fluxos. Se voce
 nao souber o formato de um bloco, **abra um fluxo que ja funciona com `lionchat_flows_show` e
 copie** - nunca invente nome de chave nem de saida.
@@ -246,11 +270,13 @@ ONDE VOCE ACOMPANHA
     quem recebe mensagem automatica, quando o AI Agente liga ou desliga.
 11. **NAO usa emoji** em nome de fluxo, nome de bloco, etiqueta nem em texto de mensagem.
 12. **NAO mexe em assinatura, plano, fatura, cartao ou cobranca** por nenhum caminho.
-13. **NUNCA monta Fluxo de Acoes para falar com o cliente** - ele nao tem Enviar mensagem nem
-    Aguardar resposta, e o salvar recusa esses blocos. Se o pedido precisa de mensagem, e fluxo de
-    mensagem.
+13. **NUNCA monta Fluxo de Acoes para falar com o cliente** - ele nao tem Enviar mensagem, Aguardar
+    resposta nem Ligar com IA, e o salvar recusa esses blocos. Se o pedido precisa de mensagem ou de
+    ligacao, e fluxo de mensagem.
 14. **NUNCA promete que um Fluxo de Acoes dispara por integracao ou formulario** - hoje ele nao
     dispara (ver Armadilhas).
+15. **NUNCA poe no bloco Ligar com IA o id de um agente de TEXTO.** O `aiCallAgentId` sai de
+    `lionchat_captain_call_agents_list`; o de `lionchat_captain_assistants_list` e outra coisa.
 
 ## Armadilhas
 
@@ -300,6 +326,14 @@ Todas estas falham **em silencio**: o fluxo e criado, parece certo na tela e nao
   com os fluxos de mensagem da caixa - e de proposito.
 - **Se voce apagar um bloco onde ha gente parada**, essas pessoas viram erro na proxima tentativa.
 - **Se voce declarar variaveis no cadastro do fluxo**, elas nao passam a existir: so bloco cria.
+- **Se voce ligar o gatilho "Card aberto na etapa / no funil" esperando pegar os cards que JA estao
+  parados**, nada acontece com eles: so dispara quem CRUZA o prazo com o fluxo ligado. Mudar o prazo,
+  a etapa ou o funil do gatilho tambem conta como gatilho novo.
+- **Se voce ligar a saida `error` do Ligar com IA direto em outro Ligar com IA**, pode ligar duas
+  vezes para a pessoa: em alguns erros nao da para saber se a ligacao saiu. Para insistir, use a
+  saida `no_answer` com uma Espera no meio.
+- **Se voce puser "Criar tarefa" numa ferramenta da IA ou num fluxo de grupo**, o salvar aceita e o
+  passo fica com ERRO na execucao. Ela so roda em fluxo de mensagem um a um e no Fluxo de Acoes.
 
 ## Se o cliente perguntar o que voce faz
 

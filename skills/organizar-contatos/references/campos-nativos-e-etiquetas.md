@@ -16,6 +16,7 @@ existe? preciso mesmo criar alguma coisa?**
 9. Variaveis da conta
 10. Notas, Documentos e Preenchimentos
 11. Ficha duplicada e mesclagem
+12. A pessoa mudou de numero
 
 ---
 
@@ -27,22 +28,23 @@ Nao crie campo personalizado para nada disto — ja existe na ficha:
 |---|---|
 | Nome | Nas mensagens: nome inteiro, primeiro nome e sobrenome saem prontos |
 | E-mail | Unico na conta, gravado sempre em minusculas |
-| Telefone | Precisa vir com o codigo do pais. Unico na conta |
+| Telefone | Precisa vir com o codigo do pais. Unico na conta. Pessoa que MUDOU de numero: secao 12 |
 | Identificador | O codigo da pessoa em OUTRO sistema (ERP, clinica, escola). Unico na conta |
 | Bloqueado | Mensagem de quem esta bloqueado e descartada na entrada |
 | Cidade e Pais | Ficam na ficha e sao filtraveis |
-| Empresa | Nome da empresa da pessoa |
+| Empresa | Nome da empresa da pessoa (`company_name`). Com o modulo Empresas, a ficha pode ser ligada a uma empresa cadastrada - ver secao 7 |
+| Cargo | O cargo da pessoa (`job_title`) |
 | Tipo do contato | Visitante, Lead ou Cliente |
 | Foto | O avatar da ficha |
 
-Sobre o **tipo do contato**: a ficha que chega por um canal ou pelo chat do site nasce Visitante e
-vira **Lead sozinha** assim que ganha e-mail, telefone ou perfil de rede social. Ja a ficha criada a
-mao — pelo painel ou por ferramenta — nasce **Lead direto**, e por isso aparece na lista mesmo com
-so o nome preenchido.
+Sobre o **tipo do contato**: desde 11/10/2026 **toda ficha nasce Lead** - criada a mao, por
+ferramenta, por planilha, por integracao ou pelo historico importado - e por isso aparece na lista
+mesmo so com o nome. So continuam nascendo **Visitante** o visitante ANONIMO do chat do site e o
+contato de grupo ou de canal do WhatsApp. O visitante do site vira Lead quando ganha e-mail, telefone
+ou perfil de rede social, ou quando o sistema do cliente o identifica (nome mais codigo).
 
-Isso importa por um motivo pratico: **contato que ainda seja Visitante e nao tenha telefone, e-mail
-nem identificador nao aparece na lista de contatos** — nem entra em filtro, segmento ou exportacao.
-Se o cliente disser que uma ficha "sumiu", verifique isso primeiro.
+Isso importa por um motivo pratico: **a lista de contatos mostra so Lead (e Cliente)**. Visitante nao
+aparece la. Se o cliente disser que uma ficha "sumiu", verifique o tipo dela primeiro.
 
 Sobre o **identificador**: e o campo certo para o codigo do paciente, do aluno, do pedido. Nao crie
 um campo personalizado "codigo_do_sistema" — use o identificador, que ja e unico e ja entra na busca.
@@ -107,6 +109,20 @@ parte, no menu Origens de Lead. Regras:
   origem personalizada ATIVA da conta. **A personalizada nao vai pelo nome**: vai como
   `custom:` seguido do apelido tecnico dela (o campo `slug` que a listagem de origens devolve).
   Qualquer outro valor e recusado.
+
+**Valores que o sistema nao reconheceu e UTMs inventadas pelo cliente** (desde outubro de 2026):
+
+- `lionchat_lead_origins_unrecognized` lista os valores que chegaram no link do anuncio e viraram
+  "outra" nos relatorios (em qual campo chegaram e quantos leads). Para cada um, o cliente decide:
+  `lionchat_lead_origins_adopt_unrecognized` cria uma origem com aquele valor e ensina o sistema a
+  classifica-lo dali em diante (NAO reprocessa os leads antigos; o formato e `other:<valor>`), ou
+  `lionchat_lead_origins_dismiss_unrecognized` tira o valor da lista de avisos sem criar nada.
+- `lionchat_lead_origins_custom_utms` lista as UTMs que o cliente inventou no proprio link
+  (`utm_parceiro`, `utm_vendedor`...) e que ja estao guardadas de lado. `lionchat_lead_origins_track_custom_utm`
+  transforma uma delas em campo de CONVERSA (e preenche as ate 200 conversas mais recentes que ja
+  tinham o valor), utilizavel em filtro, segmento, campanha, automacao e fluxo. Teto de 10 por conta.
+  `_untrack_custom_utm` remove o campo sem apagar os valores.
+- Adotar, descartar e acompanhar mudam a conta: so com confirmacao.
 
 ## 4. Campos de sistema (rastreamento) — existem, mas ficam escondidos
 
@@ -181,23 +197,59 @@ lugar.
 
 ## 7. Empresas
 
-Agrupa contatos de uma mesma organizacao. Cada contato pertence a no maximo uma empresa.
+Agrupa contatos de uma mesma organizacao. Cada contato pertence a no maximo uma empresa, e uma
+empresa tem **no maximo 100 contatos** (o 101o e recusado com 422).
 
-- Campos: nome (ate 100 caracteres), dominio e descricao (ate 1000).
-- **O dominio e o que faz a associacao automatica funcionar**: contato novo com e-mail corporativo
-  daquele dominio e ligado sozinho a empresa. O dominio e unico na conta.
-- **Empresa NAO aceita campo personalizado.** Se o cliente quiser guardar dados da empresa, ou vira
-  campo do contato, ou vira descricao.
-- **O modulo Empresas nasce DESLIGADO na conta** (e depende do plano). Cuidado: a ferramenta cria a
-  empresa mesmo assim, e a tela de Empresas continua escondida do cliente — ou seja, voce cria e ele
-  nao ve. **Antes de criar qualquer empresa, pergunte se ele consegue abrir a tela de Empresas no
+- **O modulo Empresas nasce DESLIGADO na conta** (`companies` nos recursos de `lionchat_account_show`,
+  e depende do plano). Sem ele a tela de Empresas fica escondida e nada do que segue funciona.
+  **Antes de criar qualquer empresa, pergunte se o cliente consegue abrir a tela de Empresas no
   painel.** Se nao conseguir, nao crie: registre no resumo que o modulo precisa ser liberado.
+- **Empresa e vinculo sao SEMPRE manuais.** Desde 25/09/2026 o sistema NAO cria empresa nem liga
+  contato pelo dominio do e-mail. Quem liga e voce (ou a equipe).
+
+**Cadastro da empresa** (`lionchat_companies_create` / `_update`, sempre dentro de `company`):
+
+| Parte | O que e |
+|---|---|
+| `name` | obrigatorio, ate 100 caracteres |
+| `domain` | o site; unico na conta (opcional) |
+| `description` | ate 1000 caracteres |
+| `additional_attributes` | o cadastro: `legal_name` (razao social), `cnpj` (validado; grava so os digitos), `phone`, `email`, `address` (`cep`, `street`, `number`, `complement`, `neighborhood`, `city`, `state`, `country`) e `social_profiles` |
+| `custom_attributes` | os CAMPOS PERSONALIZADOS da empresa, `{chave: valor}` (desde 15/10/2026) |
+
+**Campos personalizados da empresa**: crie a definicao com o modelo `company_attribute` (ferramenta de
+campos personalizados) e preencha pela edicao da empresa. Regras: so valores simples (texto, numero,
+sim/nao ou vazio); a gravacao MISTURA (mande so o que muda; vazio limpa a chave); chave que nao existe
+como definicao recusa o pedido INTEIRO com 422 e a lista das validas; ate 1.500 caracteres por valor;
+data aceita `DD/MM/AAAA`. Onde o campo aparece depois: variavel de mensagem
+`{{contact.company.custom_attribute.chave}}` (e o cadastro em `{{contact.company.legal_name}}`,
+`.cnpj`, `.phone`, `.email`, `.address.city`, `.address.state`) em mensagem, fluxo, automacao,
+campanha e modelo oficial; condicao do fluxo e da automacao; filtro de contatos
+(`custom_attribute_type: company_attribute`); e o Agente de IA le a empresa do contato.
+
+**Ligar contatos**: `lionchat_companies_contacts_create` (se o contato estava em outra empresa, ele
+MUDA de empresa) e `lionchat_companies_contacts_destroy` (tira da empresa; o contato nao e apagado).
+Tambem da pela edicao do contato, com `company_id`. Ligar faz o campo Empresa do contato virar o nome
+da empresa.
+
+**Muitas empresas de uma vez**: `lionchat_companies_bulk_create` (ate 1000 por chamada, so no conector
+remoto - confira antes de prometer), acompanhando com `lionchat_companies_import_status`. Quem e a
+mesma empresa: CNPJ, depois site, depois nome; duas empresas com o mesmo nome sem CNPJ e sem site =
+a linha nao entra. Celula vazia nunca apaga. Exige administrador ou o cargo "Exportar e importar
+contatos".
+
+Excluir empresa e so para administrador e NAO apaga os contatos - mas voce nao apaga nada.
 
 ## 8. Vinculo entre duas fichas
 
 Liga duas fichas par a par: mae e filho, responsavel e dependente, socio e empresa.
 
-- **Nao existe ferramenta para isso por aqui.** So pela aba **Vinculos** da ficha, no painel.
+- **Ferramentas**: `lionchat_contacts_relationships_list` (le os vinculos de uma ficha - cada item
+  traz sempre o OUTRO contato), `lionchat_contacts_relationships_create` (`linked_contact_id` = o
+  outro contato, da mesma conta) e `lionchat_contacts_relationships_destroy` (o `id` e o do VINCULO,
+  que vem da listagem, NAO o do contato). Qualquer atendente com acesso a ficha pode.
+- Vincular de novo o mesmo par, ou a ficha a ela mesma, e recusado (422).
+- O vinculo nao tem direcao nem papel: "A vinculado a B" e o mesmo que "B vinculado a A".
 - E par a par, sem grupo e sem cascata: se A esta ligado a B e B a C, o B enxerga os dois, mas o A so
   enxerga o B.
 - Aparece **so na aba Vinculos** — nao entra em busca, lista nem conversa.
@@ -205,8 +257,8 @@ Liga duas fichas par a par: mae e filho, responsavel e dependente, socio e empre
 **Nao trate vinculo como enfeite.** Ele e pre-requisito de uma funcionalidade real: agendar para
 outra pessoa. Quando a consulta e da ficha do filho (que muitas vezes so tem o nome) e o aviso precisa
 ir para o WhatsApp da mae, **o vinculo precisa existir ANTES** — sem ele o agendamento e recusado, e
-o aviso so pode ir para quem estiver vinculado. Se o cliente descrever esse cenario, mande criar o
-vinculo no painel antes de qualquer outra coisa.
+o aviso so pode ir para quem estiver vinculado. Se o cliente descrever esse cenario, proponha criar o
+vinculo antes de qualquer outra coisa.
 
 ## 9. Variaveis da conta
 
@@ -245,9 +297,34 @@ Juntar duas fichas e **irreversivel**. Regras:
 - Depois de juntar, por caixa de entrada, a conversa mais recente fica aberta e as outras sao
   encerradas.
 
+**Antes de qualquer juncao, mostre a previa**: `lionchat_contact_merge_preview` (`base_contact_id` =
+quem FICA, `mergee_contact_id` = quem e APAGADO) diz, sem executar nada, quais campos entram nos
+vazios da base, quais sao DESCARTADOS (quando os dois tem valor diferente), quantas conversas vem,
+quantas vao aparecer encerradas, as etiquetas que somam e se a ficha vai ficar bloqueada. Exige a
+permissao de excluir contato.
+
 **Nunca junte por conta propria.** Liste as suspeitas ao cliente — mesmo telefone em formas
-diferentes, mesmo e-mail, mesmo nome — e deixe ele decidir par a par.
+diferentes, mesmo e-mail, mesmo nome —, mostre a previa e deixe ele decidir par a par.
 
 E o outro lado: **apagar um contato apaga junto todas as conversas dele.** A acao em massa com
 "todos os contatos do filtro" mais exclusao e a operacao mais destrutiva da plataforma. A skill nao
 apaga; mande o cliente fazer na mao, se ele quiser mesmo.
+
+## 12. A pessoa mudou de numero
+
+**Nunca troque o telefone pela edicao do contato.** Ela muda o que aparece na ficha mas NAO o endereco
+de entrega: as mensagens continuam indo, sem erro nenhum, para o numero ANTIGO. A edicao serve so para
+corrigir cadastro de quem nunca conversou.
+
+O caminho e `lionchat_contacts_change_phone` (`id` do contato e o `phone_number` novo, com ou sem `+`).
+Ela troca o telefone da ficha e o endereco de cada caixa de WhatsApp (QR Code e oficial), mantendo a
+MESMA conversa no painel; escreve uma pilula nas conversas dizendo de qual numero para qual; e limpa a
+marca "nao tem WhatsApp" do numero antigo. No QR Code ela pergunta ao WhatsApp a forma certa do numero
+antes de gravar, o que resolve sozinho o caso do nono digito.
+
+Ela RECUSA (nao troca) quando o numero e o mesmo, e invalido, o contato e um grupo, ou o numero ja
+pertence a OUTRA ficha (409 dizendo de quem). Nesse ultimo caso, existe a opcao `merge_with` (o id da
+ficha dona do numero): junta as duas fichas e troca numa operacao so, com a ficha atual sobrevivendo e
+a outra sendo APAGADA, sem desfazer. So use depois de mostrar a previa
+(`lionchat_contact_merge_preview` com o `phone_number` novo) e com um sim explicito do cliente. Exige a
+permissao de excluir contato.

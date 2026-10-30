@@ -53,10 +53,10 @@ segunda compra do mesmo comprador nao dispara nada. *Saida:* confira em
 
 ## Nomes e mapeamento
 
-**Se voce montar o mapeamento da Greenn com os codigos numericos que a tela mostra**, ele nunca casa:
-o sistema recebe os eventos da Greenn com NOME (`sale_paid`, `contract_canceled`,
-`checkout_abandoned`). Webhook chega, e gravado como recebido, e nada dispara. *Saida:* use os nomes
-de `catalogo-de-eventos.md`.
+**Se o mapeamento da Greenn estiver com codigos numericos**, ele nunca casa: o sistema recebe os
+eventos da Greenn com NOME (`sale_paid`, `contract_canceled`, `checkout_abandoned`). A tela mostrava
+numeros ate 28/10/2026, entao integracao gravada antes disso pode estar assim. Webhook chega, e
+gravado como recebido, e nada dispara. *Saida:* use os nomes de `catalogo-de-eventos.md`.
 
 **Se voce escrever o evento da Eduzz com sublinhado** (`myeduzz_invoice_paid`), nao casa - o nome tem
 ponto (`myeduzz.invoice_paid`).
@@ -111,14 +111,27 @@ Azul e e-Clinica tem prefixo proprio e nao se atropelam.)
 **Se dois lembretes da e-Clinica caem no MESMO agendamento com o mesmo numero de dias de
 antecedencia**, eles disputam a mesma linha e o paciente recebe so um - o ultimo gravado vence. Isso
 vale mesmo que os filtros sejam diferentes, desde que os dois casem com aquele agendamento. Dois
-lembretes de dias diferentes convivem sem problema.
+lembretes de dias diferentes convivem sem problema. Duas linhas TOTALMENTE iguais (dias, tipo e
+filtro) sao recusadas com 422 na gravacao.
+
+**Se a automacao de lembrete da e-Clinica usar `{{contact.custom_attribute.eclinica_*}}`**, ela pode
+mandar a data de OUTRA consulta: a ficha guarda so a ultima consulta avisada (quem marcou o retorno
+no mesmo dia em que foi atendido recebe a data errada). *Saida:* `{{eclinica_lembrete.<campo>}}`.
+
+**Se voce gravar `reminder_config` ou `event_mapping` da e-Clinica so com a parte nova**, o resto do
+cliente e APAGADO: os dois campos substituem tudo. Leia com `_show` e devolva completo.
 
 ---
 
 ## Conversao para anuncio
 
-**Se voce testar arrastando o cartao para tras no funil**, nao dispara nada. So movimento para frente
-conta.
+**Se voce testar arrastando o mesmo cartao para a mesma etapa de novo**, nao dispara: e um envio por
+cartao+evento+etapa. Desde 17/09/2026 a direcao nao importa (o lead recuperado da coluna de descarte
+dispara), so a primeira entrada.
+
+**Se o lead veio de anuncio de WhatsApp e o evento aparece como "site"**, nao e falha: e o plano B da
+Meta (`fallback_reason` diz o porque - por exemplo, caixa sem conjunto de dados vinculado ou a Meta
+sem responder). A conversao foi entregue.
 
 **Se voce ligar so o Google Analytics achando que e "so medicao"**, e o Pixel e o Google Ads estiverem
 ligados, os tres disparam juntos: um movimento de cartao vira ate tres envios.
@@ -129,10 +142,23 @@ conexao revela.
 
 **Se o cartao nao tiver contato vinculado**, nao ha conversao.
 
+**Se o Purchase sair sem valor configurado**, a Meta recebe R$ 1,00 (piso desde 17/09/2026). Para o
+numero certo, use `value_strategy` `card` ou `fixed`.
+
 **Se voce ligar a etapa sem escolher o nome do evento**, ela e ignorada.
 
 **Se voce gravar uma chave fora da lista** no bloco da etapa, ela e descartada em silencio. Aceitas:
 `enabled`, `name`, `is_standard`, `value_strategy`, `value_fixed`, `currency`.
+
+---
+
+## Guru
+
+**Aviso "cancelado" com a fatura ja paga e PULADO de proposito**: o Guru cancela a tentativa de
+cobranca quando a fatura foi paga por fora, e mandar "seu pagamento nao foi aprovado" seria errado.
+
+**A recusa de PRIMEIRA compra so passou a disparar o alvo em 08/10/2026.** Eventos anteriores
+ficaram em falha no historico; reprocessar manda a mensagem de recuperacao hoje (confirme antes).
 
 ---
 

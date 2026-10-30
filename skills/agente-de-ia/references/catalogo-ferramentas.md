@@ -42,7 +42,7 @@ Todo agente ja nasce com estas. Nao dependem de nada da conta.
 | Identificador | O que faz | Quando a IA usa |
 |---|---|---|
 | `handoff` | Transfere para um atendente humano. Desliga a IA daquela conversa, abre a conversa e deixa uma nota interna com o motivo. | Cliente pede humano, ou o assunto sai do papel dela |
-| `resolve_conversation` | Encerra a conversa. | So depois do cliente confirmar que esta satisfeito. **Cuidado**: encerrar dispara a pesquisa de satisfacao daquela caixa, se ela estiver configurada |
+| `resolve_conversation` | Encerra a conversa. | So depois do cliente confirmar que esta satisfeito. **Cuidado**: encerrar dispara a pesquisa de satisfacao daquela caixa, se ela estiver configurada. Desde 15/09 o sistema RECUSA o fechamento quando a ultima fala do cliente e so cortesia ("ok", "obrigado", emoji) e quando o admin desligou esta ferramenta - inclusive pelo caminho interno de encerrar |
 | `add_label_to_conversation` | Coloca etiqueta na conversa | Classificar assunto, interesse, objecao |
 | `remove_label_from_conversation` | Tira etiqueta | Corrigir classificacao |
 | `assign_agent` | Poe um atendente como responsavel, por nome ou e-mail. A IA continua respondendo. | Direcionar sem parar o atendimento |
@@ -69,7 +69,7 @@ consegue executar.
 | Identificadores | O que faz | EXIGE na conta |
 |---|---|---|
 | `list_available_funnels`, `create_kanban_item`, `move_kanban_item`, `add_kanban_note` | Criar e mover card no funil, e anotar nele. Funil e etapa aceitam nome parcial; se dois candidatos batem, ela nao adivinha - devolve a lista | pelo menos 1 funil |
-| `view_booking_option`, `create_booking`, `reschedule_appointment` | Consultar horarios livres, marcar, remarcar e cancelar. `view_booking_option` e a UNICA fonte de horario | pelo menos 1 agenda configurada. **Sem agenda a IA nao agenda de jeito nenhum** - o modo avulso foi removido |
+| `view_booking_option`, `create_booking`, `reschedule_appointment` | Consultar horarios livres, marcar, remarcar e cancelar. `view_booking_option` e a UNICA fonte de horario. Com o codigo da agenda ela consulta mesmo em conversa SEM responsavel (lead novo de fluxo ou campanha) | pelo menos 1 agenda configurada **E** pelo menos uma das quatro ferramentas de agenda (estas tres e `view_agenda`) ligada no agente. **Sem agenda a IA nao agenda de jeito nenhum** - o modo avulso foi removido. Com as quatro desligadas, desde 14/10 o agente deixa de ser tratado como agente de agenda (sem roteiro de agendamento e sem os 8 campos de sistema do agendamento), mesmo a conta tendo agenda |
 | `view_agenda` | Ver a agenda de um atendente num dia | existe, mas **quando a conta tem agenda ela responde "use a agenda"** e nao mostra nada. Nao monte cenario contando com ela |
 | `check_agent_availability` | Diz quem esta trabalhando num horario, pelo expediente geral do atendente | expediente de atendente cadastrado. **Se a conta tem agenda, ela recusa responder** e manda usar a agenda - a agenda manda acima do expediente geral |
 | `list_media_assets`, `send_media_asset`, `lookup_media_content` | Listar, enviar e reler o conteudo de um arquivo da biblioteca | ids liberados em `config.media_asset_ids` do agente. So cadastrar nao basta |

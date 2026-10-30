@@ -32,9 +32,15 @@ Este arquivo e o catalogo das falhas que **nao dao erro**. A coisa e criada, par
 ### As etapas tambem sao substituidas por inteiro
 
 **Voce faz:** grava as etapas repetindo tres das quatro que existiam.
-**Acontece:** a quarta e EXCLUIDA. Se ela tiver cartoes, o sistema recusa dizendo que a etapa ainda tem cartoes (bom); se estiver vazia, some calada.
+**Acontece:** a quarta e EXCLUIDA. Se ela tiver cartoes, o sistema recusa com 422 `STAGE_HAS_ITEMS` (bom); se estiver vazia, some calada.
 **Sinal:** a coluna desaparece do quadro.
 **Como sair:** monte a lista de etapas a partir do que voce acabou de ler, nunca do zero. E lembre que a chave de uma etapa apagada nao deve ser reaproveitada em automacao nenhuma.
+
+### "Esvaziar a etapa antes de apagar" dispara tudo
+
+**Voce faz:** para apagar uma etapa com cartoes, transfere os cartoes com `lionchat_funnels_create_2` e depois regrava o funil sem a etapa (a receita antiga).
+**Acontece:** cada cartao transferido conta como CHEGADA na etapa de destino: dispara as automacoes da etapa, as regras da conta, os fluxos (que podem falar com o cliente), os avisos externos e as conversoes de anuncio. E a etapa de origem continua la, so vazia.
+**Como sair:** excluir etapa com cartoes e `lionchat_funnels_remove_stage`, que move em silencio e apaga a etapa. So com pedido explicito do dono.
 
 ### As listas da configuracao do Kanban tambem
 
@@ -62,15 +68,17 @@ Este arquivo e o catalogo das falhas que **nao dao erro**. A coisa e criada, par
 
 | O que voce faz | O que acontece |
 |---|---|
-| grava a automacao desligada "para ativar depois" | e DESCARTADA no proximo salvamento do funil pela tela - some do banco sem aviso |
-| grava sem o valor do gatilho | idem |
+| grava sem o valor do gatilho | e DESCARTADA no proximo salvamento do funil pela tela - some do banco sem aviso |
 | grava mover sem etapa, dar dono sem pessoa, duplicar sem funil ou etapa, avisar sistema externo sem endereco, aplicar checklist sem modelo | idem |
+| grava "Criar tarefa" sem titulo, sem responsavel ou com prazo fora da faixa | recusada na hora com 422 dizendo a posicao da regra e o campo |
+| grava a automacao desligada "para ativar depois" | ela fica guardada e NAO roda ate alguem ligar (ate outubro de 2026 a tela a apagava) |
+| grava "dar dono" com o gatilho Ganho ou Perdido | e aceita e nunca faz nada: cartao fechado nao aceita responsavel novo |
 | inventa um nome de gatilho (`status_changed`, `card_moved`, `on_enter`, `on_leave`) | o valor e SALVO sem erro e a automacao nunca roda |
 | inventa um nome de acao (`send_message`, `set_priority`) | mesma coisa |
 | espera o evento "cartao movido" na regra da CONTA | nao existe. La so ha cartao criado e cartao mudou de etapa |
 | combina "chegou na etapa" com "mover de etapa" | o proprio motor bloqueia, para nao criar vaivem infinito |
 | espera que "avisar o time" notifique alguem | ele so escreve uma linha de registro interno. Ninguem recebe nada |
-| espera que a automacao de etapa mande mensagem ao cliente | nenhuma das oito acoes envia mensagem |
+| espera que a automacao de etapa mande mensagem ao cliente | nenhuma das nove acoes envia mensagem |
 | aplica o mesmo modelo de checklist duas vezes | cria DOIS blocos iguais no cartao - nao ha verificacao de repeticao |
 | poe como responsavel alguem sem acesso ao funil | pela automacao, e ignorado em silencio; pela ferramenta direta, da erro |
 
@@ -125,11 +133,12 @@ Este arquivo e o catalogo das falhas que **nao dao erro**. A coisa e criada, par
 
 ## 8. Cartao que "sumiu"
 
-Antes de investigar dado, cheque acesso:
+Antes de investigar dado, cheque acesso e situacao:
 
-- Um vendedor comum so ve cartao cuja CONVERSA esteja numa caixa de entrada que ele acessa.
-- Cartao COM responsavel some da tela dos outros vendedores - inclusive quando alguem assume a conversa e o cartao ganha dono automaticamente. E o comportamento desejado, mas confunde.
-- Cartao Ganho ou Perdido nao aparece por padrao: existem dois botoes de mostrar ou esconder ganhos e perdidos na barra superior do quadro.
+- **Esta adiado?** Cartao adiado sai da coluna e so aparece com o botao **Adiados** ligado. Leia `effective_status` e `snoozed_until` no cartao: ele volta sozinho na data.
+- Quem nao e administrador so ve cartao cuja CONVERSA esteja numa caixa de entrada que ele acessa (salvo o cartao atribuido a ele e o sem dono de funil que ele acessa).
+- A visibilidade tem tres niveis (ver `catalogo-de-campos.md`, secao 14): atendente sem cargo personalizado ve todos os cartoes dos funis que alcanca; cargo personalizado sem opcao de Kanban ve so os dele e os sem dono; cargo com o menu Kanban oculto nao ve nenhum.
+- Cartao Ganho ou Perdido nao aparece por padrao: existem botoes de mostrar ou esconder ganhos, perdidos e adiados na barra superior do quadro.
 - Funil arquivado some das abas - e some tambem para o agente de IA.
 
 ## 9. Ganho, perdido e a data do desfecho
@@ -137,7 +146,9 @@ Antes de investigar dado, cheque acesso:
 | O que voce faz | O que acontece |
 |---|---|
 | marca Ganho um cartao que ja estava Ganho | a data NAO e empurrada para frente - o carimbo so e gravado quando o estado MUDA |
-| reabre um cartao Ganho para "aberto" | a data do ganho, quem marcou e a quem foi creditado sao APAGADOS: aquele ganho some dos relatorios |
+| reabre um cartao Ganho para "aberto" | a data do ganho, quem marcou, a quem foi creditado e o co-participante sao APAGADOS: aquele ganho some dos relatorios |
+| marca hoje como Ganho uma venda que fechou no mes passado | conta no mes de HOJE. Use `retroativo_em` junto com o Ganho, ou o "Importar vendas" (`registrar-vendas.md`) |
+| tenta corrigir a data de um ganho mandando Ganho de novo com outra data | nada muda: o carimbo so e escrito quando o estado muda. Reabra (`open`) e marque de novo com a data certa |
 | tenta trocar o responsavel de um cartao Ganho ou Perdido | e recusado - os responsaveis ficam congelados |
 | conta os ganhos do mes pela data de atualizacao ou de criacao | erro de semanas. Use o filtro por data de desfecho junto com o estado ganho |
 | espera que a acao "criar cartao" reaproveite um cartao ja fechado | nao reaproveita, de proposito. A pessoa que volta ganha cartao NOVO e o fechado fica como historico. Ja a acao de MOVER continua movendo cartao fechado |
@@ -149,7 +160,8 @@ Antes de investigar dado, cheque acesso:
 |---|---|
 | importa com as automacoes ligadas | **cada linha conta como cartao novo**: 5.000 linhas viram 5.000 disparos da automacao de cartao criado e do evento de etapa. Se a acao for avisar um sistema externo, sao 5.000 envios; se for dar dono, todos caem na mesma pessoa; se for duplicar, sao 5.000 copias. E, com o envio de conversao para anuncio ligado, milhares de conversoes falsas de negocio antigo |
 | importa com telefone sem o codigo do pais | o telefone e considerado invalido e o cartao nasce SEM contato e SEM conversa, em silencio. O cartao fica orfao e nunca fala com ninguem |
-| espera trazer valor, prioridade ou estado na planilha | **nao da.** A importacao so aproveita seis colunas: titulo, descricao, nome do cliente, e-mail, telefone e etapa. Todo cartao nasce ABERTO, sem valor e sem prioridade - e ninguem avisa que as outras colunas foram ignoradas |
+| espera trazer valor, prioridade ou estado na planilha | **nao da.** A importacao aproveita titulo, descricao, nome do cliente, e-mail, telefone, etapa e (desde 23/10/2026) campos do cartao e atributos do contato escolhidos na tela. Todo cartao nasce ABERTO, sem valor e sem prioridade. Venda ja fechada entra pelo "Importar vendas" (`registrar-vendas.md`) |
+| liga atributo do CONTATO na importacao de cartoes | contato que ja existia tem o valor SUBSTITUIDO, e isso conta como alteracao: acorda o fluxo "Atributo do contato muda" e o aviso externo de contato atualizado, uma vez por linha |
 | passa de 10.000 linhas | a importacao e recusada |
 | deixa a linha sem titulo, sem nome e sem telefone | so essa linha e recusada, com o erro no relatorio da importacao. Havendo nome ou telefone, eles viram o titulo do cartao |
 
@@ -160,7 +172,8 @@ Antes de investigar dado, cheque acesso:
 | O que voce supoe | A realidade |
 |---|---|
 | "quem gerencia o Kanban pode excluir cartao" | nao. Excluir e uma permissao separada |
-| "quem gerencia o Kanban pode baixar a planilha" | nao. Exportar e importar e outra permissao separada. Ela expoe todos os leads, valores e telefones do funil |
+| "quem gerencia o Kanban pode baixar a planilha" | nao. Exportar e importar e outra permissao separada (e e ela que aplica o "Importar vendas"). Ela expoe todos os leads, valores e telefones do funil |
+| "quem gerencia o Kanban pode usar o Analisar com IA" | nao. E a permissao `kanban_ai_analyze` (ou administrador), com o recurso de plano ligado e a chave da OpenAI da conta |
 | "lista de pessoas vazia fecha o funil" | ao contrario: lista efetiva vazia deixa o funil ABERTO a todos. Time sem membros conta como vazio |
 | "excluir o vendedor mexe so nos cartoes dele" | hoje sim - mas ate agosto de 2026 havia um defeito que arrastava junto todo cartao SEM responsavel: numa conta, 1.289 cartoes trocaram de dono e nenhum era do vendedor excluido. Ja corrigido. Mesmo assim, leia a previa de reatribuicao antes de confirmar |
 
@@ -168,12 +181,12 @@ Antes de investigar dado, cheque acesso:
 
 | Pedido | Realidade |
 |---|---|
-| aviso quando o cartao ficar parado | nao existe gatilho. So a medicao "cartoes parados" no relatorio e o aviso para sistema externo |
+| aviso quando o cartao ficar parado | EXISTE desde 28/10/2026, mas so pelo FLUXO (gatilho "Card aberto na etapa" ou "Card aberto no funil"). Na automacao de etapa nao existe |
 | notificacao no sininho de Kanban | nao existe nenhum tipo |
 | o modelo de mensagem da etapa disparando sozinho | nao. So sai por acao manual, no menu do cartao |
 | gatilho de saida de etapa | nao existe. So chegada |
 | gatilho de exclusao de cartao | nao existe |
-| exclusao de cartoes em massa | nao existe |
+| exclusao de cartoes em massa | existe so na TELA (selecao de cartoes no quadro). Pelo conector nao |
 | botao de duplicar funil | **existe na tela** (Kanban > engrenagem > Funis, o icone de copiar ao lado de cada funil) e nasce como "Nome (copia)". **Cuidado:** a copia ganha CHAVES NOVAS de etapa e as automacoes vem copiadas apontando para as chaves ANTIGAS - elas nunca disparam no funil novo. Nao ha ferramenta para isso; pelo conector e ler o funil e criar outro, o que e criacao e exige confirmacao |
 | botao de duplicar cartao na tela | existe no codigo e nao esta ligado a nenhum menu. Quem duplica de verdade e a automacao de etapa |
 | campo do funil chamado "atributos globais" | existe e **nenhuma tela do cartao le**. Os campos do cartao vem da configuracao do Kanban da conta |
